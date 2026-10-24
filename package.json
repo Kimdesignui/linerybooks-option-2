@@ -8,6 +8,7 @@
     "dev:classic": "vite --mode classic --port 5173",
     "dev:enhanced": "vite --mode enhanced --port 5174",
     "build": "tsc -b && vite build",
+    "build:enhanced": "tsc -b && vite build --mode enhanced",
     "preview": "vite preview"
   },
   "dependencies": {
