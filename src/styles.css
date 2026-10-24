@@ -356,8 +356,8 @@ button { cursor: pointer; }
   .hero { height: auto; margin: 0 auto 24px; }
   .collections { gap: 24px; padding: 0; }
   .collection { padding: 62px 16px 20px; }
-  .ribbon-title { --ribbon-height: 52px; font-size: 20px; line-height: 30px; }
-  .ribbon-title-label { padding: 8px 14px 14px; font-size: 20px; line-height: 30px; }
+  .ribbon-title { --ribbon-height: 44px; font-size: 18px; line-height: 26px; }
+  .ribbon-title-label { padding: 5px 8px 10px; font-size: 18px; line-height: 26px; }
   .product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .product-grid .product-card:nth-child(n+5) { display: none; }
   .site-footer { min-height: 363px; margin-top: 24px; padding: 0 32px; }
@@ -473,11 +473,11 @@ button { cursor: pointer; }
   .hero img { border-radius: 0; }
   .collections { gap: 24px; padding: 0 var(--page-gutter); }
   .collection { min-height: 0; padding: 58px 12px 18px; border-radius: 12px; }
-  .ribbon-title { --ribbon-height: 48px; top: 0; font-size: 16px; line-height: 26px; letter-spacing: .5px; }
+  .ribbon-title { --ribbon-height: 42px; top: 0; font-size: 16px; line-height: 24px; letter-spacing: .5px; }
   .ribbon-title .ribbon { width: calc(var(--ribbon-height) * 1.1065); }
   .ribbon-title .ribbon-left { margin-right: -2px; }
   .ribbon-title .ribbon-right { margin-left: -2px; }
-  .ribbon-title-label { padding: 7px 6.5px 13px; font-size: 16px; line-height: 26px; }
+  .ribbon-title-label { padding: 4px 4px 9px; font-size: 16px; line-height: 24px; }
   .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
   .product-card { padding-top: 0; }
   .product-surface { padding: 7px 8px; gap: 8px; border-radius: 18px; }
