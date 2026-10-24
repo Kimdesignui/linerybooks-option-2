@@ -128,13 +128,15 @@ function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, onQuickVi
       <p className="mobile-menu-title">Menu</p>
       <button className="mobile-menu-close" aria-label="Close menu" onClick={onClose}>×</button>
     </div>
-    <form className="mobile-menu-search" onSubmit={(event) => { event.preventDefault(); onSearch(query) }}>
-      <img src="/assets/icon-search.svg" alt="" aria-hidden="true" />
-      <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search books" aria-label="Search books" />
-    </form>
-    <div className="mobile-menu-quick-actions" aria-label="Account actions">
-      <a className="mobile-menu-icon" href="#login" aria-label="Log in"><i className="bi bi-person" aria-hidden="true" /></a>
-      <a className="mobile-menu-icon" href="#wishlist" aria-label="Wishlist"><i className="bi bi-heart" aria-hidden="true" /></a>
+    <div className="mobile-menu-tools">
+      <form className="mobile-menu-search" onSubmit={(event) => { event.preventDefault(); onSearch(query) }}>
+        <img src="/assets/icon-search.svg" alt="" aria-hidden="true" />
+        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search books" aria-label="Search books" />
+      </form>
+      <div className="mobile-menu-quick-actions" aria-label="Account actions">
+        <a className="mobile-menu-icon" href="#login" aria-label="Log in"><i className="bi bi-person" aria-hidden="true" /></a>
+        <a className="mobile-menu-icon" href="#wishlist" aria-label="Wishlist"><i className="bi bi-heart" aria-hidden="true" /></a>
+      </div>
     </div>
     <button className="mobile-menu-item mobile-menu-level-0 mobile-menu-quick-view" onClick={() => { onQuickView(); onClose() }}><span className="mobile-menu-text">Quick view</span><span aria-hidden="true">→</span></button>
     <section className="mobile-menu-section" aria-labelledby="mobile-shop-heading">
@@ -326,8 +328,9 @@ function Header({ cartCount, onMenu, onShop, onShopHover, onAuthors, onAllBooks,
           <button className="search-toggle" type="button" aria-label="Tìm kiếm" aria-expanded={searchOpen} onClick={() => setSearchOpen((open) => !open)}><img src="/assets/icon-search.svg" alt="" /></button>
           <input className="search-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search books" aria-label="Search books" autoFocus={searchOpen} onKeyDown={(event) => { if (event.key === 'Escape') setSearchOpen(false) }} />
         </form>
-        <button className={`quick-view-button ${quickViewOpen ? 'is-active' : ''}`} type="button" onClick={onQuickView} aria-expanded={quickViewOpen}>Quick view</button>
+        <a className="icon-button wishlist-button" href="#wishlist" aria-label="Wishlist"><i className="bi bi-heart" aria-hidden="true" /></a>
         <a className="icon-button account-button" href="#login" aria-label="Đăng nhập"><i className="bi bi-person" aria-hidden="true" /></a>
+        <button className={`quick-view-button ${quickViewOpen ? 'is-active' : ''}`} type="button" onClick={onQuickView} aria-expanded={quickViewOpen}>Quick view</button>
         <a className="icon-button cart-button" href="#cart" aria-label={`Giỏ hàng, ${cartCount} sản phẩm`}><img src="/assets/icon-cart.svg" alt="" /><span>{cartCount}</span></a>
       </div>
     </div>
