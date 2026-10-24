@@ -449,7 +449,7 @@ button { cursor: pointer; }
   .mobile-menu { top: 0; width: min(320px, calc(100vw - var(--page-gutter))); height: 100vh; max-height: 100vh; padding: 24px var(--page-gutter) 28px; }
   .directory-page { padding: 28px var(--page-gutter) 44px; }
   .author-page { padding: 14px var(--page-gutter) 12px; }
-  .author-page + .site-footer { margin-top: 8px; }
+  .author-page + .site-footer { margin: 8px 20px 6px; }
   .author-page-content { padding: 0 16px 28px; border-radius: 16px; }
   .author-breadcrumb { margin-bottom: 12px; }
   .author-profile-hero { margin: 0; grid-template-columns: 1fr; gap: 24px; }
