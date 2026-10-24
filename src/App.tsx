@@ -489,9 +489,6 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
           <img className="book-detail-cover" src={galleryImages[activeImage]} alt={product.title} />
           <span className="book-detail-zoom"><i className="bi bi-arrows-fullscreen" aria-hidden="true" /> View full image</span>
         </button>
-        <div className="book-detail-thumbnails" aria-label="Book images">
-          {galleryImages.map((image, index) => <button key={image} className={`book-detail-thumbnail ${index === activeImage ? 'is-active' : ''}`} type="button" aria-label={`View image ${index + 1}`} onClick={() => setActiveImage(index)}><img src={image} alt="" loading="lazy" decoding="async" /></button>)}
-        </div>
       </div>
       <div className="book-detail-copy">
         <p className="book-detail-kicker">Linery Books</p>
@@ -558,6 +555,9 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
     {lightboxOpen && <div className="book-lightbox" role="dialog" aria-modal="true" aria-label={`Image gallery for ${product.title}`} onClick={() => setLightboxOpen(false)}>
       <div className="book-lightbox-frame" onClick={(event) => event.stopPropagation()}>
         <img className="book-lightbox-image" src={galleryImages[activeImage]} alt={product.title} />
+        <div className="book-lightbox-thumbnails" aria-label="Book images">
+          {galleryImages.map((image, index) => <button key={`${image}-${index}`} className={`book-lightbox-thumbnail ${index === activeImage ? 'is-active' : ''}`} type="button" aria-label={`View image ${index + 1}`} onClick={() => setActiveImage(index)}><img src={image} alt="" loading="lazy" decoding="async" /></button>)}
+        </div>
         <button className="book-lightbox-close" type="button" aria-label="Close gallery" onClick={() => setLightboxOpen(false)}><i className="bi bi-x-lg" aria-hidden="true" /></button>
         {galleryImages.length > 1 && <><button className="book-lightbox-nav book-lightbox-prev" type="button" aria-label="Previous image" onClick={() => setActiveImage((current) => (current - 1 + galleryImages.length) % galleryImages.length)}><i className="bi bi-chevron-left" aria-hidden="true" /></button><button className="book-lightbox-nav book-lightbox-next" type="button" aria-label="Next image" onClick={() => setActiveImage((current) => (current + 1) % galleryImages.length)}><i className="bi bi-chevron-right" aria-hidden="true" /></button></>}
       </div>
