@@ -39,6 +39,7 @@ button { cursor: pointer; }
 .brand { font-size: 24px; line-height: 1.1; letter-spacing: .02em; text-decoration: none; font-weight: 600; }
 .desktop-nav { display: flex; gap: 0; font-family: var(--font-display); font-size: 15px; }
 .desktop-nav a { text-decoration: none; }
+.desktop-nav .nav-action-link { color: inherit; }
 .nav-link { border: 0; padding: 4px 12px; background: transparent; cursor: pointer; font-size: inherit; font-weight: 600; letter-spacing: .26px; line-height: 19.5px; }
 .nav-link.is-active { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .header-actions { position: relative; justify-self: end; display: flex; gap: 10px; }
@@ -46,7 +47,6 @@ button { cursor: pointer; }
 .quick-view-button:hover, .quick-view-button:focus-visible, .quick-view-button.is-active { border-color: #fff; background: rgba(255,255,255,.16); color: #fff; }
 .icon-button, .menu-button { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: 1px solid rgba(255,255,255,.62); border-radius: 999px; background: transparent; color: #fff; text-decoration: none; }
 .icon-button img { width: 20px; height: 20px; display: block; }
-.wishlist-button i, .account-button i { font-size: 20px; line-height: 1; }
 .search-control { display: flex; align-items: center; width: 40px; height: 40px; overflow: hidden; border: 1px solid rgba(255,255,255,.62); border-radius: 999px; background: transparent; transition: width 280ms cubic-bezier(.22, .61, .36, 1), border-color 200ms ease, background-color 200ms ease; }
 .search-control.is-open { width: 220px; border-color: rgba(255,255,255,.62); background: rgba(255,255,255,.08); }
 .search-toggle { flex: 0 0 40px; position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: 0; background: transparent; color: #fff; }
@@ -86,7 +86,8 @@ button { cursor: pointer; }
 .menu-column a { color: var(--color-ink); font-size: 14px; line-height: 1.7; text-decoration: none; background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: left 100%; background-size: 0 1px; transition: background-size 260ms ease; }
 .menu-column a:hover, .menu-column a:focus-visible { color: inherit; background-size: 100% 1px; }
 .directory-page { background: #fff; color: var(--color-ink); padding: 50px max(24px, calc((100% - 1240px) / 2)) 70px; }
-.author-page { min-height: 620px; padding: 24px var(--page-gutter) 64px; background: var(--color-olive); color: var(--color-ink); }
+.author-page { min-height: 620px; padding: 24px var(--page-gutter) 28px; background: var(--color-olive); color: var(--color-ink); }
+.author-page + .site-footer { margin-top: 12px; }
 .author-page-content { width: min(1240px, 100%); margin: 0 auto; padding: 0 48px 56px; overflow: hidden; border-radius: 24px; background: var(--color-paper); }
 .author-breadcrumb { display: flex; align-items: center; width: auto; margin: 0 0 14px; gap: 8px; color: #999; font: 400 14px/1.4 var(--font-caslon); }
 .author-breadcrumb-link { padding: 0; border: 0; background: transparent; color: var(--color-olive); font: inherit; text-decoration: underline; text-underline-offset: 3px; }
@@ -403,7 +404,7 @@ button { cursor: pointer; }
   .footer-art-frame { padding-block: 48px; box-sizing: border-box; }
   .menu-columns, .directory-grid .menu-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
   .directory-page { padding: 36px 24px 54px; }
-  .author-page { padding: 18px var(--page-gutter) 48px; }
+  .author-page { padding: 18px var(--page-gutter) 24px; }
   .author-page-content { padding: 0 24px 36px; border-radius: 20px; }
   .author-profile-hero { margin: 0 -24px; grid-template-columns: minmax(250px, .88fr) minmax(0, 1.12fr); gap: 36px; }
   .author-profile-copy { padding-top: 22px; padding-right: 24px; }
@@ -436,12 +437,12 @@ button { cursor: pointer; }
   .header-actions { gap: 6px; }
   .search-control { display: none; }
   .quick-view-button { min-height: 36px; padding: 0 8px; font-size: 11px; }
-  .wishlist-button, .account-button { display: none; }
   .cart-button { width: 40px; }
   .mobile-backdrop { inset: 0; }
   .mobile-menu { top: 0; width: min(320px, calc(100vw - var(--page-gutter))); height: 100vh; max-height: 100vh; padding: 24px var(--page-gutter) 28px; }
   .directory-page { padding: 28px var(--page-gutter) 44px; }
-  .author-page { padding: 14px var(--page-gutter) 36px; }
+  .author-page { padding: 14px var(--page-gutter) 12px; }
+  .author-page + .site-footer { margin-top: 8px; }
   .author-page-content { padding: 0 16px 28px; border-radius: 16px; }
   .author-breadcrumb { margin-bottom: 12px; }
   .author-profile-hero { margin: 0; grid-template-columns: 1fr; gap: 24px; }
