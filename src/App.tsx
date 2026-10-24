@@ -183,7 +183,7 @@ function AuthorsDirectory() {
 function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack: () => void } & ProductCardActions) {
   const authorBooks = products.filter((product) => product.author === author)
   const [authorBookPage, setAuthorBookPage] = useState(0)
-  const authorBookPageSize = 4
+  const authorBookPageSize = 3
   const authorBookPageCount = Math.max(1, Math.ceil(authorBooks.length / authorBookPageSize))
   const visibleAuthorBooks = authorBooks.slice(authorBookPage * authorBookPageSize, (authorBookPage + 1) * authorBookPageSize)
   const profile = authorProfiles[author] ?? {

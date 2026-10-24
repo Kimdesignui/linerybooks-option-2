@@ -117,7 +117,7 @@ button { cursor: pointer; }
 .author-books { max-width: 1120px; margin: 72px auto 0; padding-top: 30px; border-top: 1px solid #d7d5c9; }
 .author-books h2 { margin: 0 0 18px; font: 400 28px/1.2 var(--font-display); }
 .author-books h2 span { color: inherit; font-size: inherit; }
-.author-books-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.author-books-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .author-books-grid.author-books-grid-count-1 { grid-template-columns: minmax(0, 220px); }
 .author-books-grid.author-books-grid-count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .author-books-grid.author-books-grid-count-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -412,7 +412,7 @@ button { cursor: pointer; }
   .author-profile-hero h1 { font-size: 38px; }
   .author-life-facts { margin-top: 24px; }
   .author-books { margin-top: 54px; }
-  .author-books-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .author-books-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .author-books-grid .product-info h3 { font-size: 13px; }
   .author-books-grid .product-price { font-size: 14px; }
   .search-page { padding: 18px var(--page-gutter) 48px; }
