@@ -4,7 +4,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 
 type Product = { image: string; title: string; author: string; price: string; categories: string[] }
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
-type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'news' | 'news-detail'
+type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'news' | 'news-detail'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const isEnhancedVariant = import.meta.env.VITE_LINERY_VARIANT === 'enhanced'
 const welcomeStorageKey = 'linery-welcome-seen-v3'
@@ -424,7 +424,7 @@ function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 
   </main>
 }
 
-function Header({ cartCount, onMenu, onShop, onShopHover, onAuthors, onAllBooks, onSearch, onQuickView, quickViewOpen, quickViewAvailable, activeView, shopOpen, onDesktopMenuHover }: { cartCount: number; onMenu: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAuthors: () => void; onAllBooks: () => void; onSearch: (query: string) => void; onQuickView: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean; onDesktopMenuHover: (open: boolean) => void }) {
+function Header({ cartCount, onMenu, onShop, onShopHover, onAuthors, onAllBooks, onSearch, onQuickView, onCart, quickViewOpen, quickViewAvailable, activeView, shopOpen, onDesktopMenuHover }: { cartCount: number; onMenu: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAuthors: () => void; onAllBooks: () => void; onSearch: (query: string) => void; onQuickView: () => void; onCart: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean; onDesktopMenuHover: (open: boolean) => void }) {
   const headerRef = useRef<HTMLElement | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -456,7 +456,7 @@ function Header({ cartCount, onMenu, onShop, onShopHover, onAuthors, onAllBooks,
           <input className="search-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search books" aria-label="Search books" autoFocus={searchOpen} onKeyDown={(event) => { if (event.key === 'Escape') setSearchOpen(false) }} />
         </form>
         {quickViewAvailable && <button className={`quick-view-button ${quickViewOpen ? 'is-active' : ''}`} type="button" onClick={onQuickView} aria-expanded={quickViewOpen}>Quick view</button>}
-        <a className="icon-button cart-button" href="#cart" aria-label={`Giỏ hàng, ${cartCount} sản phẩm`}><img src="/assets/icon-cart.svg" alt="" /><span>{cartCount}</span></a>
+        <a className="icon-button cart-button" href="/cart" aria-label={`Giỏ hàng, ${cartCount} sản phẩm`} onClick={(event) => { event.preventDefault(); onCart() }}><img src="/assets/icon-cart.svg" alt="" />{cartCount > 0 && <span>{cartCount}</span>}</a>
       </div>
     </div>
     {shopOpen && activeView !== 'authors' && <ShopMenu onAllBooks={onAllBooks} />}
@@ -732,11 +732,23 @@ function Footer() {
   </footer>
 }
 
+function CartPage({ onHome }: { onHome: () => void }) {
+  return <main className="cart-page">
+    <section className="cart-empty-card" aria-labelledby="cart-empty-title">
+      <p className="cart-kicker">Your basket</p>
+        <img className="cart-empty-illustration" src="/assets/cart-empty-blue.png" alt="Empty shopping cart" />
+      <h1 id="cart-empty-title">Your cart is empty</h1>
+      <p className="cart-empty-message">There are no products in your cart.</p>
+      <a className="cart-empty-action" href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Continue shopping</a>
+    </section>
+  </main>
+}
+
 export function App() {
   const [welcomeOpen, setWelcomeOpen] = useState(() => isEnhancedVariant && window.localStorage.getItem(welcomeStorageKey) !== 'true')
   const [language, setLanguage] = useState<'en' | 'vi'>(() => window.localStorage.getItem('linery-language') === 'vi' ? 'vi' : 'en')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [view, setView] = useState<View>(() => window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
+  const [view, setView] = useState<View>(() => window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('query') ?? '')
   const [selectedAuthor, setSelectedAuthor] = useState(() => getAuthorFromPath(window.location.pathname))
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(() => getNewsFromPath(window.location.pathname))
@@ -744,7 +756,7 @@ export function App() {
   const [heroMotionOpen, setHeroMotionOpen] = useState(false)
   const [heroMotionKey, setHeroMotionKey] = useState(0)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [cartCount, setCartCount] = useState(13)
+  const [cartCount, setCartCount] = useState(0)
   const [quickViewOpen, setQuickViewOpen] = useState(false)
   const [quickViewAvailable, setQuickViewAvailable] = useState(() => window.matchMedia('(min-width: 1101px)').matches)
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
@@ -756,7 +768,7 @@ export function App() {
       setSearchQuery(new URLSearchParams(window.location.search).get('query') ?? '')
       setSelectedAuthor(getAuthorFromPath(window.location.pathname))
       setSelectedNews(getNewsFromPath(window.location.pathname))
-      setView(window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
+      setView(window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
     }
     window.addEventListener('popstate', syncRoute)
     return () => window.removeEventListener('popstate', syncRoute)
@@ -843,6 +855,14 @@ export function App() {
     setMenuOpen(false)
   }
 
+  const showCart = () => {
+    navigateTo('/cart')
+    setView('cart')
+    setShopOpen(false)
+    setMenuOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const showSearch = (query: string) => {
     const trimmedQuery = query.trim()
     if (!trimmedQuery) return
@@ -920,10 +940,10 @@ export function App() {
   return <>
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
     <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'quick-view-active' : ''}`}>
-    <Header cartCount={cartCount} onMenu={() => setMenuOpen(!menuOpen)} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAuthors={showAuthors} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (open) setHeroMotionKey((key) => key + 1); else setShopOpen(false) }} />
+    <Header cartCount={cartCount} onMenu={() => setMenuOpen(!menuOpen)} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAuthors={showAuthors} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (open) setHeroMotionKey((key) => key + 1); else setShopOpen(false) }} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
     <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} onClose={() => setMenuOpen(false)} />
-    {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
+    {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : view === 'cart' ? <CartPage onHome={showHome} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
       <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration">
         <div className="hero-art">
           <img className="hero-art-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" />
