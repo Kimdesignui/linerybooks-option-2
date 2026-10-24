@@ -88,8 +88,11 @@ button { cursor: pointer; }
 .directory-page { background: #fff; color: var(--color-ink); padding: 50px max(24px, calc((100% - 1240px) / 2)) 70px; }
 .author-page { min-height: 620px; padding: 24px var(--page-gutter) 64px; background: var(--color-olive); color: var(--color-ink); }
 .author-page-content { width: min(1240px, 100%); margin: 0 auto; padding: 0 48px 56px; overflow: hidden; border-radius: 24px; background: var(--color-paper); }
-.author-back-link { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 6px 0; border: 0; border-bottom: 1px solid var(--color-olive); background: transparent; color: var(--color-olive); font-family: var(--font-caslon); font-size: 14px; }
-.author-breadcrumb { display: flex; width: min(1240px, 100%); margin: 0 auto 12px; border-bottom-color: rgba(255,255,255,.72); color: #fff; }
+.author-breadcrumb { display: flex; align-items: center; width: min(1240px, 100%); margin: 0 auto 16px; gap: 8px; color: rgba(255,255,255,.78); font: 400 14px/1.4 var(--font-caslon); }
+.author-breadcrumb-link { padding: 0; border: 0; background: transparent; color: #fff; font: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.author-breadcrumb-link:hover, .author-breadcrumb-link:focus-visible { color: #fff; }
+.author-breadcrumb-separator { color: rgba(255,255,255,.5); }
+.author-breadcrumb-current { color: #fff; }
 .author-profile-hero { max-width: none; margin: 0 -48px; display: grid; grid-template-columns: minmax(340px, .92fr) minmax(0, 1.08fr); gap: 72px; align-items: start; }
 .author-profile-media { min-width: 0; }
 .author-portrait-frame { width: 100%; aspect-ratio: 4 / 5; margin: 0; overflow: hidden; border-radius: 0 0 42px 0; background: #f1eee3; }

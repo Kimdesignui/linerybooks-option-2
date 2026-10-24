@@ -196,7 +196,11 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
   }
 
   return <main className="author-page">
-    <button className="author-back-link author-breadcrumb" type="button" onClick={onBack}>← Back to authors</button>
+    <nav className="author-breadcrumb" aria-label="Breadcrumb">
+      <button className="author-breadcrumb-link" type="button" onClick={onBack}>Authors</button>
+      <span className="author-breadcrumb-separator" aria-hidden="true">/</span>
+      <span className="author-breadcrumb-current" aria-current="page">{author}</span>
+    </nav>
     <div className="author-page-content">
       <section className="author-profile-hero" aria-labelledby="author-profile-title">
         <div className="author-profile-media">
