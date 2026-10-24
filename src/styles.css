@@ -136,8 +136,9 @@ button { cursor: pointer; }
 
 @media (min-width: 901px) {
   .author-page-content { padding-bottom: 32px; }
-  .author-portrait-frame { height: clamp(400px, calc(100vh - 300px), 640px); aspect-ratio: auto; }
+  .author-portrait-frame { height: clamp(400px, calc(100vh - 345px), 600px); aspect-ratio: auto; }
   .author-books { margin-top: 32px; padding-top: 22px; }
+  .author-books-grid .product-card { max-width: 152px; }
 }
 
 .search-page { min-height: 620px; padding: 24px var(--page-gutter) 64px; background: var(--color-olive); color: var(--color-ink); }
