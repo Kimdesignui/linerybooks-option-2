@@ -925,7 +925,12 @@ export function App() {
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
     <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} onClose={() => setMenuOpen(false)} />
     {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
-      <section className="hero scroll-section" aria-label="Linery bookstore illustration"><img src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" /></section>
+      <section className={`hero scroll-section ${shopOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration">
+        <div className="hero-art">
+          <img className="hero-art-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" />
+          <img key={shopOpen ? 'hero-shop-motion' : 'hero-shop-idle'} className="hero-art-hover" src="/assets/hero-children-shop-hover.webp" alt="" aria-hidden="true" />
+        </div>
+      </section>
       <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} />)}</div>
     <LineryNewsSection language={language} onOpen={showNewsDetail} onSeeMore={showNews} />
     </main>}
