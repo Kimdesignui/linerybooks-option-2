@@ -118,7 +118,7 @@ button { cursor: pointer; }
 .author-books h2 { margin: 0 0 18px; font: 400 28px/1.2 var(--font-display); }
 .author-books h2 span { color: inherit; font-size: inherit; }
 .author-books-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.author-books-grid.author-books-grid-count-1 { grid-template-columns: minmax(0, 1fr); }
+.author-books-grid.author-books-grid-count-1 { grid-template-columns: minmax(0, 220px); }
 .author-books-grid.author-books-grid-count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .author-books-grid.author-books-grid-count-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .author-books-grid .product-card { padding-top: 0; }
