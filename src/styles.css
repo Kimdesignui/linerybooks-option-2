@@ -209,8 +209,9 @@ button { cursor: pointer; }
 @media (min-width: 901px) {
   .page-shell.quick-view-active { margin-right: min(390px, calc(100vw - 24px)); overflow-x: visible; }
 }
-.book-detail-breadcrumb { display: flex; align-items: center; gap: 10px; margin-bottom: 48px; color: #777; font-size: 13px; }
-.book-detail-breadcrumb button { padding: 0; border: 0; background: transparent; color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px; }
+.book-detail-breadcrumb { display: flex; align-items: center; min-width: 0; gap: 10px; margin-bottom: 48px; color: #777; font-size: 13px; white-space: nowrap; overflow: hidden; }
+.book-detail-breadcrumb button { flex: 0 0 auto; padding: 0; border: 0; background: transparent; color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px; }
+.book-detail-breadcrumb > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .book-detail-hero { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: minmax(260px, .82fr) minmax(360px, 1fr); gap: 96px; align-items: start; }
 .book-detail-gallery { min-width: 0; }
 .book-detail-cover-wrap { position: relative; width: 100%; display: flex; justify-content: center; padding: 0; border: 0; background: transparent; color: inherit; cursor: zoom-in; }

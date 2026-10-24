@@ -491,7 +491,6 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         </button>
       </div>
       <div className="book-detail-copy">
-        <p className="book-detail-kicker">Linery Books</p>
         <h1>{product.title}</h1>
         <p className="book-detail-author">by <a href={demoAuthorPath} onClick={(event) => { event.preventDefault(); onAuthor('Edward W. Said') }}>{product.author}</a></p>
         <div className="book-detail-rule" />
