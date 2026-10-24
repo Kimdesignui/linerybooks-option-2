@@ -79,9 +79,9 @@ const shopCategories: ShopCategory[] = [
   { label: 'Linery Press', children: [{ label: 'Our Publications' }, { label: 'News & Events' }] },
   { label: 'About us' },
 ]
-const shopOnlyCategories = shopCategories.filter((category) => category.label !== 'Authors')
+const shopOnlyCategories = shopCategories.filter((category) => !['Authors', 'Books'].includes(category.label))
 const desktopShopColumns: MenuColumn[] = [
-  { eyebrow: 'Books', links: ['All books'] },
+  { eyebrow: '', links: ['All books'] },
   { eyebrow: 'Fiction', links: ['Novels', 'Short stories', 'Poetry & Drama'] },
   { eyebrow: 'Non-fiction', links: ['Essays', 'Research & Studies', 'Memoir & Biography'] },
 ]
@@ -110,8 +110,8 @@ function ShopMenu({ onAllBooks }: { onAllBooks: () => void }) {
   return <section className="shop-menu" aria-label="Shop categories">
     <div className="shop-menu-inner">
       <div className="shop-menu-columns">
-        {desktopShopColumns.map((column) => <div className="shop-menu-column" key={column.eyebrow}>
-          <p className="menu-eyebrow">{column.eyebrow}</p>
+        {desktopShopColumns.map((column) => <div className="shop-menu-column" key={column.eyebrow || column.links[0]}>
+          {column.eyebrow && <p className="menu-eyebrow">{column.eyebrow}</p>}
           {column.links.map((link) => <a href={link === 'All books' ? '/all-books' : `#${link.toLowerCase().replaceAll(' ', '-')}`} key={link} onClick={link === 'All books' ? (event) => { event.preventDefault(); onAllBooks() } : undefined}>{link}</a>)}
           </div>)}
       </div>
@@ -337,7 +337,7 @@ function Header({ cartCount, onMenu, onShop, onShopHover, onAuthors, onAllBooks,
   return <header ref={headerRef} className="site-header" onMouseLeave={() => onShopHover(false)}>
     <div className="header-inner">
       <button className="menu-button" aria-label="Mở menu" onClick={onMenu}><Menu /></button>
-      <nav className="desktop-nav" aria-label="Điều hướng chính"><button className={`nav-link ${activeView !== 'authors' ? 'is-active' : ''}`} onClick={onShop} onMouseEnter={() => onShopHover(true)} onFocus={() => onShopHover(true)} aria-current={activeView !== 'authors' ? 'page' : undefined} aria-expanded={shopOpen}>Shop</button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''}`} onClick={onAuthors}>Authors</button><a className="nav-link nav-action-link" href="#wishlist">Wishlist</a><a className="nav-link nav-action-link" href="#login">Login</a></nav>
+      <nav className="desktop-nav" aria-label="Điều hướng chính"><button className="nav-link shop-nav-link" onClick={onShop} onMouseEnter={() => onShopHover(true)} onFocus={() => onShopHover(true)} aria-expanded={shopOpen}>Shop</button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''}`} onClick={onAuthors}>Authors</button><a className="nav-link nav-action-link" href="#wishlist">Wishlist</a><a className="nav-link nav-action-link" href="#login">Login</a></nav>
       <a className="brand" href="/" aria-label="Linery Bookstore home">LINERY BOOKSTORE</a>
       <div className="header-actions">
         <form className={`search-control ${searchOpen ? 'is-open' : ''}`} onSubmit={submitSearch}>
@@ -632,7 +632,7 @@ export function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [cartCount, setCartCount] = useState(13)
   const [quickViewOpen, setQuickViewOpen] = useState(false)
-  const [quickViewAvailable, setQuickViewAvailable] = useState(() => window.matchMedia('(min-width: 901px)').matches)
+  const [quickViewAvailable, setQuickViewAvailable] = useState(() => window.matchMedia('(min-width: 1101px)').matches)
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
   const previewCloseTimer = useRef<number | null>(null)
 
@@ -666,7 +666,7 @@ export function App() {
   }, [welcomeOpen])
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(min-width: 901px)')
+    const mediaQuery = window.matchMedia('(min-width: 1101px)')
     const syncQuickViewAvailability = () => setQuickViewAvailable(mediaQuery.matches)
     syncQuickViewAvailability()
     mediaQuery.addEventListener('change', syncQuickViewAvailability)
