@@ -297,28 +297,15 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
 }
 
 function AllBooksPage({ onHome, ...actions }: { onHome: () => void } & ProductCardActions) {
-  const allBooks = Array.from({ length: 5 }, (_, rowIndex) => products.map((product, productIndex) => ({
+  const allBooks = Array.from({ length: 28 }, (_, rowIndex) => products.map((product, productIndex) => ({
     ...product,
     key: `${rowIndex}-${productIndex}-${product.title}`,
   }))).flat()
-  const [isCompactListing, setIsCompactListing] = useState(() => window.matchMedia('(max-width: 900px)').matches)
   const [currentPage, setCurrentPage] = useState(1)
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 900px)')
-    const handleMediaChange = () => {
-      setIsCompactListing(mediaQuery.matches)
-      setCurrentPage(1)
-    }
-    handleMediaChange()
-    mediaQuery.addEventListener('change', handleMediaChange)
-    return () => mediaQuery.removeEventListener('change', handleMediaChange)
-  }, [])
-
-  const pageSize = isCompactListing ? 16 : allBooks.length
+  const pageSize = 24
   const pageCount = Math.ceil(allBooks.length / pageSize)
   const visibleBooks = allBooks.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-  const paginationItems: Array<number | 'ellipsis'> = pageCount <= 7
+  const paginationItems: Array<number | 'ellipsis'> = pageCount <= 4
     ? Array.from({ length: pageCount }, (_, index) => index + 1)
     : currentPage <= 3
       ? [1, 2, 3, 'ellipsis', pageCount]
@@ -761,6 +748,7 @@ export function App() {
   const [quickViewOpen, setQuickViewOpen] = useState(false)
   const [quickViewAvailable, setQuickViewAvailable] = useState(() => window.matchMedia('(min-width: 1101px)').matches)
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
+  const [showScrollTop, setShowScrollTop] = useState(false)
   const previewCloseTimer = useRef<number | null>(null)
 
   useEffect(() => {
@@ -807,6 +795,13 @@ export function App() {
       setQuickViewOpen(false)
     }
   }, [quickViewAvailable, quickViewOpen])
+
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 420)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const selectLanguage = (language: 'en' | 'vi') => {
     window.localStorage.setItem('linery-language', language)
@@ -939,6 +934,9 @@ export function App() {
     <LineryNewsSection language={language} onOpen={showNewsDetail} onSeeMore={showNews} />
     </main>}
     <Footer />
+    <button className={`scroll-to-top ${showScrollTop ? 'is-visible' : ''}`} type="button" aria-label="Scroll to top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} tabIndex={showScrollTop ? 0 : -1}>
+      <i className="bi bi-arrow-up" aria-hidden="true" />
+    </button>
     </div>
     {quickViewAvailable && quickViewOpen && <BookPreview product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} />}
   </>

@@ -34,6 +34,9 @@ body.welcome-open { overflow: hidden; }
 button, a { color: inherit; font: inherit; }
 button { cursor: pointer; }
 .page-shell { min-height: 100vh; overflow-x: clip; background: var(--color-olive); transition: margin-right 320ms cubic-bezier(.22,.61,.36,1); }
+.scroll-to-top { position: fixed; right: 24px; bottom: 24px; z-index: 24; display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; padding: 0; border: 1px solid rgba(255,255,255,.72); border-radius: 50%; background: var(--color-olive); color: #fff; font-size: 18px; line-height: 1; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(10px); transition: opacity 180ms ease, visibility 0s linear 180ms, transform 180ms ease, background-color 180ms ease; }
+.scroll-to-top.is-visible { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); transition-delay: 0s; }
+.scroll-to-top:hover, .scroll-to-top:focus-visible { background: var(--color-terra); outline: 2px solid rgba(255,255,255,.45); outline-offset: 3px; }
 .site-header { position: sticky; top: 0; z-index: 20; min-height: var(--header-height); height: auto; color: #fff; background: var(--color-olive); }
 .header-inner { max-width: 1240px; height: var(--header-height); min-height: var(--header-height); margin: auto; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 var(--page-gutter); }
 .brand { font-size: 24px; line-height: 1.1; letter-spacing: .02em; text-decoration: none; font-weight: 600; }
@@ -524,6 +527,7 @@ button { cursor: pointer; }
   :root { --page-gutter: 16px; --header-height: 64px; }
   .welcome-content { width: 100%; padding: 24px 20px 28px; }
   .site-header { min-height: var(--header-height); height: var(--header-height); }
+  .scroll-to-top { right: 16px; bottom: 16px; width: 42px; height: 42px; font-size: 16px; }
   .header-inner { width: 100%; padding: 0 var(--page-gutter); grid-template-columns: auto 1fr auto; }
   .brand { font-size: 18px; justify-self: center; }
   .header-actions { gap: 6px; }
