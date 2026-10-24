@@ -132,7 +132,7 @@ const shopCategories: ShopCategory[] = [
   { label: 'Linery Press', children: [{ label: 'Our Publications' }, { label: 'News & Events' }] },
   { label: 'About us' },
 ]
-const shopOnlyCategories = shopCategories.filter((category) => !['Authors', 'Books'].includes(category.label))
+const shopOnlyCategories = shopCategories.filter((category) => category.label !== 'Authors')
 const desktopShopColumns: MenuColumn[] = [
   { eyebrow: '', links: ['All books'] },
   { eyebrow: 'Fiction', links: ['Novels', 'Short stories', 'Poetry & Drama'] },
