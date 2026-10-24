@@ -156,7 +156,7 @@ button { cursor: pointer; }
 .news-card h3 { margin: 0; font: 400 20px/1.16 var(--font-display); }
 .news-card-excerpt { margin: 8px 0 0; color: #777; font: 400 14px/1.45 var(--font-body); }
 .news-card:hover h3, .news-card:focus-visible h3 { color: var(--color-olive); }
-.news-see-more { display: inline-flex; align-items: center; gap: 8px; margin: 24px auto 0; color: var(--color-olive); font: italic 15px/1.4 var(--font-caslon); text-decoration: none; }
+.news-see-more { display: flex; width: fit-content; margin: 24px auto 0; color: var(--color-olive); font: italic 15px/1.4 var(--font-caslon); text-decoration: none; }
 .news-see-more:hover, .news-see-more:focus-visible { color: var(--color-ink); text-decoration: underline; text-underline-offset: 4px; }
 .news-page { min-height: 620px; padding: 0 var(--page-gutter) 56px; background: var(--color-olive); color: var(--color-ink); }
 .news-page-breadcrumb { width: min(1240px, 100%); margin: 0 auto; }

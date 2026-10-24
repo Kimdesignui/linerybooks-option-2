@@ -390,7 +390,7 @@ function LineryNewsSection({ language, onOpen, onSeeMore }: { language: 'en' | '
   return <section className="news-module" aria-labelledby="linery-news-title">
     <RibbonTitle title="LINERY NEWS" id="linery-news-title" heading />
     <div className="news-grid">{visibleItems.map((item) => <NewsCard key={item.slug} item={item} language={language} onOpen={onOpen} />)}</div>
-    <a className="news-see-more" href="/news" onClick={(event) => { event.preventDefault(); onSeeMore() }}>See more <i className="bi bi-arrow-right" aria-hidden="true" /></a>
+    <a className="news-see-more" href="/news" onClick={(event) => { event.preventDefault(); onSeeMore() }}>See more</a>
   </section>
 }
 
