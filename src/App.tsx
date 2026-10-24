@@ -208,11 +208,11 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
             <div><dt>Catalogue</dt><dd>Linery Books</dd></div>
             <div><dt>Selected works</dt><dd>{authorBooks.length} {authorBooks.length === 1 ? 'title' : 'titles'}</dd></div>
           </dl>
+          <section className="author-books" aria-labelledby="author-books-title">
+            <h2 id="author-books-title">Books</h2>
+            <div className="author-books-grid">{authorBooks.map((product) => <ProductCard key={product.title} product={product} {...actions} />)}</div>
+          </section>
         </div>
-      </section>
-      <section className="author-books" aria-labelledby="author-books-title">
-        <h2 id="author-books-title">Books</h2>
-        <div className="author-books-grid">{authorBooks.map((product) => <ProductCard key={product.title} product={product} {...actions} />)}</div>
       </section>
     </div>
   </main>
