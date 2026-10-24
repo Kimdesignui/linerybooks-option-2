@@ -135,7 +135,10 @@ button { cursor: pointer; }
 .author-books-carousel button:disabled { opacity: .35; }
 
 @media (min-width: 901px) {
-  .author-page-content { padding-bottom: 32px; }
+  .author-page-content {
+    min-height: calc(100vh - var(--header-height) - 36px);
+    padding-bottom: 32px;
+  }
   .author-portrait-frame { height: clamp(400px, calc(100vh - 345px), 600px); aspect-ratio: auto; }
   .author-books { margin-top: 32px; padding-top: 22px; }
   .author-books-grid .product-card { max-width: 152px; }
