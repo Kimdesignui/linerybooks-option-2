@@ -6,7 +6,7 @@ type Product = { image: string; title: string; author: string; price: string; ca
 type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const isEnhancedVariant = import.meta.env.VITE_LINERY_VARIANT === 'enhanced'
-const welcomeStorageKey = 'linery-welcome-seen-v2'
+const welcomeStorageKey = 'linery-welcome-seen-v3'
 
 function WelcomeScreen({ onSelectLanguage }: { onSelectLanguage: (language: 'en' | 'vi') => void }) {
   return <section className="welcome-screen" aria-label="Welcome to Linery Bookstore">
