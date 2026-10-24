@@ -133,6 +133,13 @@ button { cursor: pointer; }
 .author-books-carousel { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 20px; color: var(--color-olive); font-family: var(--font-body); font-size: 12px; }
 .author-books-carousel button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--color-olive); border-radius: 50%; background: transparent; color: var(--color-olive); }
 .author-books-carousel button:disabled { opacity: .35; }
+
+@media (min-width: 901px) {
+  .author-page-content { padding-bottom: 32px; }
+  .author-portrait-frame { height: clamp(400px, calc(100vh - 390px), 640px); aspect-ratio: auto; }
+  .author-books { margin-top: 32px; padding-top: 22px; }
+}
+
 .search-page { min-height: 620px; padding: 24px var(--page-gutter) 64px; background: var(--color-olive); color: var(--color-ink); }
 .search-page-content { width: min(1240px, 100%); min-height: 540px; margin: 0 auto; padding: 56px 24px 34px; border-radius: 24px; background: var(--color-paper); }
 .search-page-kicker { margin: 0 0 10px; color: var(--color-olive); font: 400 13px/1.4 var(--font-display); letter-spacing: .12em; text-transform: uppercase; }
