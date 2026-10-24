@@ -494,9 +494,8 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         <h1>{product.title}</h1>
         <p className="book-detail-author">by <a href={demoAuthorPath} onClick={(event) => { event.preventDefault(); onAuthor('Edward W. Said') }}>{product.author}</a></p>
         <div className="book-detail-rule" />
-        <h2>Format</h2>
-        <div className="book-formats"><button className="is-selected">Paperback</button><button>Digital</button></div>
-        <div className="book-detail-category"><span>Category</span><div>{product.categories.map((category) => <a key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}<i className="bi bi-arrow-up-right" aria-hidden="true" /></a>)}</div></div>
+        <p className="book-detail-format"><span>Format:</span> Paperback</p>
+        <div className="book-detail-category"><span>Classification</span><div>{product.categories.map((category) => <a key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}<i className="bi bi-arrow-up-right" aria-hidden="true" /></a>)}</div></div>
         <div className="book-detail-purchase">
           <p className="book-detail-price">{product.price}</p>
           <button className="book-add-button" type="button">Add to basket</button>
