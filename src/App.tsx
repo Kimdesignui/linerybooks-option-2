@@ -3,7 +3,8 @@ import { Menu } from 'lucide-react'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
 type Product = { image: string; title: string; author: string; price: string; categories: string[] }
-type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail'
+type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
+type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'news' | 'news-detail'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const isEnhancedVariant = import.meta.env.VITE_LINERY_VARIANT === 'enhanced'
 const welcomeStorageKey = 'linery-welcome-seen-v3'
@@ -42,6 +43,58 @@ const products: Product[] = [
   { image: '/assets/cover-derrida.png', title: 'Derrida: A Very Short Introduction', author: 'Simon Glendinning', price: '280.000₫', categories: ['Non-fiction', 'Literary Criticism'] },
   { image: '/assets/cover-black-folk.png', title: 'The Souls of Black Folk', author: 'W. E. B. Du Bois', price: '310.000₫', categories: ['Essays', 'History'] },
 ]
+
+const newsItems: NewsItem[] = [
+  {
+    image: '/assets/news-instagram-01.jpg',
+    title: 'Women read about women',
+    titleVi: 'Phụ nữ đọc về phụ nữ',
+    date: 'Book notes',
+    kicker: 'Book notes',
+    slug: 'women-read-about-women',
+    excerpt: 'A reading list about women, independence, identity, and the many ways literature helps us see ourselves.',
+    excerptVi: 'Một danh sách đọc về phụ nữ, sự độc lập, bản sắc và cách văn chương giúp chúng ta nhìn lại chính mình.',
+    body: ['There is something fascinating about reading books written about women: the more we read, the more we begin to notice the beliefs and conventions that have shaped everyday life.', 'These books open new ways of seeing the world. They do not offer one definition of womanhood; they make space for each reader to find her own answers, on her own terms.'],
+    bodyVi: ['Có điều gì đó thật đặc biệt khi đọc những cuốn sách viết về phụ nữ: càng đọc, ta càng nhận ra những niềm tin và quy ước đã định hình đời sống thường ngày.', 'Những cuốn sách này mở ra nhiều cách nhìn mới về thế giới. Chúng không đưa ra một định nghĩa duy nhất về phụ nữ, mà tạo không gian để mỗi độc giả tự tìm câu trả lời cho mình.'],
+  },
+  {
+    image: '/assets/news-instagram-02.jpg',
+    title: 'Toni Morrison: memory and the past',
+    titleVi: 'Toni Morrison: ký ức và quá khứ',
+    date: 'Book notes',
+    kicker: 'Book notes',
+    slug: 'toni-morrison-memory-and-the-past',
+    excerpt: 'Toni Morrison writes about memory as something that stays with the body, the home, and the people we become.',
+    excerptVi: 'Toni Morrison viết về ký ức như một điều ở lại trong cơ thể, mái nhà và con người mà chúng ta trở thành.',
+    body: ['In Morrison’s books, the past is never truly still. It returns through a house, a scar, a touch, a fear, or an apparently ordinary act of love.', 'Her characters are difficult to reduce to a line between right and wrong. They carry loss, violence, survival, and the long work of learning how to belong to themselves.'],
+    bodyVi: ['Trong sách của Morrison, quá khứ chưa bao giờ thực sự đứng yên. Nó trở lại qua một ngôi nhà, vết sẹo, cái chạm, nỗi sợ hoặc một hành động yêu thương tưởng như bình thường.', 'Các nhân vật của bà không dễ bị phân định đơn giản giữa đúng và sai. Họ mang theo mất mát, bạo lực, sự sinh tồn và hành trình dài để học cách thuộc về chính mình.'],
+  },
+  {
+    image: '/assets/news-instagram-03.jpg',
+    title: 'The Temple of Golden Pavilion',
+    titleVi: 'Kim Các Tự',
+    date: 'From the shelf',
+    kicker: 'From the shelf',
+    slug: 'the-temple-of-golden-pavilion',
+    excerpt: 'Yukio Mishima’s novel follows a young man whose ideal of beauty becomes impossible to live with.',
+    excerptVi: 'Cuốn tiểu thuyết của Yukio Mishima kể về một chàng trai không thể sống yên với lý tưởng về cái đẹp của mình.',
+    body: ['Mizoguchi grows up loving the Golden Pavilion through his father’s stories before he has ever seen it. When he finally reaches Kyoto, the imagined temple begins to stand between him and ordinary life.', 'Mishima turns a historical event into a study of beauty, obsession, and the distance between an ideal and the world that surrounds it.'],
+    bodyVi: ['Mizoguchi lớn lên với tình yêu dành cho Kim Các Tự qua những câu chuyện của cha trước cả khi được nhìn thấy ngôi chùa. Khi đến Kyoto, ngôi chùa trong tưởng tượng bắt đầu đứng giữa cậu và cuộc sống bình thường.', 'Mishima biến một sự kiện lịch sử thành câu chuyện về cái đẹp, sự ám ảnh và khoảng cách giữa lý tưởng với thế giới xung quanh.'],
+  },
+  {
+    image: '/assets/news-instagram-04.jpg',
+    title: 'The Sound of Waves',
+    titleVi: 'Âm thanh của sóng',
+    date: 'From the shelf',
+    kicker: 'From the shelf',
+    slug: 'the-sound-of-waves',
+    excerpt: 'A quiet island love story, told with the tenderness and rhythm of the sea.',
+    excerptVi: 'Một câu chuyện tình lặng lẽ trên đảo, được kể bằng sự dịu dàng và nhịp điệu của biển.',
+    body: ['Set on the secluded island of Utajima, the novel follows Shinji and Hatsue as their love unfolds among fishing boats, sea winds, and the endless rhythm of the waves.', 'Nature is never merely a backdrop. The island’s isolation gives small gestures meaning and reveals a gentler side of Mishima’s writing.'],
+    bodyVi: ['Lấy bối cảnh hòn đảo biệt lập Utajima, tiểu thuyết theo chân Shinji và Hatsue khi tình yêu của họ nảy nở giữa thuyền đánh cá, gió biển và nhịp sóng bất tận.', 'Thiên nhiên không chỉ là phông nền. Sự biệt lập của hòn đảo khiến những cử chỉ nhỏ trở nên có ý nghĩa và cho thấy một mặt dịu dàng hơn trong văn chương Mishima.'],
+  },
+]
+const getNewsFromPath = (pathname: string) => newsItems.find((item) => item.slug === pathname.split('/').pop()) ?? null
 
 const authorProfiles: Record<string, { image: string; born: string; died: string; bornPlace: string; diedPlace: string; bio: string }> = {
   'Edward W. Said': {
@@ -310,6 +363,68 @@ function SearchResultsPage({ query, ...actions }: { query: string } & ProductCar
         <p>We couldn’t find a book matching “{query}”. Try another title, author, or category.</p>
       </section>}
     </div>
+  </main>
+}
+
+function NewsCard({ item, language, onOpen }: { item: NewsItem; language: 'en' | 'vi'; onOpen: (item: NewsItem) => void }) {
+  const title = language === 'vi' ? item.titleVi : item.title
+  const excerpt = language === 'vi' ? item.excerptVi : item.excerpt
+  return <a className="news-card" href={`/news/${item.slug}`} onClick={(event) => { event.preventDefault(); onOpen(item) }}>
+    <img className="news-card-image" src={item.image} alt="" />
+    <p className="news-card-kicker">{item.date}</p>
+    <h3>{title}</h3>
+    <p className="news-card-excerpt">{excerpt}</p>
+  </a>
+}
+
+function LineryNewsSection({ language, onOpen }: { language: 'en' | 'vi'; onOpen: (item: NewsItem) => void }) {
+  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 900px)').matches)
+  const [page, setPage] = useState(0)
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 900px)')
+    const handleChange = () => { setMobile(mediaQuery.matches); setPage(0) }
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
+  const pageSize = mobile ? 3 : 4
+  const pageCount = Math.ceil(newsItems.length / pageSize)
+  const visibleItems = newsItems.slice(page * pageSize, (page + 1) * pageSize)
+  return <section className="news-module" aria-labelledby="linery-news-title">
+    <RibbonTitle title="LINERY NEWS" id="linery-news-title" heading />
+    <div className="news-grid">{visibleItems.map((item) => <NewsCard key={item.slug} item={item} language={language} onOpen={onOpen} />)}</div>
+    {pageCount > 1 && <nav className="news-pagination" aria-label="Linery News carousel">
+      {Array.from({ length: pageCount }, (_, index) => <button type="button" key={index} className={page === index ? 'is-current' : ''} aria-label={`View news slide ${index + 1}`} aria-current={page === index ? 'page' : undefined} onClick={() => setPage(index)} />)}
+    </nav>}
+  </section>
+}
+
+function NewsPage({ language, onOpen }: { language: 'en' | 'vi'; onOpen: (item: NewsItem) => void }) {
+  return <main className="news-page">
+    <nav className="news-breadcrumb news-breadcrumb-olive news-page-breadcrumb" aria-label="Breadcrumb"><a href="/#home">Home</a><span aria-hidden="true">/</span><span>News</span></nav>
+    <div className="news-page-content">
+      <h1>{language === 'vi' ? 'Tin tức' : 'News'}</h1>
+      <div className="news-grid news-grid-page">{newsItems.map((item) => <NewsCard key={item.slug} item={item} language={language} onOpen={onOpen} />)}</div>
+    </div>
+  </main>
+}
+
+function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 'en' | 'vi'; onBack: () => void }) {
+  const title = language === 'vi' ? item.titleVi : item.title
+  const excerpt = language === 'vi' ? item.excerptVi : item.excerpt
+  const body = language === 'vi' ? item.bodyVi : item.body
+  return <main className="news-detail-page">
+    <section className="news-detail-card" aria-labelledby="news-detail-title">
+      <div className="news-detail-media"><img src={item.image} alt={title} /></div>
+      <div className="news-detail-copy">
+        <nav className="news-breadcrumb" aria-label="Breadcrumb"><button type="button" onClick={onBack}>News</button><span aria-hidden="true">/</span><span>{title}</span></nav>
+        <p className="news-detail-kicker">{item.kicker}</p>
+        <h1 id="news-detail-title">{title}</h1>
+        <p className="news-detail-excerpt">{excerpt}</p>
+        <div className="news-detail-rule" />
+        <div className="news-detail-body">{body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
+        <a className="news-source-link" href="https://www.instagram.com/linery_bookstore/" target="_blank" rel="noreferrer">View the original post <i className="bi bi-arrow-up-right" aria-hidden="true" /></a>
+      </div>
+    </section>
   </main>
 }
 
@@ -625,9 +740,10 @@ export function App() {
   const [welcomeOpen, setWelcomeOpen] = useState(() => isEnhancedVariant && window.localStorage.getItem(welcomeStorageKey) !== 'true')
   const [language, setLanguage] = useState<'en' | 'vi'>(() => window.localStorage.getItem('linery-language') === 'vi' ? 'vi' : 'en')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [view, setView] = useState<View>(() => window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
+  const [view, setView] = useState<View>(() => window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('query') ?? '')
   const [selectedAuthor, setSelectedAuthor] = useState(() => getAuthorFromPath(window.location.pathname))
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(() => getNewsFromPath(window.location.pathname))
   const [shopOpen, setShopOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [cartCount, setCartCount] = useState(13)
@@ -640,7 +756,8 @@ export function App() {
     const syncRoute = () => {
       setSearchQuery(new URLSearchParams(window.location.search).get('query') ?? '')
       setSelectedAuthor(getAuthorFromPath(window.location.pathname))
-      setView(window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
+      setSelectedNews(getNewsFromPath(window.location.pathname))
+      setView(window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
     }
     window.addEventListener('popstate', syncRoute)
     return () => window.removeEventListener('popstate', syncRoute)
@@ -729,6 +846,22 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const showNews = () => {
+    navigateTo('/news')
+    setSelectedNews(null)
+    setView('news')
+    setShopOpen(false)
+    setMenuOpen(false)
+  }
+
+  const showNewsDetail = (item: NewsItem) => {
+    navigateTo(`/news/${item.slug}`)
+    setSelectedNews(item)
+    setView('news-detail')
+    setShopOpen(false)
+    setMenuOpen(false)
+  }
+
   const showAuthor = (author: string) => {
     navigateTo(`/authors/${authorSlug(author)}`)
     setSelectedAuthor(author)
@@ -782,9 +915,10 @@ export function App() {
     <Header cartCount={cartCount} onMenu={() => setMenuOpen(!menuOpen)} onShop={showShop} onShopHover={(open) => { if (view !== 'authors') setShopOpen(open) }} onAuthors={showAuthors} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
     <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} onClose={() => setMenuOpen(false)} />
-    {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : <main>
+    {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
       <section className="hero scroll-section" aria-label="Linery bookstore illustration"><img src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" /></section>
       <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} />)}</div>
+      <LineryNewsSection language={language} onOpen={showNewsDetail} />
     </main>}
     <Footer />
     </div>
