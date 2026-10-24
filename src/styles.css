@@ -446,7 +446,7 @@ button { cursor: pointer; }
   .author-breadcrumb { margin-bottom: 12px; }
   .author-profile-hero { margin: 0; grid-template-columns: 1fr; gap: 24px; }
   .author-profile-heading { padding-top: 0; }
-  .author-portrait-frame { border-radius: 0 0 28px 0; }
+  .author-portrait-frame { width: calc(100% + 16px); margin-left: -16px; border-radius: 0 0 28px 0; }
   .author-life-facts { margin-top: 22px; padding: 0; gap: 16px; }
   .author-life-facts dd { font-size: 23px; }
   .author-life-facts small { font-size: 11px; }
