@@ -136,7 +136,7 @@ button { cursor: pointer; }
 
 @media (min-width: 901px) {
   .author-page-content { padding-bottom: 32px; }
-  .author-portrait-frame { height: clamp(400px, calc(100vh - 390px), 640px); aspect-ratio: auto; }
+  .author-portrait-frame { height: clamp(400px, calc(100vh - 300px), 640px); aspect-ratio: auto; }
   .author-books { margin-top: 32px; padding-top: 22px; }
 }
 
