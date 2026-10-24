@@ -172,15 +172,20 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
     <div className="author-page-content">
       <button className="author-back-link" type="button" onClick={onBack}>← Back to authors</button>
       <section className="author-profile-hero" aria-labelledby="author-profile-title">
-        <div className="author-avatar" aria-hidden="true"><i className="bi bi-person-circle" /></div>
-        <div>
+        <div className="author-profile-heading">
           <p className="author-page-kicker">Author</p>
           <h1 id="author-profile-title">{author}</h1>
+        </div>
+        <div className="author-profile-copy">
           <p className="author-profile-bio">{author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.</p>
+          <dl className="author-profile-facts">
+            <div><dt>Catalogue</dt><dd>Linery Books</dd></div>
+            <div><dt>Selected works</dt><dd>{authorBooks.length} {authorBooks.length === 1 ? 'title' : 'titles'}</dd></div>
+          </dl>
         </div>
       </section>
       <section className="author-books" aria-labelledby="author-books-title">
-        <h2 id="author-books-title">Books by {author}</h2>
+        <h2 id="author-books-title">Books</h2>
         <div className="author-books-grid">{authorBooks.map((product) => <ProductCard key={product.title} product={product} {...actions} />)}</div>
       </section>
     </div>
