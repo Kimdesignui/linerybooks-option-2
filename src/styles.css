@@ -88,11 +88,11 @@ button { cursor: pointer; }
 .directory-page { background: #fff; color: var(--color-ink); padding: 50px max(24px, calc((100% - 1240px) / 2)) 70px; }
 .author-page { min-height: 620px; padding: 24px var(--page-gutter) 64px; background: var(--color-olive); color: var(--color-ink); }
 .author-page-content { width: min(1240px, 100%); margin: 0 auto; padding: 0 48px 56px; overflow: hidden; border-radius: 24px; background: var(--color-paper); }
-.author-breadcrumb { display: flex; align-items: center; width: min(1240px, 100%); margin: 0 auto 16px; gap: 8px; color: rgba(255,255,255,.78); font: 400 14px/1.4 var(--font-caslon); }
-.author-breadcrumb-link { padding: 0; border: 0; background: transparent; color: #fff; font: inherit; text-decoration: underline; text-underline-offset: 3px; }
-.author-breadcrumb-link:hover, .author-breadcrumb-link:focus-visible { color: #fff; }
-.author-breadcrumb-separator { color: rgba(255,255,255,.5); }
-.author-breadcrumb-current { color: #fff; }
+.author-breadcrumb { display: flex; align-items: center; width: auto; margin: 0 0 14px; gap: 8px; color: #999; font: 400 14px/1.4 var(--font-caslon); }
+.author-breadcrumb-link { padding: 0; border: 0; background: transparent; color: var(--color-olive); font: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.author-breadcrumb-link:hover, .author-breadcrumb-link:focus-visible { color: var(--color-ink); }
+.author-breadcrumb-separator { color: #aaa; }
+.author-breadcrumb-current { color: var(--color-ink); }
 .author-profile-hero { max-width: none; margin: 0 -48px; display: grid; grid-template-columns: minmax(340px, .92fr) minmax(0, 1.08fr); gap: 72px; align-items: start; }
 .author-profile-media { min-width: 0; }
 .author-portrait-frame { width: 100%; aspect-ratio: 4 / 5; margin: 0; overflow: hidden; border-radius: 0 0 42px 0; background: #f1eee3; }
@@ -105,11 +105,10 @@ button { cursor: pointer; }
 .author-life-facts dt { margin-bottom: 6px; color: #777; font: 400 11px/1.3 var(--font-body); letter-spacing: .12em; text-transform: uppercase; }
 .author-life-facts dd { margin: 0; color: #0c5f83; font: 400 clamp(22px, 2.4vw, 32px)/1.05 var(--font-display); text-transform: uppercase; }
 .author-life-facts small { display: block; margin-top: 8px; color: #777; font: 400 12px/1.4 var(--font-body); }
-.author-page-kicker { margin: 0 0 10px; color: var(--color-olive); font: 400 13px/1.4 var(--font-display); letter-spacing: .12em; text-transform: uppercase; }
 .author-profile-hero h1 { margin: 0; font: 400 clamp(42px, 4vw, 64px)/1.05 var(--font-display); }
 .author-profile-heading { padding-top: 4px; }
 .author-profile-copy { max-width: 680px; padding-top: 40px; padding-right: 48px; }
-.author-profile-bio { margin: 28px 0 0; color: #555; font: 400 16px/1.65 var(--font-body); }
+.author-profile-bio { margin: 28px 0 0; color: #555; font: 400 14px/1.65 var(--font-body); }
 .author-profile-facts { max-width: 520px; margin: 28px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
 .author-profile-facts div { padding-top: 10px; border-top: 1px solid #d7d5c9; }
 .author-profile-facts dt { color: #888; font: 400 12px/1.4 var(--font-display); letter-spacing: .08em; text-transform: uppercase; }
@@ -444,7 +443,7 @@ button { cursor: pointer; }
   .directory-page { padding: 28px var(--page-gutter) 44px; }
   .author-page { padding: 14px var(--page-gutter) 36px; }
   .author-page-content { padding: 0 16px 28px; border-radius: 16px; }
-  .author-breadcrumb { margin-bottom: 10px; }
+  .author-breadcrumb { margin-bottom: 12px; }
   .author-profile-hero { margin: 0; grid-template-columns: 1fr; gap: 24px; }
   .author-profile-heading { padding-top: 0; }
   .author-portrait-frame { border-radius: 0 0 28px 0; }
@@ -453,7 +452,7 @@ button { cursor: pointer; }
   .author-life-facts small { font-size: 11px; }
   .author-profile-copy { padding-top: 0; padding-right: 0; }
   .author-profile-hero h1 { font-size: 34px; }
-  .author-profile-bio { margin-top: 18px; font-size: 15px; }
+  .author-profile-bio { margin-top: 18px; font-size: 13px; }
   .author-profile-facts { margin-top: 22px; gap: 12px 16px; }
   .author-books { margin-top: 42px; padding-top: 22px; }
   .author-books h2 { font-size: 21px; }

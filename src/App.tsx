@@ -196,11 +196,6 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
   }
 
   return <main className="author-page">
-    <nav className="author-breadcrumb" aria-label="Breadcrumb">
-      <button className="author-breadcrumb-link" type="button" onClick={onBack}>Authors</button>
-      <span className="author-breadcrumb-separator" aria-hidden="true">/</span>
-      <span className="author-breadcrumb-current" aria-current="page">{author}</span>
-    </nav>
     <div className="author-page-content">
       <section className="author-profile-hero" aria-labelledby="author-profile-title">
         <div className="author-profile-media">
@@ -213,7 +208,11 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
           </dl>
         </div>
         <div className="author-profile-copy">
-          <p className="author-page-kicker">Author</p>
+          <nav className="author-breadcrumb" aria-label="Breadcrumb">
+            <button className="author-breadcrumb-link" type="button" onClick={onBack}>Authors</button>
+            <span className="author-breadcrumb-separator" aria-hidden="true">/</span>
+            <span className="author-breadcrumb-current" aria-current="page">{author}</span>
+          </nav>
           <h1 id="author-profile-title">{author}</h1>
           <p className="author-profile-bio">{profile.bio}</p>
           <dl className="author-profile-facts">
