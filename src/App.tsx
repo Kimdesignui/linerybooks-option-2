@@ -265,6 +265,13 @@ function AllBooksPage({ onHome, ...actions }: { onHome: () => void } & ProductCa
   const pageSize = isCompactListing ? 16 : allBooks.length
   const pageCount = Math.ceil(allBooks.length / pageSize)
   const visibleBooks = allBooks.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const paginationItems: Array<number | 'ellipsis'> = pageCount <= 7
+    ? Array.from({ length: pageCount }, (_, index) => index + 1)
+    : currentPage <= 3
+      ? [1, 2, 3, 'ellipsis', pageCount]
+      : currentPage >= pageCount - 2
+        ? [1, 'ellipsis', pageCount - 2, pageCount - 1, pageCount]
+        : [1, 'ellipsis', currentPage, 'ellipsis', pageCount]
 
   return <main className="all-books-page">
     <div className="all-books-content">
@@ -273,11 +280,13 @@ function AllBooksPage({ onHome, ...actions }: { onHome: () => void } & ProductCa
       <section className="all-books-panel" aria-labelledby="all-books-title">
         <RibbonTitle title="ALL BOOKS" id="all-books-title" heading />
         <div className="all-books-grid">{visibleBooks.map((product) => <ProductCard key={product.key} product={product} {...actions} />)}</div>
-        <nav className="all-books-pagination" aria-label="All books pages">
+        {pageCount > 1 && <nav className="all-books-pagination" aria-label="All books pages">
           <button type="button" aria-label="Previous page" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}><i className="bi bi-chevron-left" aria-hidden="true" /></button>
-          {Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => <button key={page} type="button" className={page === currentPage ? 'is-current' : ''} aria-current={page === currentPage ? 'page' : undefined} onClick={() => setCurrentPage(page)}>{page}</button>)}
+          {paginationItems.map((item, index) => item === 'ellipsis'
+            ? <span key={`ellipsis-${index}`} className="all-books-pagination-ellipsis" aria-hidden="true">...</span>
+            : <button key={item} type="button" className={item === currentPage ? 'is-current' : ''} aria-current={item === currentPage ? 'page' : undefined} onClick={() => setCurrentPage(item)}>{item}</button>)}
           <button type="button" aria-label="Next page" disabled={currentPage === pageCount} onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}><i className="bi bi-chevron-right" aria-hidden="true" /></button>
-        </nav>
+        </nav>}
       </section>
     </div>
   </main>
