@@ -132,6 +132,10 @@ function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, onQuickVi
       <img src="/assets/icon-search.svg" alt="" aria-hidden="true" />
       <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search books" aria-label="Search books" />
     </form>
+    <div className="mobile-menu-quick-actions" aria-label="Account actions">
+      <a className="mobile-menu-icon" href="#login" aria-label="Log in"><i className="bi bi-person" aria-hidden="true" /></a>
+      <a className="mobile-menu-icon" href="#wishlist" aria-label="Wishlist"><i className="bi bi-heart" aria-hidden="true" /></a>
+    </div>
     <button className="mobile-menu-item mobile-menu-level-0 mobile-menu-quick-view" onClick={() => { onQuickView(); onClose() }}><span className="mobile-menu-text">Quick view</span><span aria-hidden="true">→</span></button>
     <section className="mobile-menu-section" aria-labelledby="mobile-shop-heading">
       <h2 id="mobile-shop-heading" className="mobile-menu-section-title">Shop</h2>
@@ -188,8 +192,8 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
   }
 
   return <main className="author-page">
+    <button className="author-back-link author-breadcrumb" type="button" onClick={onBack}>← Back to authors</button>
     <div className="author-page-content">
-      <button className="author-back-link" type="button" onClick={onBack}>← Back to authors</button>
       <section className="author-profile-hero" aria-labelledby="author-profile-title">
         <div className="author-profile-media">
           <figure className="author-portrait-frame">
