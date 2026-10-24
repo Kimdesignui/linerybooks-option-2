@@ -182,6 +182,10 @@ function AuthorsDirectory() {
 
 function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack: () => void } & ProductCardActions) {
   const authorBooks = products.filter((product) => product.author === author)
+  const [authorBookPage, setAuthorBookPage] = useState(0)
+  const authorBookPageSize = 4
+  const authorBookPageCount = Math.max(1, Math.ceil(authorBooks.length / authorBookPageSize))
+  const visibleAuthorBooks = authorBooks.slice(authorBookPage * authorBookPageSize, (authorBookPage + 1) * authorBookPageSize)
   const profile = authorProfiles[author] ?? {
     image: '',
     born: '—',
@@ -213,8 +217,13 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
             <div><dt>Selected works</dt><dd>{authorBooks.length} {authorBooks.length === 1 ? 'title' : 'titles'}</dd></div>
           </dl>
           <section className="author-books" aria-labelledby="author-books-title">
-            <h2 id="author-books-title">Books</h2>
-            <div className="author-books-grid">{authorBooks.map((product) => <ProductCard key={product.title} product={product} {...actions} />)}</div>
+            <h2 id="author-books-title">Books: <span>{authorBooks.length}</span></h2>
+            <div className="author-books-grid">{visibleAuthorBooks.map((product) => <ProductCard key={product.title} product={product} {...actions} />)}</div>
+            {authorBookPageCount > 1 && <nav className="author-books-carousel" aria-label="Author books carousel">
+              <button type="button" aria-label="Previous books" disabled={authorBookPage === 0} onClick={() => setAuthorBookPage((page) => Math.max(0, page - 1))}><i className="bi bi-chevron-left" aria-hidden="true" /></button>
+              <span>{authorBookPage + 1} / {authorBookPageCount}</span>
+              <button type="button" aria-label="Next books" disabled={authorBookPage === authorBookPageCount - 1} onClick={() => setAuthorBookPage((page) => Math.min(authorBookPageCount - 1, page + 1))}><i className="bi bi-chevron-right" aria-hidden="true" /></button>
+            </nav>}
           </section>
         </div>
       </section>

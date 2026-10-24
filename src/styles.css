@@ -97,7 +97,7 @@ button { cursor: pointer; }
 .author-portrait-frame > i { display: grid; width: 100%; height: 100%; place-items: center; color: var(--color-olive); font-size: clamp(96px, 12vw, 170px); }
 .author-avatar, .book-author-avatar { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1eee3; color: var(--color-olive); }
 .author-avatar { width: 132px; height: 132px; font-size: 86px; }
-.author-life-facts { margin: 34px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.author-life-facts { margin: 34px 0 0; padding: 0 48px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .author-life-facts div { min-width: 0; }
 .author-life-facts dt { margin-bottom: 6px; color: #777; font: 400 11px/1.3 var(--font-body); letter-spacing: .12em; text-transform: uppercase; }
 .author-life-facts dd { margin: 0; color: #0c5f83; font: 400 clamp(22px, 2.4vw, 32px)/1.05 var(--font-display); text-transform: uppercase; }
@@ -112,8 +112,15 @@ button { cursor: pointer; }
 .author-profile-facts dt { color: #888; font: 400 12px/1.4 var(--font-display); letter-spacing: .08em; text-transform: uppercase; }
 .author-profile-facts dd { margin: 5px 0 0; color: var(--color-ink); font: 400 15px/1.4 var(--font-caslon); }
 .author-books { max-width: 1120px; margin: 72px auto 0; padding-top: 30px; border-top: 1px solid #d7d5c9; }
-.author-books h2 { margin: 0 0 18px; font: 400 24px/1.2 var(--font-display); }
-.author-books-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; }
+.author-books h2 { margin: 0 0 18px; font: 400 28px/1.2 var(--font-display); }
+.author-books h2 span { color: var(--color-olive); font-size: .72em; }
+.author-books-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.author-books-grid .product-card { padding-top: 0; }
+.author-books-grid .product-info h3 { height: 42px; max-height: 42px; font-size: 15px; line-height: 1.35; }
+.author-books-grid .product-price { font-size: 15px; }
+.author-books-carousel { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 20px; color: var(--color-olive); font-family: var(--font-body); font-size: 12px; }
+.author-books-carousel button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--color-olive); border-radius: 50%; background: transparent; color: var(--color-olive); }
+.author-books-carousel button:disabled { opacity: .35; }
 .search-page { min-height: 620px; padding: 24px var(--page-gutter) 64px; background: var(--color-olive); color: var(--color-ink); }
 .search-page-content { width: min(1240px, 100%); min-height: 540px; margin: 0 auto; padding: 56px 24px 34px; border-radius: 24px; background: var(--color-paper); }
 .search-page-kicker { margin: 0 0 10px; color: var(--color-olive); font: 400 13px/1.4 var(--font-display); letter-spacing: .12em; text-transform: uppercase; }
@@ -389,10 +396,13 @@ button { cursor: pointer; }
   .author-page-content { padding: 0 24px 36px; border-radius: 20px; }
   .author-profile-hero { margin: 0 -24px; grid-template-columns: minmax(250px, .88fr) minmax(0, 1.12fr); gap: 36px; }
   .author-profile-copy { padding-top: 22px; padding-right: 24px; }
+  .author-life-facts { padding: 0 24px; }
   .author-profile-hero h1 { font-size: 38px; }
   .author-life-facts { margin-top: 24px; }
   .author-books { margin-top: 54px; }
   .author-books-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .author-books-grid .product-info h3 { font-size: 13px; }
+  .author-books-grid .product-price { font-size: 14px; }
   .search-page { padding: 18px var(--page-gutter) 48px; }
   .search-page-content { padding: 42px 20px 28px; border-radius: 20px; }
   .search-page h1 { font-size: 28px; }
@@ -426,7 +436,7 @@ button { cursor: pointer; }
   .author-profile-hero { margin: 0; grid-template-columns: 1fr; gap: 24px; }
   .author-profile-heading { padding-top: 0; }
   .author-portrait-frame { border-radius: 0 0 28px 0; }
-  .author-life-facts { margin-top: 22px; gap: 16px; }
+  .author-life-facts { margin-top: 22px; padding: 0; gap: 16px; }
   .author-life-facts dd { font-size: 23px; }
   .author-life-facts small { font-size: 11px; }
   .author-profile-copy { padding-top: 0; padding-right: 0; }
@@ -435,7 +445,9 @@ button { cursor: pointer; }
   .author-profile-facts { margin-top: 22px; gap: 12px 16px; }
   .author-books { margin-top: 42px; padding-top: 22px; }
   .author-books h2 { font-size: 21px; }
-  .author-books-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .author-books-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .author-books-grid .product-info h3 { height: 36px; max-height: 36px; font-size: 12px; }
+  .author-books-grid .product-price { font-size: 13px; }
   .search-page { padding: 14px var(--page-gutter) 36px; }
   .search-page-content { min-height: 460px; padding: 34px 12px 24px; border-radius: 16px; }
   .search-page h1 { font-size: 24px; }
