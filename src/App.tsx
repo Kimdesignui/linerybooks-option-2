@@ -498,9 +498,16 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         <div className="book-detail-category"><span>Classification</span><div>{product.categories.map((category) => <a key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}<i className="bi bi-arrow-up-right" aria-hidden="true" /></a>)}</div></div>
         <div className="book-detail-purchase">
           <p className="book-detail-price">{product.price}</p>
-          <button className="book-add-button" type="button">Add to basket</button>
+          <div className="book-detail-actions">
+            <button className="book-add-button" type="button">Add to basket</button>
+            <button className="book-buy-button" type="button">Buy Now</button>
+          </div>
         </div>
         <p className="book-detail-note">Available from Linery Bookstore</p>
+        <section className="book-details-grid book-detail-inline-details" aria-labelledby="details-title">
+          <h2 id="details-title">Details</h2>
+          <dl><div><dt>Publisher</dt><dd>Linery Books</dd></div><div><dt>Published</dt><dd>2026</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Price</dt><dd>{product.price}</dd></div></dl>
+        </section>
         <section className="book-detail-inline-description" aria-labelledby="book-description-title">
           <h2 id="book-description-title">Description</h2>
           <div id="book-description-copy" className={`book-description-content ${descriptionExpanded ? 'is-expanded' : ''}`}>
@@ -514,17 +521,12 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         </section>
       </div>
     </section>
-    <section className="book-detail-section book-author-section">
-      <div className="book-author-profile">
-        <button className="book-author-avatar" type="button" aria-label={`View ${product.author} author page`} onClick={() => onAuthor('Edward W. Said')}><i className="bi bi-person-circle" aria-hidden="true" /></button>
-        <div><h2>About <a href={demoAuthorPath} onClick={(event) => { event.preventDefault(); onAuthor('Edward W. Said') }}>{product.author}</a></h2><p>{product.author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.</p></div>
-      </div>
-    </section>
     <section className="book-detail-section book-reviews" aria-labelledby="reviews-title">
       <div className="book-reviews-heading">
         <div>
           <h2 id="reviews-title">Book reviews</h2>
           <div className="book-rating-summary"><span className="book-rating-stars" aria-label="4.8 out of 5 stars">★★★★★</span><strong>4.8</strong><span>24 reviews</span></div>
+          <a className="book-review-login" href="#login">Please log in to use the commenting feature.</a>
         </div>
         <button className="book-review-button" type="button" aria-expanded={reviewFormOpen} aria-controls="book-review-form" onClick={() => { setReviewFormOpen((open) => !open); setReviewSubmitted(false) }}>{reviewFormOpen ? 'Close review form' : 'Write a review'}</button>
       </div>
@@ -533,7 +535,7 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         <div className="book-review-rating-field">
           <span>Your rating</span>
           <div className="book-review-rating-options" role="group" aria-label="Your rating">
-            {[5, 4, 3, 2, 1].map((rating) => <label key={rating}><input type="radio" name="rating" value={rating} defaultChecked={rating === 5} /><span aria-hidden="true">{'★'.repeat(rating)}</span><span className="sr-only">{rating} out of 5 stars</span></label>)}
+            {[1, 2, 3, 4, 5].map((rating) => <label key={rating}><input type="radio" name="rating" value={rating} defaultChecked={rating === 5} /><span aria-hidden="true">★</span><span className="sr-only">{rating} out of 5 stars</span></label>)}
           </div>
         </div>
         <div className="book-review-form-grid">
@@ -545,10 +547,6 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         {reviewSubmitted && <p className="book-review-success" role="status">Thank you — your review has been received.</p>}
       </form>}
       <div className="book-review-card"><div className="book-rating-stars" aria-label="5 out of 5 stars">★★★★★</div><p className="book-review-title">A thoughtful, beautifully made edition</p><p className="book-review-meta">Linery reader · 2 weeks ago</p><p className="book-review-body">A memorable title with a careful presentation. The kind of book you want to return to and share.</p></div>
-    </section>
-    <section className="book-detail-section book-details-grid">
-      <h2>Details</h2>
-      <dl><div><dt>Publisher</dt><dd>Linery Books</dd></div><div><dt>Published</dt><dd>2026</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Price</dt><dd>{product.price}</dd></div></dl>
     </section>
     {lightboxOpen && <div className="book-lightbox" role="dialog" aria-modal="true" aria-label={`Image gallery for ${product.title}`} onClick={() => setLightboxOpen(false)}>
       <div className="book-lightbox-frame" onClick={(event) => event.stopPropagation()}>

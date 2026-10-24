@@ -251,9 +251,14 @@ button { cursor: pointer; }
 .book-detail-category a:hover, .book-detail-category a:focus-visible { color: var(--color-olive); text-decoration-color: var(--color-olive); }
 .book-detail-purchase { display: flex; align-items: center; gap: 22px; margin-top: 32px; }
 .book-detail-price { margin: 0; color: var(--color-olive); font-family: var(--font-body); font-size: 20px; }
-.book-add-button { padding: 13px 22px; border: 1px solid var(--color-olive); border-radius: 999px; background: var(--color-olive); color: #fff; font-family: var(--font-display); font-size: 14px; transition: background-color 200ms ease, color 200ms ease, transform 200ms ease; }
-.book-add-button:hover, .book-add-button:focus-visible { background: transparent; color: var(--color-olive); transform: translateY(-2px); }
+.book-detail-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.book-add-button, .book-buy-button { min-height: 44px; padding: 11px 20px; border: 1px solid var(--color-olive); border-radius: 999px; color: #fff; font-family: var(--font-display); font-size: 14px; line-height: 1.2; transition: background-color 200ms ease, color 200ms ease, transform 200ms ease; }
+.book-add-button { background: var(--color-olive); }
+.book-buy-button { background: transparent; color: var(--color-olive); }
+.book-add-button:hover, .book-add-button:focus-visible, .book-buy-button:hover, .book-buy-button:focus-visible { background: var(--color-olive); color: #fff; transform: translateY(-2px); }
 .book-detail-note { margin: 14px 0 0; color: #777; font-family: var(--font-caslon); font-size: 14px; font-style: italic; }
+.book-detail-inline-details { margin-top: 30px; padding-top: 24px; border-top: 1px solid #d7d5c9; }
+.book-detail-inline-details h2 { margin-bottom: 14px; }
 .book-detail-inline-description { margin-top: 36px; padding-top: 24px; border-top: 1px solid #d7d5c9; }
 .book-detail-inline-description h2 { margin: 0 0 14px; font-family: var(--font-display); font-size: 18px; font-weight: 600; }
 .book-description-content { max-width: 620px; max-height: 4.65em; overflow: hidden; font-family: var(--font-caslon); font-size: 16px; line-height: 1.55; }
@@ -270,6 +275,8 @@ button { cursor: pointer; }
 .book-author-profile h2 a { color: inherit; text-decoration: underline; text-decoration-color: rgba(155,148,47,.65); text-underline-offset: 4px; }
 .book-author-profile h2 a:hover, .book-author-profile h2 a:focus-visible { color: var(--color-olive); }
 .book-reviews-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.book-review-login { display: inline-block; margin-top: 12px; color: #777; font-family: var(--font-caslon); font-size: 14px; font-style: italic; text-decoration: underline; text-underline-offset: 3px; }
+.book-review-login:hover, .book-review-login:focus-visible { color: var(--color-olive); }
 .book-rating-summary { display: flex; align-items: center; gap: 10px; color: #777; font-family: var(--font-caslon); font-size: 14px; }
 .book-rating-summary strong { color: var(--color-ink); font-family: var(--font-body); font-size: 16px; font-weight: 400; }
 .book-rating-stars { color: var(--color-olive); font-family: var(--font-body); font-size: 15px; letter-spacing: 2px; }
