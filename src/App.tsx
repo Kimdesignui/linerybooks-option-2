@@ -377,24 +377,20 @@ function NewsCard({ item, language, onOpen }: { item: NewsItem; language: 'en' |
   </a>
 }
 
-function LineryNewsSection({ language, onOpen }: { language: 'en' | 'vi'; onOpen: (item: NewsItem) => void }) {
+function LineryNewsSection({ language, onOpen, onSeeMore }: { language: 'en' | 'vi'; onOpen: (item: NewsItem) => void; onSeeMore: () => void }) {
   const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 900px)').matches)
-  const [page, setPage] = useState(0)
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 900px)')
-    const handleChange = () => { setMobile(mediaQuery.matches); setPage(0) }
+    const handleChange = () => setMobile(mediaQuery.matches)
     mediaQuery.addEventListener('change', handleChange)
     return () => mediaQuery.removeEventListener('change', handleChange)
   }, [])
   const pageSize = mobile ? 3 : 4
-  const pageCount = Math.ceil(newsItems.length / pageSize)
-  const visibleItems = newsItems.slice(page * pageSize, (page + 1) * pageSize)
+  const visibleItems = newsItems.slice(0, pageSize)
   return <section className="news-module" aria-labelledby="linery-news-title">
     <RibbonTitle title="LINERY NEWS" id="linery-news-title" heading />
     <div className="news-grid">{visibleItems.map((item) => <NewsCard key={item.slug} item={item} language={language} onOpen={onOpen} />)}</div>
-    {pageCount > 1 && <nav className="news-pagination" aria-label="Linery News carousel">
-      {Array.from({ length: pageCount }, (_, index) => <button type="button" key={index} className={page === index ? 'is-current' : ''} aria-label={`View news slide ${index + 1}`} aria-current={page === index ? 'page' : undefined} onClick={() => setPage(index)} />)}
-    </nav>}
+    <a className="news-see-more" href="/news" onClick={(event) => { event.preventDefault(); onSeeMore() }}>See more <i className="bi bi-arrow-right" aria-hidden="true" /></a>
   </section>
 }
 
@@ -918,7 +914,7 @@ export function App() {
     {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
       <section className="hero scroll-section" aria-label="Linery bookstore illustration"><img src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" /></section>
       <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} />)}</div>
-      <LineryNewsSection language={language} onOpen={showNewsDetail} />
+    <LineryNewsSection language={language} onOpen={showNewsDetail} onSeeMore={showNews} />
     </main>}
     <Footer />
     </div>
