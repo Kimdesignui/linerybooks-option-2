@@ -42,6 +42,17 @@ const products: Product[] = [
   { image: '/assets/cover-black-folk.png', title: 'The Souls of Black Folk', author: 'W. E. B. Du Bois', price: '310.000₫', categories: ['Essays', 'History'] },
 ]
 
+const authorProfiles: Record<string, { image: string; born: string; died: string; bornPlace: string; diedPlace: string; bio: string }> = {
+  'Edward W. Said': {
+    image: '/assets/author-edward-w-said.png',
+    born: '1 Nov 1935',
+    died: '25 Sep 2003',
+    bornPlace: 'Jerusalem, Palestine',
+    diedPlace: 'New York, U.S.',
+    bio: 'Edward W. Said was a literary theorist, cultural critic and public intellectual whose writing connected literature, politics and the lived experience of displacement. His work remains essential reading for understanding culture, representation and power.',
+  },
+}
+
 const authorSlug = (author: string) => author.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const getAuthorFromPath = (pathname: string) => {
   const slug = pathname.startsWith('/authors/') ? pathname.split('/').pop() ?? '' : ''
@@ -167,17 +178,32 @@ function AuthorsDirectory() {
 
 function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack: () => void } & ProductCardActions) {
   const authorBooks = products.filter((product) => product.author === author)
+  const profile = authorProfiles[author] ?? {
+    image: '',
+    born: '—',
+    died: '—',
+    bornPlace: 'Linery catalogue',
+    diedPlace: 'Linery catalogue',
+    bio: `${author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.`,
+  }
 
   return <main className="author-page">
     <div className="author-page-content">
       <button className="author-back-link" type="button" onClick={onBack}>← Back to authors</button>
       <section className="author-profile-hero" aria-labelledby="author-profile-title">
-        <div className="author-profile-heading">
-          <p className="author-page-kicker">Author</p>
-          <h1 id="author-profile-title">{author}</h1>
+        <div className="author-profile-media">
+          <figure className="author-portrait-frame">
+            {profile.image ? <img src={profile.image} alt={author} className="author-portrait" /> : <i className="bi bi-person" aria-hidden="true" />}
+          </figure>
+          <dl className="author-life-facts" aria-label={`${author} life dates`}>
+            <div><dt>Born</dt><dd>{profile.born}</dd><small>{profile.bornPlace}</small></div>
+            <div><dt>Died</dt><dd>{profile.died}</dd><small>{profile.diedPlace}</small></div>
+          </dl>
         </div>
         <div className="author-profile-copy">
-          <p className="author-profile-bio">{author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.</p>
+          <p className="author-page-kicker">Author</p>
+          <h1 id="author-profile-title">{author}</h1>
+          <p className="author-profile-bio">{profile.bio}</p>
           <dl className="author-profile-facts">
             <div><dt>Catalogue</dt><dd>Linery Books</dd></div>
             <div><dt>Selected works</dt><dd>{authorBooks.length} {authorBooks.length === 1 ? 'title' : 'titles'}</dd></div>
