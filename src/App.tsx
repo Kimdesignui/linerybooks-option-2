@@ -6,6 +6,7 @@ type Product = { image: string; title: string; author: string; price: string; ca
 type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const isEnhancedVariant = import.meta.env.VITE_LINERY_VARIANT === 'enhanced'
+const welcomeStorageKey = 'linery-welcome-seen-v2'
 
 function WelcomeScreen({ onSelectLanguage }: { onSelectLanguage: (language: 'en' | 'vi') => void }) {
   return <section className="welcome-screen" aria-label="Welcome to Linery Bookstore">
@@ -609,7 +610,7 @@ function Footer() {
 }
 
 export function App() {
-  const [welcomeOpen, setWelcomeOpen] = useState(() => isEnhancedVariant && window.localStorage.getItem('linery-welcome-seen') !== 'true')
+  const [welcomeOpen, setWelcomeOpen] = useState(() => isEnhancedVariant && window.localStorage.getItem(welcomeStorageKey) !== 'true')
   const [menuOpen, setMenuOpen] = useState(false)
   const [view, setView] = useState<View>(() => window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('query') ?? '')
@@ -652,7 +653,7 @@ export function App() {
 
   const selectLanguage = (language: 'en' | 'vi') => {
     window.localStorage.setItem('linery-language', language)
-    window.localStorage.setItem('linery-welcome-seen', 'true')
+    window.localStorage.setItem(welcomeStorageKey, 'true')
     setWelcomeOpen(false)
   }
 
