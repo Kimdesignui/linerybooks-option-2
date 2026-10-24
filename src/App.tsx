@@ -222,7 +222,7 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
           </dl>
           <section className="author-books" aria-labelledby="author-books-title">
             <h2 id="author-books-title">Books: <span>{authorBooks.length}</span></h2>
-            <div className="author-books-grid">{visibleAuthorBooks.map((product) => <ProductCard key={product.title} product={product} {...actions} />)}</div>
+            <div className={`author-books-grid author-books-grid-count-${Math.min(visibleAuthorBooks.length, 4)}`}>{visibleAuthorBooks.map((product) => <ProductCard key={product.title} product={product} {...actions} />)}</div>
             {authorBookPageCount > 1 && <nav className="author-books-carousel" aria-label="Author books carousel">
               <button type="button" aria-label="Previous books" disabled={authorBookPage === 0} onClick={() => setAuthorBookPage((page) => Math.max(0, page - 1))}><i className="bi bi-chevron-left" aria-hidden="true" /></button>
               <span>{authorBookPage + 1} / {authorBookPageCount}</span>

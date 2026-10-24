@@ -116,11 +116,20 @@ button { cursor: pointer; }
 .author-profile-facts dd { margin: 5px 0 0; color: var(--color-ink); font: 400 15px/1.4 var(--font-caslon); }
 .author-books { max-width: 1120px; margin: 72px auto 0; padding-top: 30px; border-top: 1px solid #d7d5c9; }
 .author-books h2 { margin: 0 0 18px; font: 400 28px/1.2 var(--font-display); }
-.author-books h2 span { color: var(--color-olive); font-size: .72em; }
+.author-books h2 span { color: inherit; font-size: inherit; }
 .author-books-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.author-books-grid.author-books-grid-count-1 { grid-template-columns: minmax(0, 1fr); }
+.author-books-grid.author-books-grid-count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.author-books-grid.author-books-grid-count-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .author-books-grid .product-card { padding-top: 0; }
 .author-books-grid .product-info h3 { height: 42px; max-height: 42px; font-size: 15px; line-height: 1.35; }
 .author-books-grid .product-price { font-size: 15px; }
+.author-books-grid .product-card-link:hover .product-cover,
+.author-books-grid .product-card-link:focus-visible .product-cover { transform: none; }
+.author-books-grid .product-card-link:hover .product-overlay,
+.author-books-grid .product-card-link:focus-visible .product-overlay { opacity: 0; transform: translateY(8px); }
+.author-books-grid .product-card-link:hover .product-info h3,
+.author-books-grid .product-card-link:focus-visible .product-info h3 { color: inherit; }
 .author-books-carousel { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 20px; color: var(--color-olive); font-family: var(--font-body); font-size: 12px; }
 .author-books-carousel button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--color-olive); border-radius: 50%; background: transparent; color: var(--color-olive); }
 .author-books-carousel button:disabled { opacity: .35; }
