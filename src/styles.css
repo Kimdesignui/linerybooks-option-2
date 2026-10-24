@@ -306,7 +306,8 @@ button { cursor: pointer; }
 .book-review-meta { color: #777; font-size: 13px !important; font-style: italic; }
 .book-review-body { margin-bottom: 0 !important; }
 .book-details-grid dl { max-width: 800px; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 54px; }
-.book-details-grid dl div { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 8px; border-bottom: 1px solid #e1dfd5; font-family: var(--font-caslon); font-size: 14px; }
+.book-details-grid dl div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; min-width: 0; padding-bottom: 8px; border-bottom: 1px solid #e1dfd5; font-family: var(--font-caslon); font-size: 14px; white-space: nowrap; }
+.book-details-grid dt, .book-details-grid dd { white-space: nowrap; }
 .book-details-grid dt { color: #777; }
 .book-details-grid dd { margin: 0; text-align: right; }
 .hero { width: min(1240px, calc(100% - (var(--page-gutter) * 2))); max-width: 1240px; margin: 0 auto 12px; height: 471px; display: flex; align-items: center; }
