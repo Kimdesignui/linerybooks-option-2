@@ -417,13 +417,13 @@ button { cursor: pointer; }
   .directory-page { padding: 28px var(--page-gutter) 44px; }
   .author-page { padding: 14px var(--page-gutter) 36px; }
   .author-page-content { padding: 24px 16px 28px; border-radius: 16px; }
-  .author-profile-hero { margin: 24px -16px 0; grid-template-columns: 1fr; gap: 24px; }
+  .author-profile-hero { margin: 24px 0 0; grid-template-columns: 1fr; gap: 24px; }
   .author-profile-heading { padding-top: 0; }
   .author-portrait-frame { border-radius: 0 0 28px 0; }
   .author-life-facts { margin-top: 22px; gap: 16px; }
   .author-life-facts dd { font-size: 23px; }
   .author-life-facts small { font-size: 11px; }
-  .author-profile-copy { padding-top: 0; padding-right: 16px; }
+  .author-profile-copy { padding-top: 0; padding-right: 0; }
   .author-profile-hero h1 { font-size: 34px; }
   .author-profile-bio { margin-top: 18px; font-size: 15px; }
   .author-profile-facts { margin-top: 22px; gap: 12px 16px; }
