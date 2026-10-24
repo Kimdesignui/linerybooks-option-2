@@ -5,8 +5,8 @@ Giao diện được dựng từ frame Figma `linerybooks.vn` bằng React + Typ
 ## Bắt đầu trên máy mới
 
 ```powershell
-git clone https://github.com/Kimdesignui/linerybooks-tailwind.git
-cd linerybooks-tailwind
+git clone https://github.com/Kimdesignui/linerybooks-option-2.git
+cd linerybooks-option-2
 npm install
 npm run dev
 ```
@@ -90,12 +90,11 @@ npm run preview
 
 Kiểm tra tối thiểu ở desktop, tablet và mobile: menu Shop, hamburger sidebar, tìm kiếm, carousel, click mở chi tiết sách, lightbox, scrollbar cột thông tin và footer.
 
-## Deploy hiện tại
+## Repository hiện tại
 
-- GitHub: https://github.com/Kimdesignui/linerybooks-tailwind
-- Netlify: https://linerybookstore.netlify.app/
-- Nhánh deploy: `main`
-- Netlify tự build lại sau mỗi lần push lên `main`.
+- GitHub: https://github.com/Kimdesignui/linerybooks-option-2
+- Nhánh chính: `main`
+- Đây là project độc lập, không dùng chung remote hoặc lịch sử Git với project cũ.
 
 Quy trình đề xuất:
 
