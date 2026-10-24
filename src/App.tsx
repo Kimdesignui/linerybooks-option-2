@@ -395,11 +395,24 @@ function LineryNewsSection({ language, onOpen, onSeeMore }: { language: 'en' | '
 }
 
 function NewsPage({ language, onOpen }: { language: 'en' | 'vi'; onOpen: (item: NewsItem) => void }) {
+  const pageTitle = language === 'vi' ? 'Tin tức & Sự kiện' : 'News & Events'
   return <main className="news-page">
-    <nav className="news-breadcrumb news-breadcrumb-olive news-page-breadcrumb" aria-label="Breadcrumb"><a href="/#home">Home</a><span aria-hidden="true">/</span><span>News</span></nav>
     <div className="news-page-content">
-      <h1>{language === 'vi' ? 'Tin tức' : 'News'}</h1>
-      <div className="news-grid news-grid-page">{newsItems.map((item) => <NewsCard key={item.slug} item={item} language={language} onOpen={onOpen} />)}</div>
+      <div className="all-books-hero news-page-hero"><img src="/assets/all-books-hero.png" alt="Children exploring a garden together" width="2560" height="866" fetchPriority="high" decoding="async" /></div>
+      <nav className="news-breadcrumb news-page-breadcrumb" aria-label="Breadcrumb"><a href="/#home">Home</a><span aria-hidden="true">/</span><span>{pageTitle}</span></nav>
+      <section className="news-page-panel" aria-labelledby="all-news-title">
+        <RibbonTitle title={pageTitle.toUpperCase()} id="all-news-title" heading />
+        <div className="news-page-grid">{newsItems.map((item) => {
+          const title = language === 'vi' ? item.titleVi : item.title
+          const excerpt = language === 'vi' ? item.excerptVi : item.excerpt
+          return <article className="news-page-card" key={item.slug}>
+            <button type="button" onClick={() => onOpen(item)}>
+              <div className="news-page-image-wrap"><img src={item.image} alt={title} loading="lazy" decoding="async" /></div>
+              <p>{item.kicker}</p><h2>{title}</h2><span>{excerpt}</span>
+            </button>
+          </article>
+        })}</div>
+      </section>
     </div>
   </main>
 }
