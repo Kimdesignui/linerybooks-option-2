@@ -119,7 +119,7 @@ function ShopMenu({ onAllBooks }: { onAllBooks: () => void }) {
   </section>
 }
 
-function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, onClose }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onAuthors: () => void; onSearch: (query: string) => void; onClose: () => void }) {
+function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, language, onSelectLanguage, onClose }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onAuthors: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void; onClose: () => void }) {
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Books: true, Fiction: true, 'Non-fiction': true, 'Linery Press': true })
   const [query, setQuery] = useState('')
   const toggleBranch = (label: string) => setOpenBranches((current) => ({ ...current, [label]: !current[label] }))
@@ -166,6 +166,13 @@ function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, onClose }
       <h2 id="mobile-authors-heading" className="mobile-menu-section-title">Authors</h2>
       <button className="mobile-menu-item mobile-menu-level-0" onClick={onAuthors}><span className="mobile-menu-text">Browse all authors</span><span aria-hidden="true">→</span></button>
     </section>
+    <div className="mobile-menu-language" aria-label="Choose language">
+      <span className="mobile-menu-section-title">Language</span>
+      <div className="mobile-menu-language-options">
+        <button type="button" className={language === 'en' ? 'is-active' : ''} aria-pressed={language === 'en'} onClick={() => onSelectLanguage('en')}>EN</button>
+        <button type="button" className={language === 'vi' ? 'is-active' : ''} aria-pressed={language === 'vi'} onClick={() => onSelectLanguage('vi')}>VI</button>
+      </div>
+    </div>
   </aside>
 }
 
@@ -610,6 +617,7 @@ function Footer() {
 
 export function App() {
   const [welcomeOpen, setWelcomeOpen] = useState(() => isEnhancedVariant && window.localStorage.getItem(welcomeStorageKey) !== 'true')
+  const [language, setLanguage] = useState<'en' | 'vi'>(() => window.localStorage.getItem('linery-language') === 'vi' ? 'vi' : 'en')
   const [menuOpen, setMenuOpen] = useState(false)
   const [view, setView] = useState<View>(() => window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('query') ?? '')
@@ -669,6 +677,7 @@ export function App() {
   const selectLanguage = (language: 'en' | 'vi') => {
     window.localStorage.setItem('linery-language', language)
     window.localStorage.setItem(welcomeStorageKey, 'true')
+    setLanguage(language)
     setWelcomeOpen(false)
   }
 
@@ -766,7 +775,7 @@ export function App() {
     <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'quick-view-active' : ''}`}>
     <Header cartCount={cartCount} onMenu={() => setMenuOpen(!menuOpen)} onShop={showShop} onShopHover={(open) => { if (view !== 'authors') setShopOpen(open) }} onAuthors={showAuthors} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
-    <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} onClose={() => setMenuOpen(false)} />
+    <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} onClose={() => setMenuOpen(false)} />
     {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : <main>
       <section className="hero scroll-section" aria-label="Linery bookstore illustration"><img src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" /></section>
       <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} />)}</div>
