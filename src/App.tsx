@@ -119,7 +119,7 @@ function ShopMenu({ onAllBooks }: { onAllBooks: () => void }) {
   </section>
 }
 
-function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, onQuickView, onClose }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onAuthors: () => void; onSearch: (query: string) => void; onQuickView: () => void; onClose: () => void }) {
+function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, onClose }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onAuthors: () => void; onSearch: (query: string) => void; onClose: () => void }) {
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Books: true, Fiction: true, 'Non-fiction': true, 'Linery Press': true })
   const [query, setQuery] = useState('')
   const toggleBranch = (label: string) => setOpenBranches((current) => ({ ...current, [label]: !current[label] }))
@@ -139,7 +139,6 @@ function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, onQuickVi
         <a className="mobile-menu-icon" href="#wishlist" aria-label="Wishlist"><i className="bi bi-heart" aria-hidden="true" /></a>
       </div>
     </div>
-    <button className="mobile-menu-item mobile-menu-level-0 mobile-menu-quick-view" onClick={() => { onQuickView(); onClose() }}><span className="mobile-menu-text">Quick view</span><span aria-hidden="true">→</span></button>
     <section className="mobile-menu-section" aria-labelledby="mobile-shop-heading">
       <h2 id="mobile-shop-heading" className="mobile-menu-section-title">Shop</h2>
       <button className="mobile-menu-item mobile-menu-level-0" onClick={onAllBooks}><span className="mobile-menu-text">View all books</span></button>
@@ -298,7 +297,7 @@ function SearchResultsPage({ query, ...actions }: { query: string } & ProductCar
   </main>
 }
 
-function Header({ cartCount, onMenu, onShop, onShopHover, onAuthors, onAllBooks, onSearch, onQuickView, quickViewOpen, activeView, shopOpen }: { cartCount: number; onMenu: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAuthors: () => void; onAllBooks: () => void; onSearch: (query: string) => void; onQuickView: () => void; quickViewOpen: boolean; activeView: View; shopOpen: boolean }) {
+function Header({ cartCount, onMenu, onShop, onShopHover, onAuthors, onAllBooks, onSearch, onQuickView, quickViewOpen, quickViewAvailable, activeView, shopOpen }: { cartCount: number; onMenu: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAuthors: () => void; onAllBooks: () => void; onSearch: (query: string) => void; onQuickView: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean }) {
   const headerRef = useRef<HTMLElement | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -329,7 +328,7 @@ function Header({ cartCount, onMenu, onShop, onShopHover, onAuthors, onAllBooks,
           <button className="search-toggle" type="button" aria-label="Tìm kiếm" aria-expanded={searchOpen} onClick={() => setSearchOpen((open) => !open)}><img src="/assets/icon-search.svg" alt="" /></button>
           <input className="search-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search books" aria-label="Search books" autoFocus={searchOpen} onKeyDown={(event) => { if (event.key === 'Escape') setSearchOpen(false) }} />
         </form>
-        <button className={`quick-view-button ${quickViewOpen ? 'is-active' : ''}`} type="button" onClick={onQuickView} aria-expanded={quickViewOpen}>Quick view</button>
+        {quickViewAvailable && <button className={`quick-view-button ${quickViewOpen ? 'is-active' : ''}`} type="button" onClick={onQuickView} aria-expanded={quickViewOpen}>Quick view</button>}
         <a className="icon-button cart-button" href="#cart" aria-label={`Giỏ hàng, ${cartCount} sản phẩm`}><img src="/assets/icon-cart.svg" alt="" /><span>{cartCount}</span></a>
       </div>
     </div>
@@ -619,6 +618,7 @@ export function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [cartCount, setCartCount] = useState(13)
   const [quickViewOpen, setQuickViewOpen] = useState(false)
+  const [quickViewAvailable, setQuickViewAvailable] = useState(() => window.matchMedia('(min-width: 901px)').matches)
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
   const previewCloseTimer = useRef<number | null>(null)
 
@@ -650,6 +650,21 @@ export function App() {
     document.body.classList.toggle('welcome-open', welcomeOpen)
     return () => document.body.classList.remove('welcome-open')
   }, [welcomeOpen])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 901px)')
+    const syncQuickViewAvailability = () => setQuickViewAvailable(mediaQuery.matches)
+    syncQuickViewAvailability()
+    mediaQuery.addEventListener('change', syncQuickViewAvailability)
+    return () => mediaQuery.removeEventListener('change', syncQuickViewAvailability)
+  }, [])
+
+  useEffect(() => {
+    if (!quickViewAvailable && quickViewOpen) {
+      setPreviewProduct(null)
+      setQuickViewOpen(false)
+    }
+  }, [quickViewAvailable, quickViewOpen])
 
   const selectLanguage = (language: 'en' | 'vi') => {
     window.localStorage.setItem('linery-language', language)
@@ -748,16 +763,16 @@ export function App() {
 
   return <>
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
-    <div id="top" className={`page-shell ${quickViewOpen ? 'quick-view-active' : ''}`}>
-    <Header cartCount={cartCount} onMenu={() => setMenuOpen(!menuOpen)} onShop={showShop} onShopHover={(open) => { if (view !== 'authors') setShopOpen(open) }} onAuthors={showAuthors} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} quickViewOpen={quickViewOpen} activeView={view} shopOpen={shopOpen} />
+    <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'quick-view-active' : ''}`}>
+    <Header cartCount={cartCount} onMenu={() => setMenuOpen(!menuOpen)} onShop={showShop} onShopHover={(open) => { if (view !== 'authors') setShopOpen(open) }} onAuthors={showAuthors} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
-    <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} onQuickView={toggleQuickView} onClose={() => setMenuOpen(false)} />
-    {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : <main>
+    <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} onClose={() => setMenuOpen(false)} />
+    {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : <main>
       <section className="hero scroll-section" aria-label="Linery bookstore illustration"><img src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" /></section>
-      <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewOpen} />)}</div>
+      <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} />)}</div>
     </main>}
     <Footer />
     </div>
-    {quickViewOpen && <BookPreview product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} />}
+    {quickViewAvailable && quickViewOpen && <BookPreview product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} />}
   </>
 }
