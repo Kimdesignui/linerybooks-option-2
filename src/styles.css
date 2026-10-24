@@ -246,9 +246,8 @@ button { cursor: pointer; }
 .book-detail-category { display: flex; align-items: flex-start; gap: 20px; margin-top: 22px; font-family: var(--font-caslon); font-size: 15px; line-height: 1.5; }
 .book-detail-category > span { flex: 0 0 76px; color: #777; }
 .book-detail-category > div { display: flex; flex-wrap: wrap; gap: 8px 16px; }
-.book-detail-category a { display: inline-flex; align-items: center; gap: 5px; color: var(--color-ink); text-decoration: underline; text-decoration-color: rgba(155,148,47,.5); text-underline-offset: 4px; transition: color 180ms ease, text-decoration-color 180ms ease; }
-.book-detail-category a i { font-size: 11px; text-decoration: none; }
-.book-detail-category a:hover, .book-detail-category a:focus-visible { color: var(--color-olive); text-decoration-color: var(--color-olive); }
+.book-detail-category a.book-classification-link { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 8px 15px; border: 1px solid var(--color-olive); border-radius: 999px; background: transparent; color: var(--color-olive); font-family: var(--font-display); font-size: 13px; line-height: 1.2; text-align: center; text-decoration: none; transition: background-color 180ms ease, color 180ms ease, transform 180ms ease; }
+.book-detail-category a.book-classification-link:hover, .book-detail-category a.book-classification-link:focus-visible { background: var(--color-olive); color: #fff; transform: translateY(-2px); }
 .book-detail-purchase { display: flex; align-items: center; gap: 22px; margin-top: 32px; }
 .book-detail-price { margin: 0; color: var(--color-olive); font-family: var(--font-body); font-size: 20px; }
 .book-detail-actions { display: flex; flex-wrap: wrap; gap: 10px; }

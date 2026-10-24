@@ -495,7 +495,7 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         <p className="book-detail-author">by <a href={demoAuthorPath} onClick={(event) => { event.preventDefault(); onAuthor('Edward W. Said') }}>{product.author}</a></p>
         <div className="book-detail-rule" />
         <p className="book-detail-format"><span>Format:</span> Paperback</p>
-        <div className="book-detail-category"><span>Classification</span><div>{product.categories.map((category) => <a key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}<i className="bi bi-arrow-up-right" aria-hidden="true" /></a>)}</div></div>
+        <div className="book-detail-category"><span>Classification</span><div>{product.categories.map((category) => <a className="book-classification-link" key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}</a>)}</div></div>
         <div className="book-detail-purchase">
           <p className="book-detail-price">{product.price}</p>
           <div className="book-detail-actions">
