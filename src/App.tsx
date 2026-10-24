@@ -198,7 +198,7 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
   }
 
   return <main className="author-page">
-    <div className={`author-page-content author-page-content-${authorSlug(author)}`}>
+    <div className="author-page-content">
       <section className="author-profile-hero" aria-labelledby="author-profile-title">
         <div className="author-profile-media">
           <figure className="author-portrait-frame">

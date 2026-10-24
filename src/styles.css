@@ -450,10 +450,7 @@ button { cursor: pointer; }
   .directory-page { padding: 28px var(--page-gutter) 44px; }
   .author-page { padding: 14px var(--page-gutter) 12px; }
   .author-page + .site-footer { margin-top: 8px; }
-  .author-page-content { position: relative; isolation: isolate; padding: 0 16px 28px; border-radius: 16px; background: rgba(247,246,241,.22); }
-  .author-page-content::before { position: absolute; z-index: -2; inset: 0; content: ''; background-position: center top; background-size: cover; background-repeat: no-repeat; filter: blur(22px); opacity: .86; transform: scale(1.08); }
-  .author-page-content::after { position: absolute; z-index: -1; inset: 0; content: ''; background: rgba(247,246,241,.54); }
-  .author-page-content-edward-w-said::before { background-image: url('/assets/author-edward-w-said.png'); }
+  .author-page-content { padding: 0 16px 28px; border-radius: 16px; }
   .author-breadcrumb { margin-bottom: 12px; }
   .author-profile-hero { margin: 0; grid-template-columns: 1fr; gap: 24px; }
   .author-profile-heading { padding-top: 0; }
