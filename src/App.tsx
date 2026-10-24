@@ -463,6 +463,7 @@ function Collection({ title, items, ...actions }: { title: string; items: Produc
 
 function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: () => void; onAuthor: (author: string) => void }) {
   const galleryImages = [product.image]
+  const demoAuthorPath = '/authors/edward-w-said'
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
@@ -495,7 +496,7 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
       <div className="book-detail-copy">
         <p className="book-detail-kicker">Linery Books</p>
         <h1>{product.title}</h1>
-        <p className="book-detail-author">by <a href="#authors">{product.author}</a></p>
+        <p className="book-detail-author">by <a href={demoAuthorPath} onClick={(event) => { event.preventDefault(); onAuthor('Edward W. Said') }}>{product.author}</a></p>
         <div className="book-detail-rule" />
         <h2>Format</h2>
         <div className="book-formats"><button className="is-selected">Paperback</button><button>Digital</button></div>
@@ -520,8 +521,8 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
     </section>
     <section className="book-detail-section book-author-section">
       <div className="book-author-profile">
-        <button className="book-author-avatar" type="button" aria-label={`View ${product.author} author page`} onClick={() => onAuthor(product.author)}><i className="bi bi-person-circle" aria-hidden="true" /></button>
-        <div><h2>About <a href={`/authors/${product.author.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`} onClick={(event) => { event.preventDefault(); onAuthor(product.author) }}>{product.author}</a></h2><p>{product.author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.</p></div>
+        <button className="book-author-avatar" type="button" aria-label={`View ${product.author} author page`} onClick={() => onAuthor('Edward W. Said')}><i className="bi bi-person-circle" aria-hidden="true" /></button>
+        <div><h2>About <a href={demoAuthorPath} onClick={(event) => { event.preventDefault(); onAuthor('Edward W. Said') }}>{product.author}</a></h2><p>{product.author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.</p></div>
       </div>
     </section>
     <section className="book-detail-section book-reviews" aria-labelledby="reviews-title">
