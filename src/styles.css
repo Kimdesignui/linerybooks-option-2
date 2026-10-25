@@ -574,6 +574,7 @@ main:has(.news-module) + .site-footer { margin-top: 36px; }
   .mobile-menu-level-0 { font-size: 16px; font-weight: 500; line-height: 1.35; }
   .mobile-menu-level-1 { padding-left: 22px; font-size: 14px; line-height: 1.4; }
   .mobile-menu-level-2 { padding-left: 44px; font-size: 13px; font-style: italic; line-height: 1.4; }
+  .mobile-menu-section:not(.mobile-menu-authors) .mobile-menu-level-1 { font-style: italic; }
   .mobile-menu-children { margin-bottom: 4px; }
   .hero, .collections, .site-footer { width: calc(100% - (var(--page-gutter) * 2)); max-width: 720px; }
   .hero { height: auto; margin: 0 auto 36px; }

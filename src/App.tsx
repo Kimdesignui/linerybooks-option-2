@@ -161,7 +161,9 @@ const shopCategories: ShopCategory[] = [
   { label: 'LINERY PRESS' },
   { label: 'LINERY JOURNAL' },
 ]
-const shopOnlyCategories = shopCategories.filter((category) => category.label !== 'Authors')
+const shopOnlyCategories = shopCategories
+  .flatMap((category) => category.label === 'Books' ? (category.children ?? []) : [category])
+  .filter((category) => category.label !== 'Authors')
 const desktopShopColumns: MenuColumn[] = [
   { eyebrow: '', links: ['All books'] },
   { eyebrow: 'Fiction', links: ['Novels', 'Short stories', 'Poetry & Drama'] },
@@ -202,7 +204,7 @@ function ShopMenu({ onAllBooks }: { onAllBooks: () => void }) {
 }
 
 function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, language, onSelectLanguage }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onAuthors: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void }) {
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Books: true, Fiction: true, 'Non-fiction': true, 'Linery Press': true })
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Fiction: true, 'Non-fiction': true, 'Linery Press': true })
   const [query, setQuery] = useState('')
   const toggleBranch = (label: string) => setOpenBranches((current) => ({ ...current, [label]: !current[label] }))
 
