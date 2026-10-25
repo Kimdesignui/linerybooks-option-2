@@ -749,10 +749,6 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
           </div>
         </div>
         <p className="book-detail-note">Available from Linery Bookstore</p>
-        <section className="book-details-grid book-detail-inline-details" aria-labelledby="details-title">
-          <h2 id="details-title">Details</h2>
-          <dl><div><dt>Publisher</dt><dd>Linery Books</dd></div><div><dt>Published</dt><dd>2026</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Price</dt><dd>{product.price}</dd></div></dl>
-        </section>
         <section className="book-detail-inline-description" aria-labelledby="book-description-title">
           <h2 id="book-description-title">Description</h2>
           <div id="book-description-copy" className={`book-description-content ${descriptionExpanded ? 'is-expanded' : ''}`}>
@@ -763,6 +759,10 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
             <span>{descriptionExpanded ? 'Read less' : 'Read more'}</span>
             <i className={`bi bi-arrow-${descriptionExpanded ? 'up' : 'down'}`} aria-hidden="true" />
           </button>
+        </section>
+        <section className="book-details-grid book-detail-inline-details" aria-labelledby="details-title">
+          <h2 id="details-title">Details</h2>
+          <dl><div><dt>Publisher</dt><dd>Linery Books</dd></div><div><dt>Published</dt><dd>2026</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Price</dt><dd>{product.price}</dd></div></dl>
         </section>
       </div>
     </section>
