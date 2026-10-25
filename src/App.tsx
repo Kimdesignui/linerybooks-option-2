@@ -44,7 +44,7 @@ function RibbonTitle({ title, id, heading = false }: { title: string; id?: strin
 
 const products: Product[] = [
   { image: '/assets/cover-edward.png', title: 'Power, Politics, and Culture: Interviews with Edward W. Said', author: 'Edward W. Said', price: '460.000₫', categories: ['Essays', 'Literary Criticism'] },
-  { image: '/assets/cover-ethics.png', title: 'Ethics: A Very Short Introduction', author: 'Simon Blackburn', price: '460.000₫', categories: ['Non-fiction', 'Philosophy'] },
+  { image: '/assets/cover-ethics.png', title: 'Ethics: A Very Short Introduction', author: 'Simon Blackburn', price: '460.000₫', categories: ['Non-fiction', 'Philosophy'], available: false },
   { image: '/assets/cover-existentialism.png', title: 'Existentialism: A Very Short Introduction', author: 'Thomas R. Flynn', price: '460.000₫', categories: ['Non-fiction', 'Philosophy'] },
   { image: '/assets/cover-jung.png', title: 'Jung: A Very Short Introduction', author: 'Anthony Stevens', price: '460.000₫', categories: ['Non-fiction', 'Psychology'] },
   { image: '/assets/cover-derrida.png', title: 'Derrida: A Very Short Introduction', author: 'Simon Glendinning', price: '280.000₫', categories: ['Non-fiction', 'Literary Criticism'] },
@@ -116,9 +116,30 @@ const authorProfiles: Record<string, { image: string; images?: string[]; born: s
 }
 
 const authorSlug = (author: string) => author.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
+const productSlug = (title: string) => title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
+const getProductFromPath = (pathname: string) => {
+  const slug = pathname.startsWith('/books/') ? pathname.split('/').pop() ?? '' : ''
+  return products.find((product) => productSlug(product.title) === slug) ?? null
+}
 const getAuthorFromPath = (pathname: string) => {
   const slug = pathname.startsWith('/authors/') ? pathname.split('/').pop() ?? '' : ''
-  return products.find((product) => authorSlug(product.author) === slug)?.author ?? ''
+  if (!slug) return ''
+  const knownAuthor = products.find((product) => authorSlug(product.author) === slug)?.author ?? Object.keys(authorProfiles).find((author) => authorSlug(author) === slug)
+  if (knownAuthor) return knownAuthor
+  return slug.split('-').map((part) => part ? `${part[0].toUpperCase()}${part.slice(1)}` : '').join(' ')
+}
+const getViewFromPath = (pathname: string, hash: string): View => {
+  if (hash === '#login') return 'login'
+  if (hash === '#register') return 'register'
+  if (pathname === '/authors') return 'authors'
+  if (pathname === '/all-books') return 'all-books'
+  if (pathname === '/search') return 'search'
+  if (pathname === '/cart') return 'cart'
+  if (pathname === '/news') return 'news'
+  if (pathname.startsWith('/news/') && getNewsFromPath(pathname)) return 'news-detail'
+  if (pathname.startsWith('/authors/') && getAuthorFromPath(pathname)) return 'author'
+  if (pathname.startsWith('/books/') && getProductFromPath(pathname)) return 'detail'
+  return 'home'
 }
 
 const sections = [
@@ -626,6 +647,7 @@ function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewL
           <h3>{product.title}</h3>
           <p className="product-author">{product.author}</p>
           <p className="product-price">{product.price}</p>
+          {product.available === false && <p className="product-stock-status">Out of stock</p>}
         </div>
       </div>
     </a>
@@ -715,6 +737,7 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
   const [quantity, setQuantity] = useState(1)
   const unitPrice = Number(product.price.replace(/[^0-9]/g, ''))
   const totalPrice = `${(unitPrice * quantity).toLocaleString('vi-VN')}₫`
+  const isAvailable = product.available !== false
 
   useEffect(() => {
     if (!lightboxOpen) return undefined
@@ -744,22 +767,23 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         <div className="book-detail-category"><span>Classification</span><div>{product.categories.map((category) => <a className="book-classification-link" key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}</a>)}</div></div>
         <div className="book-detail-purchase">
           <div className="book-detail-price-row">
-            <div className="book-detail-quantity" aria-label="Quantity">
-              <span>Quantity</span>
+            {isAvailable && <div className="book-detail-quantity" aria-label="Select quantity">
               <div className="book-detail-quantity-control">
                 <button type="button" aria-label="Decrease quantity" onClick={() => setQuantity((current) => Math.max(1, current - 1))}>−</button>
                 <output>{quantity}</output>
                 <button type="button" aria-label="Increase quantity" onClick={() => setQuantity((current) => current + 1)}>+</button>
               </div>
-            </div>
+            </div>}
             <p className="book-detail-price" aria-live="polite">{totalPrice}</p>
           </div>
           <div className="book-detail-actions">
-            <button className="book-add-button" type="button">Add to basket</button>
-            <button className="book-buy-button" type="button">Buy Now</button>
+            {isAvailable ? <>
+              <button className="book-add-button" type="button">Add to basket</button>
+              <button className="book-buy-button" type="button">Buy Now</button>
+            </> : <button className="book-out-of-stock-button" type="button" disabled>Out of stock</button>}
           </div>
         </div>
-        <p className="book-detail-note">Available from Linery Bookstore</p>
+        <p className={`book-detail-note ${isAvailable ? '' : 'book-detail-note-unavailable'}`}>{isAvailable ? 'Available from Linery Bookstore' : 'This title is currently unavailable.'}</p>
         <section className="book-detail-inline-description" aria-labelledby="book-description-title">
           <h2 id="book-description-title">Description</h2>
           <div id="book-description-copy" className={`book-description-content ${descriptionExpanded ? 'is-expanded' : ''}`}>
@@ -773,7 +797,7 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         </section>
         <section className="book-details-grid book-detail-inline-details" aria-labelledby="details-title">
           <h2 id="details-title">Details</h2>
-          <dl><div><dt>Publisher</dt><dd>Linery Books</dd></div><div><dt>Published</dt><dd>2026</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Price</dt><dd>{product.price}</dd></div></dl>
+          <dl><div><dt>Publisher</dt><dd>Linery Books</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Format</dt><dd>Paperback</dd></div></dl>
         </section>
       </div>
     </section>
@@ -1017,14 +1041,14 @@ export function App() {
   const [welcomeOpen, setWelcomeOpen] = useState(() => isEnhancedVariant && window.localStorage.getItem(welcomeStorageKey) !== 'true')
   const [language, setLanguage] = useState<'en' | 'vi'>(() => window.localStorage.getItem('linery-language') === 'vi' ? 'vi' : 'en')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [view, setView] = useState<View>(() => window.location.hash === '#login' ? 'login' : window.location.hash === '#register' ? 'register' : window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
+  const [view, setView] = useState<View>(() => getViewFromPath(window.location.pathname, window.location.hash))
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('query') ?? '')
   const [selectedAuthor, setSelectedAuthor] = useState(() => getAuthorFromPath(window.location.pathname))
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(() => getNewsFromPath(window.location.pathname))
   const [shopOpen, setShopOpen] = useState(false)
   const [heroMotionOpen, setHeroMotionOpen] = useState(false)
   const [heroMotionKey, setHeroMotionKey] = useState(0)
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => getProductFromPath(window.location.pathname))
   const [cartCount, setCartCount] = useState(0)
   const [quickViewOpen, setQuickViewOpen] = useState(false)
   const [quickViewAvailable, setQuickViewAvailable] = useState(() => window.matchMedia('(min-width: 1101px)').matches)
@@ -1037,7 +1061,8 @@ export function App() {
       setSearchQuery(new URLSearchParams(window.location.search).get('query') ?? '')
       setSelectedAuthor(getAuthorFromPath(window.location.pathname))
       setSelectedNews(getNewsFromPath(window.location.pathname))
-      setView(window.location.hash === '#login' ? 'login' : window.location.hash === '#register' ? 'register' : window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
+      setSelectedProduct(getProductFromPath(window.location.pathname))
+      setView(getViewFromPath(window.location.pathname, window.location.hash))
     }
     window.addEventListener('popstate', syncRoute)
     window.addEventListener('hashchange', syncRoute)
@@ -1131,6 +1156,7 @@ export function App() {
   }
 
   const showAuthors = () => {
+    navigateTo('/authors')
     setView('authors')
     setShopOpen(false)
     setMenuOpen(false)
@@ -1191,6 +1217,7 @@ export function App() {
     if (previewCloseTimer.current !== null) window.clearTimeout(previewCloseTimer.current)
     setPreviewProduct(null)
     setQuickViewOpen(false)
+    navigateTo(`/books/${productSlug(product.title)}`)
     setSelectedProduct(product)
     setView('detail')
     setShopOpen(false)
