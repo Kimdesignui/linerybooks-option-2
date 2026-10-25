@@ -338,6 +338,12 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
         }}>
           {authorImages.map((image, index) => <figure className="author-lightbox-slide" key={`${image}-${index}`}><img className="book-lightbox-image" src={image} alt={`${author} portrait ${index + 1}`} loading={index === 0 ? 'eager' : 'lazy'} decoding="async" /></figure>)}
         </div>
+        <div className="book-lightbox-thumbnails" aria-label="Author image thumbnails">
+          {authorImages.map((image, index) => <button key={`${image}-thumb-${index}`} className={`book-lightbox-thumbnail ${index === activeAuthorImage ? 'is-active' : ''}`} type="button" aria-label={`View author image ${index + 1}`} aria-current={index === activeAuthorImage ? 'true' : undefined} onClick={() => {
+            setActiveAuthorImage(index)
+            authorLightboxTrackRef.current?.scrollTo({ left: index * (authorLightboxTrackRef.current?.clientWidth ?? 0), behavior: 'smooth' })
+          }}><img src={image} alt="" loading="lazy" decoding="async" /></button>)}
+        </div>
         <button className="book-lightbox-close" type="button" aria-label="Close gallery" onClick={() => setAuthorLightboxOpen(false)}><i className="bi bi-x-lg" aria-hidden="true" /></button>
       </div>
     </div>}
