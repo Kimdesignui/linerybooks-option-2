@@ -271,11 +271,16 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
 
   useEffect(() => {
     if (!authorLightboxOpen) return undefined
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setAuthorLightboxOpen(false)
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+    }
   }, [authorLightboxOpen])
 
   useEffect(() => {
@@ -329,7 +334,7 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
         </div>
       </section>
     </div>
-    {authorLightboxOpen && <div className="book-lightbox" role="dialog" aria-modal="true" aria-label={`Image gallery for ${author}`} onClick={() => setAuthorLightboxOpen(false)}>
+    {authorLightboxOpen && <div className="book-lightbox author-lightbox" role="dialog" aria-modal="true" aria-label={`Image gallery for ${author}`} onClick={() => setAuthorLightboxOpen(false)}>
       <div className="book-lightbox-frame" onClick={(event) => event.stopPropagation()}>
         <div className="author-lightbox-track" ref={authorLightboxTrackRef} aria-label="Author images" onScroll={(event) => {
           const track = event.currentTarget
