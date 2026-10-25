@@ -4,7 +4,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 
 type Product = { image: string; gallery?: string[]; title: string; author: string; price: string; categories: string[]; available?: boolean }
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
-type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'news' | 'news-detail' | 'login'
+type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'news' | 'news-detail' | 'login' | 'register'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const loginSlides = [
   { image: '/assets/login-bookstore.png', quote: 'Find a story that feels like coming home.' },
@@ -747,7 +747,7 @@ function CartPage({ onHome }: { onHome: () => void }) {
   </main>
 }
 
-function LoginPage({ onHome }: { onHome: () => void }) {
+function LoginPage({ onHome, onRegister }: { onHome: () => void; onRegister: () => void }) {
   const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [activeSlide, setActiveSlide] = useState(0)
@@ -785,9 +785,9 @@ function LoginPage({ onHome }: { onHome: () => void }) {
           <h1 id="login-title">Log in</h1>
           <p className="login-intro">Enter your email and password to securely access your account and manage your services.</p>
           <form className="login-form" onSubmit={handleSubmit}>
-            <label htmlFor="login-email">Email Address</label>
-            <input id="login-email" name="email" type="email" placeholder="Your Email Address" autoComplete="email" required />
-            <label htmlFor="login-password">Password</label>
+            <label htmlFor="login-email">Email Address / Username <span className="required-mark" aria-hidden="true">*</span></label>
+            <input id="login-email" name="email" type="text" placeholder="Your Email Address / Username" autoComplete="username" required />
+            <label htmlFor="login-password">Password <span className="required-mark" aria-hidden="true">*</span></label>
             <div className="login-password-field">
               <input id="login-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Your Password" autoComplete="current-password" required />
               <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button>
@@ -798,7 +798,7 @@ function LoginPage({ onHome }: { onHome: () => void }) {
             </div>
             <button className="login-submit" type="submit">Login</button>
           </form>
-          <p className="login-signup">Don’t have an account? <a href="#login" onClick={(event) => event.preventDefault()}>Sign Up here</a></p>
+          <p className="login-signup">Don’t have an account? <a href="#register" onClick={(event) => { event.preventDefault(); onRegister() }}>Sign Up here</a></p>
           <div className="login-divider"><span>Or Continue With Account</span></div>
           <div className="login-sso" aria-label="Single sign-on options">
             <button type="button" aria-label="Sign in with Facebook" onClick={() => handleSso('Facebook')}><i className="bi bi-facebook" aria-hidden="true" /></button>
@@ -812,11 +812,81 @@ function LoginPage({ onHome }: { onHome: () => void }) {
   </main>
 }
 
+function RegisterPage({ onHome, onLogin, language }: { onHome: () => void; onLogin: () => void; language: 'en' | 'vi' }) {
+  const [message, setMessage] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [activeSlide, setActiveSlide] = useState(0)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setActiveSlide((slide) => (slide + 1) % loginSlides.length), 3000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setMessage('Account creation is ready for connection to your account service.')
+  }
+
+  const handleSso = (provider: string) => {
+    setMessage(`${provider} sign-up is ready for OAuth configuration.`)
+  }
+
+  return <main className="login-page register-page">
+    <div className="login-page-backdrop" aria-hidden="true" />
+    <section className="login-layout" aria-label="Create account">
+      <div className={`login-visual login-slide-${activeSlide}`}>
+        <button className="login-brand" type="button" onClick={onHome} aria-label="Back to home">LINERY BOOKSTORE</button>
+        <div className="login-visual-copy">
+          <p>{loginSlides[activeSlide].quote}</p>
+          <span>Books selected with care for curious minds.</span>
+          <div className="login-visual-dots" aria-label="Registration background slides">
+            {loginSlides.map((slide, index) => <button key={slide.image} type="button" className={index === activeSlide ? 'is-active' : ''} aria-label={`Show slide ${index + 1}`} aria-pressed={index === activeSlide} onClick={() => setActiveSlide(index)} />)}
+          </div>
+        </div>
+      </div>
+      <div className="login-card register-card" aria-labelledby="register-title">
+        <button className="login-back" type="button" aria-label="Back to home" onClick={onHome}><i className="bi bi-arrow-left" aria-hidden="true" /></button>
+        <div className="login-card-inner">
+          <h1 id="register-title">Create account</h1>
+          <p className="login-intro">Create your account to save books and manage your orders.</p>
+          <form className="login-form" onSubmit={handleSubmit}>
+            <label htmlFor="register-name">{language === 'vi' ? 'Tên đăng nhập' : 'Username'} <span className="required-mark" aria-hidden="true">*</span></label>
+            <input id="register-name" name="username" type="text" placeholder={language === 'vi' ? 'Tên đăng nhập của bạn' : 'Your Username'} autoComplete="username" required />
+            <label htmlFor="register-email">Email Address <span className="required-mark" aria-hidden="true">*</span></label>
+            <input id="register-email" name="email" type="email" placeholder="Your Email Address" autoComplete="email" required />
+            <label htmlFor="register-password">Password <span className="required-mark" aria-hidden="true">*</span></label>
+            <div className="login-password-field">
+              <input id="register-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Your Password" autoComplete="new-password" required />
+              <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button>
+            </div>
+            <label htmlFor="register-confirm-password">Confirm Password <span className="required-mark" aria-hidden="true">*</span></label>
+            <div className="login-password-field">
+              <input id="register-confirm-password" name="confirmPassword" type={showConfirmation ? 'text' : 'password'} placeholder="Confirm Your Password" autoComplete="new-password" required />
+              <button type="button" aria-label={showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'} onClick={() => setShowConfirmation((visible) => !visible)}><i className={`bi ${showConfirmation ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button>
+            </div>
+            <label className="login-remember register-consent"><input type="checkbox" name="terms" required /> <span>{language === 'vi' ? <>Tôi đồng ý với <a className="login-consent-link" href="#terms">các điều khoản</a> và <a className="login-consent-link" href="#privacy-policy">chính sách bảo mật</a></> : <>I agree to the <a className="login-consent-link" href="#terms">terms</a> and <a className="login-consent-link" href="#privacy-policy">privacy policy</a></>}</span></label>
+            <button className="login-submit" type="submit">Create account</button>
+          </form>
+          <p className="login-signup">Already have an account? <a href="#login" onClick={(event) => { event.preventDefault(); onLogin() }}>Log in</a></p>
+          <div className="login-divider"><span>Or Continue With Account</span></div>
+          <div className="login-sso" aria-label="Single sign-on options">
+            <button type="button" aria-label="Sign up with Facebook" onClick={() => handleSso('Facebook')}><i className="bi bi-facebook" aria-hidden="true" /></button>
+            <button type="button" aria-label="Sign up with Google" onClick={() => handleSso('Google')}><i className="bi bi-google" aria-hidden="true" /></button>
+            <button type="button" aria-label="Sign up with Apple" onClick={() => handleSso('Apple')}><i className="bi bi-apple" aria-hidden="true" /></button>
+          </div>
+          {message && <p className="login-message" role="status">{message}</p>}
+        </div>
+      </div>
+    </section>
+  </main>
+}
+
 export function App() {
   const [welcomeOpen, setWelcomeOpen] = useState(() => isEnhancedVariant && window.localStorage.getItem(welcomeStorageKey) !== 'true')
   const [language, setLanguage] = useState<'en' | 'vi'>(() => window.localStorage.getItem('linery-language') === 'vi' ? 'vi' : 'en')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [view, setView] = useState<View>(() => window.location.hash === '#login' ? 'login' : window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
+  const [view, setView] = useState<View>(() => window.location.hash === '#login' ? 'login' : window.location.hash === '#register' ? 'register' : window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('query') ?? '')
   const [selectedAuthor, setSelectedAuthor] = useState(() => getAuthorFromPath(window.location.pathname))
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(() => getNewsFromPath(window.location.pathname))
@@ -836,7 +906,7 @@ export function App() {
       setSearchQuery(new URLSearchParams(window.location.search).get('query') ?? '')
       setSelectedAuthor(getAuthorFromPath(window.location.pathname))
       setSelectedNews(getNewsFromPath(window.location.pathname))
-      setView(window.location.hash === '#login' ? 'login' : window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
+      setView(window.location.hash === '#login' ? 'login' : window.location.hash === '#register' ? 'register' : window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
     }
     window.addEventListener('popstate', syncRoute)
     window.addEventListener('hashchange', syncRoute)
@@ -866,7 +936,7 @@ export function App() {
   }, [welcomeOpen])
 
   useEffect(() => {
-    document.body.classList.toggle('login-open', view === 'login')
+    document.body.classList.toggle('login-open', view === 'login' || view === 'register')
     return () => document.body.classList.remove('login-open')
   }, [view])
 
@@ -917,6 +987,16 @@ export function App() {
     setView('home')
     setShopOpen(false)
     setMenuOpen(false)
+  }
+
+  const showLogin = () => {
+    window.location.hash = 'login'
+    setView('login')
+  }
+
+  const showRegister = () => {
+    window.location.hash = 'register'
+    setView('register')
   }
 
   const showAuthors = () => {
@@ -1035,7 +1115,8 @@ export function App() {
       <i className="bi bi-arrow-up" aria-hidden="true" />
     </button>
     </div>
-    {view === 'login' && <LoginPage onHome={showHome} />}
+    {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} />}
+    {view === 'register' && <RegisterPage onHome={showHome} onLogin={showLogin} language={language} />}
     {quickViewAvailable && quickViewOpen && <BookPreview product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} />}
   </>
 }
