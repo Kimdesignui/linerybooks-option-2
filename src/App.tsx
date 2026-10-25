@@ -646,7 +646,7 @@ function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewL
         <div className="product-info">
           <h3>{product.title}</h3>
           <p className="product-author">{product.author}</p>
-          <p className="product-price">{product.price}</p>
+          {product.available !== false && <p className="product-price">{product.price}</p>}
           {product.available === false && <p className="product-stock-status">Out of stock</p>}
         </div>
       </div>
