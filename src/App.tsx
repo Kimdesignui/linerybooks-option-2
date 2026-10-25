@@ -4,8 +4,15 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 
 type Product = { image: string; gallery?: string[]; title: string; author: string; price: string; categories: string[]; available?: boolean }
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
-type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'news' | 'news-detail'
+type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'news' | 'news-detail' | 'login'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
+const loginSlides = [
+  { image: '/assets/login-bookstore.png', quote: 'Find a story that feels like coming home.' },
+  { image: '/assets/login-library-reader.png', quote: 'Every shelf holds a doorway to somewhere new.' },
+  { image: '/assets/login-library-reader-older.png', quote: 'A quiet page can change the way we see the world.' },
+  { image: '/assets/login-library-lamp.png', quote: 'Read slowly. Let the story stay with you.' },
+  { image: '/assets/login-library-woman.png', quote: 'Books make room for wonder.' },
+]
 const isEnhancedVariant = import.meta.env.VITE_LINERY_VARIANT === 'enhanced'
 const welcomeStorageKey = 'linery-welcome-seen-v3'
 
@@ -740,11 +747,76 @@ function CartPage({ onHome }: { onHome: () => void }) {
   </main>
 }
 
+function LoginPage({ onHome }: { onHome: () => void }) {
+  const [message, setMessage] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [activeSlide, setActiveSlide] = useState(0)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setActiveSlide((slide) => (slide + 1) % loginSlides.length), 3000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setMessage('Sign-in is ready for connection to your account service.')
+  }
+
+  const handleSso = (provider: string) => {
+    setMessage(`${provider} sign-in is ready for OAuth configuration.`)
+  }
+
+  return <main className="login-page">
+    <div className="login-page-backdrop" aria-hidden="true" />
+    <section className="login-layout" aria-label="Sign in">
+      <div className={`login-visual login-slide-${activeSlide}`}>
+        <button className="login-brand" type="button" onClick={onHome} aria-label="Back to home">LINERY BOOKSTORE</button>
+        <div className="login-visual-copy">
+          <p>{loginSlides[activeSlide].quote}</p>
+          <span>Books selected with care for curious minds.</span>
+          <div className="login-visual-dots" aria-label="Login background slides">
+            {loginSlides.map((slide, index) => <button key={slide.image} type="button" className={index === activeSlide ? 'is-active' : ''} aria-label={`Show slide ${index + 1}`} aria-pressed={index === activeSlide} onClick={() => setActiveSlide(index)} />)}
+          </div>
+        </div>
+      </div>
+      <div className="login-card" aria-labelledby="login-title">
+        <button className="login-back" type="button" aria-label="Back to home" onClick={onHome}><i className="bi bi-arrow-left" aria-hidden="true" /></button>
+        <div className="login-card-inner">
+          <h1 id="login-title">Log in</h1>
+          <p className="login-intro">Enter your email and password to securely access your account and manage your services.</p>
+          <form className="login-form" onSubmit={handleSubmit}>
+            <label htmlFor="login-email">Email Address</label>
+            <input id="login-email" name="email" type="email" placeholder="Your Email Address" autoComplete="email" required />
+            <label htmlFor="login-password">Password</label>
+            <div className="login-password-field">
+              <input id="login-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Your Password" autoComplete="current-password" required />
+              <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button>
+            </div>
+            <div className="login-options">
+              <label className="login-remember"><input type="checkbox" name="remember" /> <span>Remember me</span></label>
+              <a href="#login" onClick={(event) => event.preventDefault()}>Forgot Password</a>
+            </div>
+            <button className="login-submit" type="submit">Login</button>
+          </form>
+          <p className="login-signup">Don’t have an account? <a href="#login" onClick={(event) => event.preventDefault()}>Sign Up here</a></p>
+          <div className="login-divider"><span>Or Continue With Account</span></div>
+          <div className="login-sso" aria-label="Single sign-on options">
+            <button type="button" aria-label="Sign in with Facebook" onClick={() => handleSso('Facebook')}><i className="bi bi-facebook" aria-hidden="true" /></button>
+            <button type="button" aria-label="Sign in with Google" onClick={() => handleSso('Google')}><i className="bi bi-google" aria-hidden="true" /></button>
+            <button type="button" aria-label="Sign in with Apple" onClick={() => handleSso('Apple')}><i className="bi bi-apple" aria-hidden="true" /></button>
+          </div>
+          {message && <p className="login-message" role="status">{message}</p>}
+        </div>
+      </div>
+    </section>
+  </main>
+}
+
 export function App() {
   const [welcomeOpen, setWelcomeOpen] = useState(() => isEnhancedVariant && window.localStorage.getItem(welcomeStorageKey) !== 'true')
   const [language, setLanguage] = useState<'en' | 'vi'>(() => window.localStorage.getItem('linery-language') === 'vi' ? 'vi' : 'en')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [view, setView] = useState<View>(() => window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
+  const [view, setView] = useState<View>(() => window.location.hash === '#login' ? 'login' : window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('query') ?? '')
   const [selectedAuthor, setSelectedAuthor] = useState(() => getAuthorFromPath(window.location.pathname))
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(() => getNewsFromPath(window.location.pathname))
@@ -764,10 +836,14 @@ export function App() {
       setSearchQuery(new URLSearchParams(window.location.search).get('query') ?? '')
       setSelectedAuthor(getAuthorFromPath(window.location.pathname))
       setSelectedNews(getNewsFromPath(window.location.pathname))
-      setView(window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
+      setView(window.location.hash === '#login' ? 'login' : window.location.pathname === '/all-books' ? 'all-books' : window.location.pathname === '/search' ? 'search' : window.location.pathname === '/cart' ? 'cart' : window.location.pathname === '/news' ? 'news' : window.location.pathname.startsWith('/news/') ? 'news-detail' : window.location.pathname.startsWith('/authors/') ? 'author' : 'home')
     }
     window.addEventListener('popstate', syncRoute)
-    return () => window.removeEventListener('popstate', syncRoute)
+    window.addEventListener('hashchange', syncRoute)
+    return () => {
+      window.removeEventListener('popstate', syncRoute)
+      window.removeEventListener('hashchange', syncRoute)
+    }
   }, [])
 
   useEffect(() => {
@@ -788,6 +864,11 @@ export function App() {
     document.body.classList.toggle('welcome-open', welcomeOpen)
     return () => document.body.classList.remove('welcome-open')
   }, [welcomeOpen])
+
+  useEffect(() => {
+    document.body.classList.toggle('login-open', view === 'login')
+    return () => document.body.classList.remove('login-open')
+  }, [view])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 1101px)')
@@ -954,6 +1035,7 @@ export function App() {
       <i className="bi bi-arrow-up" aria-hidden="true" />
     </button>
     </div>
+    {view === 'login' && <LoginPage onHome={showHome} />}
     {quickViewAvailable && quickViewOpen && <BookPreview product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} />}
   </>
 }
