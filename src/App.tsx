@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
 type Product = { image: string; gallery?: string[]; title: string; author: string; price: string; categories: string[]; available?: boolean }
+type CartItem = { product: Product; quantity: number }
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
 type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'news' | 'news-detail' | 'login' | 'register'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
@@ -638,7 +639,7 @@ function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewL
             <div className="product-overlay-copy"><strong>{product.title}</strong><span>{product.author}</span></div>
             <div className="product-overlay-actions">
               <button className={`product-wishlist ${isWishlisted ? 'is-active' : ''}`} type="button" aria-label={isWishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`} aria-pressed={isWishlisted} onClick={toggleWishlist}><i className="bi bi-heart product-action-icon" aria-hidden="true" /><span className="product-action-label">Wishlist</span></button>
-              <button className="product-cart" type="button" aria-label={`Add ${product.title} to cart`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); onAddToCart(product) }}><i className="bi bi-cart3 product-action-icon" aria-hidden="true" /><span className="product-action-label">Add to cart</span></button>
+              <button className="product-cart" type="button" aria-label={`Add ${product.title} to Cart`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); onAddToCart(product) }}><i className="bi bi-cart3 product-action-icon" aria-hidden="true" /><span className="product-action-label">Add to Cart</span></button>
             </div>
             <span className="product-overlay-cta">Read more...</span>
           </div>
@@ -726,7 +727,7 @@ function Collection({ title, items, ...actions }: { title: string; items: Produc
   </section>
 }
 
-function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: () => void; onAuthor: (author: string) => void }) {
+function BookDetail({ product, onBack, onAuthor, onAddToCart }: { product: Product; onBack: () => void; onAuthor: (author: string) => void; onAddToCart: (product: Product) => void }) {
   const galleryImages = [product.image]
   const demoAuthorPath = '/authors/edward-w-said'
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -778,7 +779,7 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
           </div>
           <div className="book-detail-actions">
             {isAvailable ? <>
-              <button className="book-add-button" type="button">Add to basket</button>
+              <button className="book-add-button" type="button" onClick={() => onAddToCart(product)}>Add to Cart</button>
               <button className="book-buy-button" type="button">Buy Now</button>
             </> : <button className="book-out-of-stock-button" type="button" disabled>Out of stock</button>}
           </div>
@@ -890,11 +891,54 @@ function Footer() {
   </footer>
 }
 
-function CartPage({ onHome }: { onHome: () => void }) {
+const getPriceValue = (price: string) => Number(price.replace(/[^0-9]/g, '')) || 0
+const formatPrice = (value: number) => `${value.toLocaleString('vi-VN')}₫`
+
+function CartItemRow({ item, onRemove, onChangeQuantity }: { item: CartItem; onRemove: () => void; onChangeQuantity: (delta: number) => void }) {
+  return <article className="cart-item-row">
+    <img className="cart-item-image" src={item.product.image} alt="" />
+    <div className="cart-item-copy">
+      <h2>{item.product.title}</h2>
+      <p>{item.product.author}</p>
+      <div className="cart-item-bottom">
+        <div className="cart-quantity" aria-label={`Quantity for ${item.product.title}`}>
+          <button type="button" aria-label={`Decrease quantity of ${item.product.title}`} onClick={() => onChangeQuantity(-1)}>−</button>
+          <span>{item.quantity}</span>
+          <button type="button" aria-label={`Increase quantity of ${item.product.title}`} onClick={() => onChangeQuantity(1)}>+</button>
+        </div>
+        <p className="cart-item-price">{formatPrice(getPriceValue(item.product.price) * item.quantity)}</p>
+      </div>
+    </div>
+    <button className="cart-item-remove" type="button" aria-label={`Remove ${item.product.title} from cart`} onClick={onRemove}><i className="bi bi-trash3" aria-hidden="true" /></button>
+  </article>
+}
+
+function CartDrawer({ items, onClose, onRemove, onChangeQuantity, onViewCart, onCheckout }: { items: CartItem[]; onClose: () => void; onRemove: (title: string) => void; onChangeQuantity: (title: string, delta: number) => void; onViewCart: () => void; onCheckout: () => void }) {
+  const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
+  return <div className="cart-drawer-layer" role="presentation">
+    <button className="cart-drawer-backdrop" type="button" aria-label="Close cart" onClick={onClose} />
+    <aside className="cart-drawer" aria-label="Shopping cart">
+      <div className="cart-drawer-header">
+        <h1>My Cart</h1>
+        <button className="cart-drawer-close" type="button" aria-label="Close cart" onClick={onClose}>×</button>
+      </div>
+      {items.length > 0 ? <>
+        <div className="cart-drawer-items">{items.map((item) => <CartItemRow key={item.product.title} item={item} onRemove={() => onRemove(item.product.title)} onChangeQuantity={(delta) => onChangeQuantity(item.product.title, delta)} />)}</div>
+        <div className="cart-drawer-footer">
+          <div className="cart-subtotal"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div>
+          <div className="cart-drawer-actions"><button className="cart-secondary-action" type="button" onClick={onViewCart}>VIEW CART</button><button className="cart-primary-action" type="button" onClick={onCheckout}>CHECKOUT NOW</button></div>
+        </div>
+      </> : <div className="cart-drawer-empty"><i className="bi bi-bag" aria-hidden="true" /><p>Your cart is empty.</p><button type="button" onClick={onClose}>Continue shopping</button></div>}
+    </aside>
+  </div>
+}
+
+function CartPage({ onHome, items, onRemove, onChangeQuantity }: { onHome: () => void; items: CartItem[]; onRemove: (title: string) => void; onChangeQuantity: (title: string, delta: number) => void }) {
+  const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
+  if (items.length > 0) return <main className="cart-page"><div className="cart-layout"><section className="cart-filled-card" aria-labelledby="cart-title"><div className="cart-filled-header"><h1 id="cart-title">My Cart</h1><button className="cart-continue-link" type="button" onClick={onHome}>Continue shopping</button></div><div className="cart-filled-items">{items.map((item) => <CartItemRow key={item.product.title} item={item} onRemove={() => onRemove(item.product.title)} onChangeQuantity={(delta) => onChangeQuantity(item.product.title, delta)} />)}</div></section><aside className="cart-summary-panel" aria-labelledby="order-summary-title"><h2 id="order-summary-title">Order Summary</h2><div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div><div className="cart-summary-line"><span>Delivery fee</span><strong>Free</strong></div><div className="cart-summary-total"><span>Total</span><strong>{formatPrice(subtotal)}</strong></div><button className="cart-primary-action" type="button">CHECKOUT NOW</button></aside></div></main>
   return <main className="cart-page">
     <section className="cart-empty-card" aria-labelledby="cart-empty-title">
-      <p className="cart-kicker">Your basket</p>
-        <img className="cart-empty-illustration" src="/assets/cart-empty-blue.png" alt="Empty shopping cart" />
+        <i className="bi bi-bag cart-empty-icon" aria-hidden="true" />
       <h1 id="cart-empty-title">Your cart is empty</h1>
       <p className="cart-empty-message">There are no products in your cart.</p>
       <a className="cart-empty-action" href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Continue shopping</a>
@@ -1049,7 +1093,8 @@ export function App() {
   const [heroMotionOpen, setHeroMotionOpen] = useState(false)
   const [heroMotionKey, setHeroMotionKey] = useState(0)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => getProductFromPath(window.location.pathname))
-  const [cartCount, setCartCount] = useState(0)
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false)
   const [quickViewOpen, setQuickViewOpen] = useState(false)
   const [quickViewAvailable, setQuickViewAvailable] = useState(() => window.matchMedia('(min-width: 1101px)').matches)
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
@@ -1095,6 +1140,11 @@ export function App() {
     document.body.classList.toggle('login-open', view === 'login' || view === 'register')
     return () => document.body.classList.remove('login-open')
   }, [view])
+
+  useEffect(() => {
+    document.body.classList.toggle('cart-drawer-open', cartDrawerOpen)
+    return () => document.body.classList.remove('cart-drawer-open')
+  }, [cartDrawerOpen])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 1101px)')
@@ -1225,7 +1275,19 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const addToCart = (_product: Product) => setCartCount((count) => count + 1)
+  const addToCart = (product: Product) => {
+    if (product.available === false) return
+    setCartItems((items) => {
+      const existing = items.find((item) => item.product.title === product.title)
+      return existing ? items.map((item) => item.product.title === product.title ? { ...item, quantity: item.quantity + 1 } : item) : [...items, { product, quantity: 1 }]
+    })
+    if (!window.matchMedia('(max-width: 520px)').matches) setCartDrawerOpen(true)
+  }
+  const removeFromCart = (title: string) => setCartItems((items) => items.filter((item) => item.product.title !== title))
+  const changeCartQuantity = (title: string, delta: number) => setCartItems((items) => items.map((item) => item.product.title === title ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))
+  const closeCartDrawer = () => setCartDrawerOpen(false)
+  const openCartDrawer = () => setCartDrawerOpen(true)
+  const checkout = () => setCartDrawerOpen(false)
   const toggleQuickView = () => {
     if (quickViewOpen) {
       if (previewCloseTimer.current !== null) window.clearTimeout(previewCloseTimer.current)
@@ -1255,10 +1317,10 @@ export function App() {
   return <>
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
     <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'quick-view-active' : ''}`}>
-    <Header cartCount={cartCount} onMenu={() => setMenuOpen(!menuOpen)} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAuthors={showAuthors} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (open) setHeroMotionKey((key) => key + 1); else setShopOpen(false) }} />
+    <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} onMenu={() => setMenuOpen(!menuOpen)} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAuthors={showAuthors} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (open) setHeroMotionKey((key) => key + 1); else setShopOpen(false) }} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
     <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} />
-    {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : view === 'cart' ? <CartPage onHome={showHome} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
+    {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} /> : view === 'cart' ? <CartPage onHome={showHome} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
       <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration">
         <div className="hero-art">
           <img className="hero-art-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" />
@@ -1276,5 +1338,6 @@ export function App() {
     {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} />}
     {view === 'register' && <RegisterPage onHome={showHome} onLogin={showLogin} language={language} />}
     {quickViewAvailable && quickViewOpen && <BookPreview product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} />}
+    {cartDrawerOpen && <CartDrawer items={cartItems} onClose={closeCartDrawer} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} onViewCart={() => { closeCartDrawer(); showCart() }} onCheckout={checkout} />}
   </>
 }
