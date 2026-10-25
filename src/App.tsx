@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ElementType, type FormEvent } from 'r
 import { Menu } from 'lucide-react'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
-type Product = { image: string; title: string; author: string; price: string; categories: string[] }
+type Product = { image: string; gallery?: string[]; title: string; author: string; price: string; categories: string[]; available?: boolean }
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
 type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'news' | 'news-detail'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
@@ -128,9 +128,8 @@ const shopCategories: ShopCategory[] = [
     { label: 'Non-fiction', children: [{ label: 'Essays' }, { label: 'Research & Studies' }, { label: 'Memoir & Biography' }] },
   ] },
   { label: 'Authors' },
-  { label: 'Publishers' },
-  { label: 'Linery Press', children: [{ label: 'Our Publications' }, { label: 'News & Events' }] },
-  { label: 'About us' },
+  { label: 'LINERY PRESS' },
+  { label: 'LINERY JOURNAL' },
 ]
 const shopOnlyCategories = shopCategories.filter((category) => category.label !== 'Authors')
 const desktopShopColumns: MenuColumn[] = [
@@ -160,72 +159,71 @@ function MenuColumns({ columns }: { columns: MenuColumn[] }) {
 }
 
 function ShopMenu({ onAllBooks }: { onAllBooks: () => void }) {
-  return <section className="shop-menu" aria-label="Shop categories">
-    <div className="shop-menu-inner">
-      <div className="shop-menu-columns">
-        {desktopShopColumns.map((column) => <div className="shop-menu-column" key={column.eyebrow || column.links[0]}>
-          {column.eyebrow && <p className="menu-eyebrow">{column.eyebrow}</p>}
-          {column.links.map((link) => <a href={link === 'All books' ? '/all-books' : `#${link.toLowerCase().replaceAll(' ', '-')}`} key={link} onClick={link === 'All books' ? (event) => { event.preventDefault(); onAllBooks() } : undefined}>{link}</a>)}
+  return <section className="shop-menu menu-navigation" aria-label="Books categories">
+    <div className="shop-menu-inner menu-navigation-inner">
+      <div className="shop-menu-columns menu-navigation-list">
+        {desktopShopColumns.map((column, columnIndex) => <div className={`shop-menu-column menu-section menu-branch menu-level-${columnIndex === 0 ? 0 : 1}`} key={column.eyebrow || column.links[0]}>
+          {column.eyebrow && <p className="menu-eyebrow menu-section-title">{column.eyebrow}</p>}
+          {column.links.map((link) => <a className="menu-item menu-item-link menu-item-text" href={link === 'All books' ? '/all-books' : `#${link.toLowerCase().replaceAll(' ', '-')}`} key={link} onClick={link === 'All books' ? (event) => { event.preventDefault(); onAllBooks() } : undefined}>{link}</a>)}
           </div>)}
       </div>
     </div>
   </section>
 }
 
-function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, language, onSelectLanguage, onClose }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onAuthors: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void; onClose: () => void }) {
+function MobileMenu({ isOpen, onShop, onAllBooks, onAuthors, onSearch, language, onSelectLanguage }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onAuthors: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void }) {
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Books: true, Fiction: true, 'Non-fiction': true, 'Linery Press': true })
   const [query, setQuery] = useState('')
   const toggleBranch = (label: string) => setOpenBranches((current) => ({ ...current, [label]: !current[label] }))
 
-  return <aside className={`mobile-menu ${isOpen ? 'is-open' : ''}`} aria-label="Mobile navigation" aria-hidden={!isOpen}>
+  return <aside className={`mobile-menu menu-navigation ${isOpen ? 'is-open' : ''}`} aria-label="Mobile navigation" aria-hidden={!isOpen}>
     <div className="mobile-menu-header">
-      <p className="mobile-menu-title">Menu</p>
-      <button className="mobile-menu-close" aria-label="Close menu" onClick={onClose}>×</button>
+      <div className="mobile-menu-language-options" aria-label="Choose language">
+        <button type="button" className={language === 'en' ? 'is-active' : ''} aria-pressed={language === 'en'} onClick={() => onSelectLanguage('en')}>EN</button>
+        <button type="button" className={language === 'vi' ? 'is-active' : ''} aria-pressed={language === 'vi'} onClick={() => onSelectLanguage('vi')}>VI</button>
+      </div>
+      <div className="mobile-menu-quick-actions" aria-label="Account actions">
+        <a className="mobile-menu-icon" href="#login" aria-label="Log in"><i className="bi bi-person" aria-hidden="true" /></a>
+        <a className="mobile-menu-icon" href="#wishlist" aria-label="Wishlist"><i className="bi bi-heart" aria-hidden="true" /></a>
+      </div>
     </div>
     <div className="mobile-menu-tools">
       <form className="mobile-menu-search" onSubmit={(event) => { event.preventDefault(); onSearch(query) }}>
         <img src="/assets/icon-search.svg" alt="" aria-hidden="true" />
         <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search books" aria-label="Search books" />
       </form>
-      <div className="mobile-menu-quick-actions" aria-label="Account actions">
-        <a className="mobile-menu-icon" href="#login" aria-label="Log in"><i className="bi bi-person" aria-hidden="true" /></a>
-        <a className="mobile-menu-icon" href="#wishlist" aria-label="Wishlist"><i className="bi bi-heart" aria-hidden="true" /></a>
-      </div>
     </div>
-    <section className="mobile-menu-section" aria-labelledby="mobile-shop-heading">
-      <h2 id="mobile-shop-heading" className="mobile-menu-section-title">Shop</h2>
-      <button className="mobile-menu-item mobile-menu-level-0" onClick={onAllBooks}><span className="mobile-menu-text">View all books</span></button>
+    <section className="mobile-menu-section menu-section" aria-labelledby="mobile-shop-heading">
+      <h2 id="mobile-shop-heading" className="mobile-menu-section-title menu-section-title">Books</h2>
+      <button className="mobile-menu-item mobile-menu-level-0 menu-item menu-level-0" onClick={onAllBooks}><span className="mobile-menu-text menu-item-text">View All</span></button>
       <div className="mobile-menu-tree">
         {shopOnlyCategories.map((category) => {
           const categoryOpen = openBranches[category.label] ?? true
-          return <div className="mobile-menu-branch" key={category.label}>
-            <button className="mobile-menu-item mobile-menu-level-0" onClick={() => category.children ? toggleBranch(category.label) : onShop()} aria-expanded={category.children ? categoryOpen : undefined}>
-              <span className="mobile-menu-text">{category.label}</span>{category.children && <span aria-hidden="true">{categoryOpen ? '−' : '+'}</span>}
+          return <div className="mobile-menu-branch menu-branch" key={category.label}>
+            <button className="mobile-menu-item mobile-menu-level-0 menu-item menu-level-0" onClick={() => category.children ? toggleBranch(category.label) : onShop()} aria-expanded={category.children ? categoryOpen : undefined}>
+              <span className="mobile-menu-text menu-item-text">{category.label}</span>{category.children && <span aria-hidden="true">{categoryOpen ? '−' : '+'}</span>}
             </button>
-            {category.children && categoryOpen && <div className="mobile-menu-children">{category.children.map((child) => {
+            {category.children && categoryOpen && <div className="mobile-menu-children menu-children">{category.children.map((child) => {
               const childOpen = openBranches[child.label] ?? true
-              return <div className="mobile-menu-branch" key={child.label}>
-                <button className="mobile-menu-item mobile-menu-level-1" onClick={() => child.children ? toggleBranch(child.label) : onShop()} aria-expanded={child.children ? childOpen : undefined}>
-                  <span className="mobile-menu-text">{child.label}</span>{child.children && <span aria-hidden="true">{childOpen ? '−' : '+'}</span>}
+              return <div className="mobile-menu-branch menu-branch" key={child.label}>
+                <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={() => child.children ? toggleBranch(child.label) : onShop()} aria-expanded={child.children ? childOpen : undefined}>
+                  <span className="mobile-menu-text menu-item-text">{child.label}</span>{child.children && <span aria-hidden="true">{childOpen ? '−' : '+'}</span>}
                 </button>
-                {child.children && childOpen && <div className="mobile-menu-children">{child.children.map((leaf) => <button className="mobile-menu-item mobile-menu-level-2" key={leaf.label} onClick={onShop}><span className="mobile-menu-text">{leaf.label}</span></button>)}</div>}
+                {child.children && childOpen && <div className="mobile-menu-children menu-children">{child.children.map((leaf) => <button className="mobile-menu-item mobile-menu-level-2 menu-item menu-level-2" key={leaf.label} onClick={onShop}><span className="mobile-menu-text menu-item-text">{leaf.label}</span></button>)}</div>}
               </div>
             })}</div>}
           </div>
         })}
       </div>
     </section>
-    <section className="mobile-menu-section mobile-menu-authors" aria-labelledby="mobile-authors-heading">
-      <h2 id="mobile-authors-heading" className="mobile-menu-section-title">Authors</h2>
-      <button className="mobile-menu-item mobile-menu-level-0" onClick={onAuthors}><span className="mobile-menu-text">Browse all authors</span><span aria-hidden="true">→</span></button>
-    </section>
-    <div className="mobile-menu-language" aria-label="Choose language">
-      <span className="mobile-menu-section-title">Language</span>
-      <div className="mobile-menu-language-options">
-        <button type="button" className={language === 'en' ? 'is-active' : ''} aria-pressed={language === 'en'} onClick={() => onSelectLanguage('en')}>EN</button>
-        <button type="button" className={language === 'vi' ? 'is-active' : ''} aria-pressed={language === 'vi'} onClick={() => onSelectLanguage('vi')}>VI</button>
+    <section className="mobile-menu-section menu-section mobile-menu-authors" aria-labelledby="mobile-authors-heading">
+      <h2 id="mobile-authors-heading" className="mobile-menu-section-title menu-section-title">WRITERS</h2>
+      <div className="mobile-menu-children menu-children">
+        <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAuthors}><span className="mobile-menu-text menu-item-text">View All</span><span aria-hidden="true">→</span></button>
+        <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAuthors}><span className="mobile-menu-text menu-item-text">Authors</span></button>
+        <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAuthors}><span className="mobile-menu-text menu-item-text">Translators</span></button>
       </div>
-    </div>
+    </section>
   </aside>
 }
 
@@ -377,7 +375,7 @@ function LineryNewsSection({ language, onOpen, onSeeMore }: { language: 'en' | '
   return <section className="news-module" aria-labelledby="linery-news-title">
     <RibbonTitle title="LINERY NEWS" id="linery-news-title" heading />
     <div className="news-grid">{visibleItems.map((item) => <NewsCard key={item.slug} item={item} language={language} onOpen={onOpen} />)}</div>
-    <a className="news-see-more" href="/news" onClick={(event) => { event.preventDefault(); onSeeMore() }}>View all</a>
+    <a className="news-see-more" href="/news" onClick={(event) => { event.preventDefault(); onSeeMore() }}>View All</a>
   </section>
 }
 
@@ -448,7 +446,7 @@ function Header({ cartCount, onMenu, onShop, onShopHover, onAuthors, onAllBooks,
   return <header ref={headerRef} className="site-header" onMouseLeave={() => onDesktopMenuHover(false)}>
     <div className="header-inner">
       <button className="menu-button" aria-label="Mở menu" onClick={onMenu}><Menu /></button>
-      <nav className="desktop-nav" aria-label="Điều hướng chính" onMouseEnter={() => onDesktopMenuHover(true)}><button className="nav-link shop-nav-link" onClick={onShop} onMouseEnter={() => onShopHover(true)} onFocus={() => onShopHover(true)} aria-expanded={shopOpen}>Shop</button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''}`} onClick={onAuthors}>Authors</button><a className="nav-link nav-action-link" href="#wishlist">Wishlist</a><a className="nav-link nav-action-link" href="#login">Login</a></nav>
+      <nav className="desktop-nav" aria-label="Điều hướng chính" onMouseEnter={() => onDesktopMenuHover(true)}><button className="nav-link shop-nav-link" onClick={onShop} onMouseEnter={() => onShopHover(true)} onFocus={() => onShopHover(true)} aria-expanded={shopOpen}>Books</button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''}`} onClick={onAuthors}>Authors</button><a className="nav-link nav-action-link" href="#wishlist">Wishlist</a><a className="nav-link nav-action-link" href="#login">Login</a></nav>
       <a className="brand" href="/" aria-label="Linery Bookstore home">LINERY BOOKSTORE</a>
       <div className="header-actions">
         <form className={`search-control ${searchOpen ? 'is-open' : ''}`} onSubmit={submitSearch}>
@@ -602,7 +600,7 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
   }, [lightboxOpen, galleryImages.length])
 
   return <main className="book-detail-page">
-    <nav className="book-detail-breadcrumb" aria-label="Breadcrumb"><button onClick={onBack}>Shop</button><span aria-hidden="true">/</span><span>{product.title}</span></nav>
+    <nav className="book-detail-breadcrumb" aria-label="Breadcrumb"><button onClick={onBack}>Books</button><span aria-hidden="true">/</span><span>{product.title}</span></nav>
     <section className="book-detail-hero">
       <div className="book-detail-gallery">
         <button className="book-detail-cover-wrap" type="button" aria-label={`Open gallery for ${product.title}`} onClick={() => setLightboxOpen(true)}>
@@ -688,14 +686,12 @@ function BookPreview({ product, onClose, onOpenDetail }: { product: Product | nu
     {product ? <>
       <img className="book-preview-cover" src={product.image} alt={product.title} loading="lazy" decoding="async" />
       <div className="book-preview-copy">
-        <p className="book-preview-kicker">Linery Books</p>
         <h2>{product.title}</h2>
         <p className="book-preview-author">{product.author}</p>
         <p className="book-preview-price">{product.price}</p>
       </div>
       <dl className="book-preview-details">
         <div><dt>Publisher</dt><dd>{publisher}</dd></div>
-        <div><dt>Published</dt><dd>2024</dd></div>
         <div><dt>ISBN</dt><dd>978-0-00-000000-0</dd></div>
         <div><dt>Format</dt><dd>Paperback</dd></div>
         <div><dt>Language</dt><dd>English</dd></div>
@@ -942,7 +938,7 @@ export function App() {
     <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'quick-view-active' : ''}`}>
     <Header cartCount={cartCount} onMenu={() => setMenuOpen(!menuOpen)} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAuthors={showAuthors} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (open) setHeroMotionKey((key) => key + 1); else setShopOpen(false) }} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
-    <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} onClose={() => setMenuOpen(false)} />
+    <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} />
     {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} /> : view === 'cart' ? <CartPage onHome={showHome} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
       <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration">
         <div className="hero-art">
