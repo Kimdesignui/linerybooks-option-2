@@ -103,9 +103,10 @@ const newsItems: NewsItem[] = [
 ]
 const getNewsFromPath = (pathname: string) => newsItems.find((item) => item.slug === pathname.split('/').pop()) ?? null
 
-const authorProfiles: Record<string, { image: string; born: string; died: string; bornPlace: string; diedPlace: string; bio: string }> = {
+const authorProfiles: Record<string, { image: string; images?: string[]; born: string; died: string; bornPlace: string; diedPlace: string; bio: string }> = {
   'Edward W. Said': {
     image: '/assets/author-edward-w-said.png',
+    images: ['/assets/author-edward-w-said.png', '/assets/author-edward-w-said-02.jpg', '/assets/author-edward-w-said-03.jpg'],
     born: '1 Nov 1935',
     died: '25 Sep 2003',
     bornPlace: 'Jerusalem, Palestine',
@@ -162,7 +163,7 @@ const translatorColumns: MenuColumn[] = [
 ]
 
 function MenuColumns({ columns }: { columns: MenuColumn[] }) {
-  return <div className="menu-columns">{columns.map((column) => <div className="menu-column" key={column.eyebrow}><p className="menu-eyebrow">{column.eyebrow}</p>{column.links.map((link) => <a href="#directory" key={link}>{link}</a>)}</div>)}</div>
+  return <div className="menu-columns">{columns.map((column) => <div className="menu-column" key={column.eyebrow}><p className="menu-eyebrow">{column.eyebrow}</p>{column.links.map((link) => <a href={`/authors/${authorSlug(link)}`} key={link}>{link}</a>)}</div>)}</div>
 }
 
 function ShopMenu({ onAllBooks }: { onAllBooks: () => void }) {
@@ -249,10 +250,11 @@ function AuthorsDirectory() {
 
 function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack: () => void } & ProductCardActions) {
   const authorBooks = products.filter((product) => product.author === author)
-  const [authorBookPage, setAuthorBookPage] = useState(0)
-  const authorBookPageSize = 3
-  const authorBookPageCount = Math.max(1, Math.ceil(authorBooks.length / authorBookPageSize))
-  const visibleAuthorBooks = authorBooks.slice(authorBookPage * authorBookPageSize, (authorBookPage + 1) * authorBookPageSize)
+  const [authorFactsOpen, setAuthorFactsOpen] = useState(true)
+  const [authorWorksOpen, setAuthorWorksOpen] = useState(false)
+  const [activeAuthorImage, setActiveAuthorImage] = useState(0)
+  const [authorLightboxOpen, setAuthorLightboxOpen] = useState(false)
+  const authorLightboxTrackRef = useRef<HTMLDivElement>(null)
   const profile = authorProfiles[author] ?? {
     image: '',
     born: '—',
@@ -261,18 +263,39 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
     diedPlace: 'Linery catalogue',
     bio: `${author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.`,
   }
+  const authorImages = profile.images ?? [profile.image]
+
+  useEffect(() => {
+    setActiveAuthorImage(0)
+  }, [author])
+
+  useEffect(() => {
+    if (!authorLightboxOpen) return undefined
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAuthorLightboxOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [authorLightboxOpen])
+
+  useEffect(() => {
+    if (!authorLightboxOpen || !authorLightboxTrackRef.current) return undefined
+    const track = authorLightboxTrackRef.current
+    window.requestAnimationFrame(() => track.scrollTo({ left: activeAuthorImage * track.clientWidth, behavior: 'auto' }))
+    return undefined
+  }, [authorLightboxOpen, activeAuthorImage])
 
   return <main className="author-page">
     <div className="author-page-content">
       <section className="author-profile-hero" aria-labelledby="author-profile-title">
         <div className="author-profile-media">
           <figure className="author-portrait-frame">
-            {profile.image ? <img src={profile.image} alt={author} className="author-portrait" /> : <i className="bi bi-person" aria-hidden="true" />}
+            <button className="detail-mobile-back" type="button" aria-label="Back to authors" onClick={onBack}><i className="bi bi-arrow-left" aria-hidden="true" /></button>
+            {authorImages[activeAuthorImage] ? <button className="author-portrait-trigger" type="button" aria-label={`Open portrait ${activeAuthorImage + 1} of ${author}`} onClick={() => setAuthorLightboxOpen(true)}><img src={authorImages[activeAuthorImage]} alt={`${author} portrait ${activeAuthorImage + 1}`} className="author-portrait" /></button> : <i className="bi bi-person" aria-hidden="true" />}
+            {authorImages.length > 1 && <div className="author-portrait-dots" aria-label="Author photos">
+              {authorImages.map((image, index) => <button key={image} type="button" className={index === activeAuthorImage ? 'is-active' : ''} aria-label={`Show author photo ${index + 1}`} aria-pressed={index === activeAuthorImage} onClick={() => setActiveAuthorImage(index)} />)}
+            </div>}
           </figure>
-          <dl className="author-life-facts" aria-label={`${author} life dates`}>
-            <div><dt>Born</dt><dd>{profile.born}</dd><small>{profile.bornPlace}</small></div>
-            <div><dt>Died</dt><dd>{profile.died}</dd><small>{profile.diedPlace}</small></div>
-          </dl>
         </div>
         <div className="author-profile-copy">
           <nav className="author-breadcrumb" aria-label="Breadcrumb">
@@ -281,23 +304,43 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
             <span className="author-breadcrumb-current" aria-current="page">{author}</span>
           </nav>
           <h1 id="author-profile-title">{author}</h1>
-          <p className="author-profile-bio">{profile.bio}</p>
-          <dl className="author-profile-facts">
-            <div><dt>Catalogue</dt><dd>Linery Books</dd></div>
-            <div><dt>Selected works</dt><dd>{authorBooks.length} {authorBooks.length === 1 ? 'title' : 'titles'}</dd></div>
+          <dl className="author-life-facts" aria-label={`${author} life dates`}>
+            <div><dt>Born</dt><dd>{profile.born}</dd></div>
+            <div><dt>Died</dt><dd>{profile.died}</dd></div>
           </dl>
+          <p className="author-profile-bio">{profile.bio}</p>
+          <section className="author-collapsible-section author-details-section" aria-labelledby="author-facts-title">
+            <button className="author-section-toggle" type="button" aria-expanded={authorFactsOpen} aria-controls="author-facts-content" onClick={() => setAuthorFactsOpen((open) => !open)}>
+              <span id="author-facts-title">Author details</span>
+              <i className={`bi bi-${authorFactsOpen ? 'dash' : 'plus'}-lg`} aria-hidden="true" />
+            </button>
+            {authorFactsOpen && <dl className="author-profile-facts" id="author-facts-content">
+              <div><dt>Catalogue</dt><dd>Linery Books</dd></div>
+              <div><dt>Selected works</dt><dd>{authorBooks.length} {authorBooks.length === 1 ? 'title' : 'titles'}</dd></div>
+            </dl>}
+          </section>
           <section className="author-books" aria-labelledby="author-books-title">
-            <h2 id="author-books-title">Books: <span>{authorBooks.length}</span></h2>
-            <div className={`author-books-grid author-books-grid-count-${Math.min(visibleAuthorBooks.length, 4)}`}>{visibleAuthorBooks.map((product) => <ProductCard key={product.title} product={product} {...actions} />)}</div>
-            {authorBookPageCount > 1 && <nav className="author-books-carousel" aria-label="Author books carousel">
-              <button type="button" aria-label="Previous books" disabled={authorBookPage === 0} onClick={() => setAuthorBookPage((page) => Math.max(0, page - 1))}><i className="bi bi-chevron-left" aria-hidden="true" /></button>
-              <span>{authorBookPage + 1} / {authorBookPageCount}</span>
-              <button type="button" aria-label="Next books" disabled={authorBookPage === authorBookPageCount - 1} onClick={() => setAuthorBookPage((page) => Math.min(authorBookPageCount - 1, page + 1))}><i className="bi bi-chevron-right" aria-hidden="true" /></button>
-            </nav>}
+            <h2 id="author-books-title">Selected works</h2>
+            <div className="author-books-grid" id="author-works-content">
+              {(authorWorksOpen ? authorBooks : authorBooks.slice(0, 3)).map((product) => <ProductCard key={product.title} product={product} {...actions} />)}
+              {!authorWorksOpen && authorBooks.length > 3 && <button className="author-books-expand" type="button" aria-label="Show all selected works" aria-expanded="false" aria-controls="author-works-content" onClick={() => setAuthorWorksOpen(true)}><i className="bi bi-chevron-down" aria-hidden="true" /></button>}
+            </div>
           </section>
         </div>
       </section>
     </div>
+    {authorLightboxOpen && <div className="book-lightbox" role="dialog" aria-modal="true" aria-label={`Image gallery for ${author}`} onClick={() => setAuthorLightboxOpen(false)}>
+      <div className="book-lightbox-frame" onClick={(event) => event.stopPropagation()}>
+        <div className="author-lightbox-track" ref={authorLightboxTrackRef} aria-label="Author images" onScroll={(event) => {
+          const track = event.currentTarget
+          const nextIndex = Math.round(track.scrollLeft / track.clientWidth)
+          if (nextIndex !== activeAuthorImage) setActiveAuthorImage(nextIndex)
+        }}>
+          {authorImages.map((image, index) => <figure className="author-lightbox-slide" key={`${image}-${index}`}><img className="book-lightbox-image" src={image} alt={`${author} portrait ${index + 1}`} loading={index === 0 ? 'eager' : 'lazy'} decoding="async" /></figure>)}
+        </div>
+        <button className="book-lightbox-close" type="button" aria-label="Close gallery" onClick={() => setAuthorLightboxOpen(false)}><i className="bi bi-x-lg" aria-hidden="true" /></button>
+      </div>
+    </div>}
   </main>
 }
 
@@ -337,9 +380,73 @@ function AllBooksPage({ onHome, ...actions }: { onHome: () => void } & ProductCa
   </main>
 }
 
+const normalizeSearchText = (value: string) => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/g, 'd')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, ' ')
+  .trim()
+
+const getEditDistance = (first: string, second: string) => {
+  const row = Array.from({ length: second.length + 1 }, (_, index) => index)
+  for (let firstIndex = 1; firstIndex <= first.length; firstIndex += 1) {
+    let previous = row[0]
+    row[0] = firstIndex
+    for (let secondIndex = 1; secondIndex <= second.length; secondIndex += 1) {
+      const current = row[secondIndex]
+      row[secondIndex] = Math.min(
+        row[secondIndex] + 1,
+        row[secondIndex - 1] + 1,
+        previous + (first[firstIndex - 1] === second[secondIndex - 1] ? 0 : 1),
+      )
+      previous = current
+    }
+  }
+  return row[second.length]
+}
+
+const getSearchFieldScore = (value: string, query: string) => {
+  const field = normalizeSearchText(value)
+  const fieldWords = field.split(' ').filter(Boolean)
+  const queryWords = query.split(' ').filter(Boolean)
+  if (!field || queryWords.length === 0) return 0
+
+  let score = field.includes(query) ? 120 : 0
+  let matchedWords = 0
+  queryWords.forEach((queryWord) => {
+    if (fieldWords.some((fieldWord) => fieldWord.includes(queryWord))) {
+      matchedWords += 1
+      score += 32
+      return
+    }
+    const closestDistance = Math.min(...fieldWords.map((fieldWord) => getEditDistance(queryWord, fieldWord)))
+    const allowedDistance = Math.max(1, Math.floor(queryWord.length * 0.34))
+    if (closestDistance <= allowedDistance) {
+      matchedWords += 1
+      score += 18
+    }
+  })
+
+  return matchedWords === 0 ? 0 : score + (matchedWords === queryWords.length ? 20 : 0)
+}
+
+const getProductSearchScore = (product: Product, query: string) => {
+  if (!query) return 0
+  return Math.max(
+    getSearchFieldScore(product.title, query) * 4,
+    getSearchFieldScore(product.author, query) * 3,
+    getSearchFieldScore(product.categories.join(' '), query),
+  )
+}
+
 function SearchResultsPage({ query, ...actions }: { query: string } & ProductCardActions) {
-  const normalizedQuery = query.trim().toLowerCase()
-  const results = products.filter((product) => [product.title, product.author, ...product.categories].some((value) => value.toLowerCase().includes(normalizedQuery)))
+  const normalizedQuery = normalizeSearchText(query)
+  const results = products
+    .map((product) => ({ product, score: getProductSearchScore(product, normalizedQuery) }))
+    .filter(({ score }) => score > 0)
+    .sort((first, second) => second.score - first.score)
+    .map(({ product }) => product)
   const hasQuery = normalizedQuery.length > 0
 
   return <main className="search-page">
@@ -415,7 +522,7 @@ function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 
   const body = language === 'vi' ? item.bodyVi : item.body
   return <main className="news-detail-page">
     <section className="news-detail-card" aria-labelledby="news-detail-title">
-      <div className="news-detail-media"><img src={item.image} alt={title} /></div>
+      <div className="news-detail-media"><button className="detail-mobile-back" type="button" aria-label="Back to news" onClick={onBack}><i className="bi bi-arrow-left" aria-hidden="true" /></button><img src={item.image} alt={title} /></div>
       <div className="news-detail-copy">
         <nav className="news-breadcrumb" aria-label="Breadcrumb"><button type="button" onClick={onBack}>News</button><span aria-hidden="true">/</span><span>{title}</span></nav>
         <p className="news-detail-kicker">{item.kicker}</p>
@@ -594,6 +701,9 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const unitPrice = Number(product.price.replace(/[^0-9]/g, ''))
+  const totalPrice = `${(unitPrice * quantity).toLocaleString('vi-VN')}₫`
 
   useEffect(() => {
     if (!lightboxOpen) return undefined
@@ -611,6 +721,7 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
     <section className="book-detail-hero">
       <div className="book-detail-gallery">
         <button className="book-detail-cover-wrap" type="button" aria-label={`Open gallery for ${product.title}`} onClick={() => setLightboxOpen(true)}>
+          <span className="detail-mobile-back" role="button" aria-label="Back to books" tabIndex={0} onClick={(event) => { event.stopPropagation(); onBack() }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onBack() } }}><i className="bi bi-arrow-left" aria-hidden="true" /></span>
           <img className="book-detail-cover" src={galleryImages[activeImage]} alt={product.title} />
           <span className="book-detail-zoom"><i className="bi bi-arrows-fullscreen" aria-hidden="true" /> View full image</span>
         </button>
@@ -619,10 +730,19 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         <h1>{product.title}</h1>
         <p className="book-detail-author">by <a href={demoAuthorPath} onClick={(event) => { event.preventDefault(); onAuthor('Edward W. Said') }}>{product.author}</a></p>
         <div className="book-detail-rule" />
-        <p className="book-detail-format"><span>Format:</span> Paperback</p>
         <div className="book-detail-category"><span>Classification</span><div>{product.categories.map((category) => <a className="book-classification-link" key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}</a>)}</div></div>
         <div className="book-detail-purchase">
-          <p className="book-detail-price">{product.price}</p>
+          <div className="book-detail-price-row">
+            <div className="book-detail-quantity" aria-label="Quantity">
+              <span>Quantity</span>
+              <div className="book-detail-quantity-control">
+                <button type="button" aria-label="Decrease quantity" onClick={() => setQuantity((current) => Math.max(1, current - 1))}>−</button>
+                <output>{quantity}</output>
+                <button type="button" aria-label="Increase quantity" onClick={() => setQuantity((current) => current + 1)}>+</button>
+              </div>
+            </div>
+            <p className="book-detail-price" aria-live="polite">{totalPrice}</p>
+          </div>
           <div className="book-detail-actions">
             <button className="book-add-button" type="button">Add to basket</button>
             <button className="book-buy-button" type="button">Buy Now</button>
@@ -631,7 +751,7 @@ function BookDetail({ product, onBack, onAuthor }: { product: Product; onBack: (
         <p className="book-detail-note">Available from Linery Bookstore</p>
         <section className="book-details-grid book-detail-inline-details" aria-labelledby="details-title">
           <h2 id="details-title">Details</h2>
-          <dl><div><dt>Publisher</dt><dd>Linery Books</dd></div><div><dt>Published</dt><dd>2026</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Price</dt><dd>{product.price}</dd></div></dl>
+          <dl><div><dt>Publisher</dt><dd>Linery Books</dd></div><div><dt>Published</dt><dd>2026</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Price</dt><dd>{product.price}</dd></div></dl>
         </section>
         <section className="book-detail-inline-description" aria-labelledby="book-description-title">
           <h2 id="book-description-title">Description</h2>
