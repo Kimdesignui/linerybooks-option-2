@@ -491,8 +491,8 @@ function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewL
           <div className="product-overlay">
             <div className="product-overlay-copy"><strong>{product.title}</strong><span>{product.author}</span></div>
             <div className="product-overlay-actions">
-              <button className={`product-wishlist ${isWishlisted ? 'is-active' : ''}`} type="button" aria-label={isWishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`} aria-pressed={isWishlisted} onClick={toggleWishlist}>Wishlist</button>
-              <button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); onAddToCart(product) }}>Add to cart</button>
+              <button className={`product-wishlist ${isWishlisted ? 'is-active' : ''}`} type="button" aria-label={isWishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`} aria-pressed={isWishlisted} onClick={toggleWishlist}><i className="bi bi-heart product-action-icon" aria-hidden="true" /><span className="product-action-label">Wishlist</span></button>
+              <button className="product-cart" type="button" aria-label={`Add ${product.title} to cart`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); onAddToCart(product) }}><i className="bi bi-cart3 product-action-icon" aria-hidden="true" /><span className="product-action-label">Add to cart</span></button>
             </div>
             <span className="product-overlay-cta">Read more...</span>
           </div>
