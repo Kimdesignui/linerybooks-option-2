@@ -797,8 +797,6 @@ main:has(.news-module) + .site-footer { margin-top: 36px; }
   .product-overlay-copy strong { -webkit-line-clamp: 2; line-clamp: 2; }
   .product-author { font-size: 12px; }
   .product-price { padding-top: 4px; font-size: 14px; line-height: 1.5; }
-  .linery-classic .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .linery-classic .product-grid .product-card:nth-child(n+5) { display: none; }
   .site-footer { min-height: 0; margin: 24px var(--page-gutter) 6px; padding: 24px; border-radius: 12px; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 36px; }
   .footer-copy { padding-block: 0; }
   .footer-copy h2 { font-size: 40px; }
