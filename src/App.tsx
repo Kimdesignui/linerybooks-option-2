@@ -8,11 +8,7 @@ type NewsItem = { image: string; title: string; titleVi: string; date: string; k
 type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'news' | 'news-detail' | 'login' | 'register'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const loginSlides = [
-  { image: '/assets/login-bookstore.png', quote: 'Find a story that feels like coming home.' },
-  { image: '/assets/login-library-reader.png', quote: 'Every shelf holds a doorway to somewhere new.' },
-  { image: '/assets/login-library-reader-older.png', quote: 'A quiet page can change the way we see the world.' },
-  { image: '/assets/login-library-lamp.png', quote: 'Read slowly. Let the story stay with you.' },
-  { image: '/assets/login-library-woman.png', quote: 'Books make room for wonder.' },
+  { image: '/assets/linery-login-artwork.png', quote: 'A quiet page can change the way we see the world.' },
 ]
 const isEnhancedVariant = import.meta.env.VITE_LINERY_VARIANT === 'enhanced'
 const welcomeStorageKey = 'linery-welcome-seen-v3'
