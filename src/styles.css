@@ -786,11 +786,11 @@ main:has(.news-module) + .site-footer { margin-top: 36px; }
   .ribbon-title .ribbon-left { margin-right: -2px; }
   .ribbon-title .ribbon-right { margin-left: -2px; }
   .ribbon-title-label { padding: 4px 4px 9px; font-size: 16px; line-height: 24px; }
-  .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+  .collections .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
   .product-card { padding-top: 0; }
   .product-surface { padding: 7px 8px; gap: 8px; border-radius: 18px; }
   .product-cover-wrap { width: 100%; }
-  .product-grid .product-card:nth-child(n+4) { display: none; }
+  .collections .product-grid .product-card:nth-child(n+4) { display: none; }
   .product-cover { border-radius: 10px; }
   .product-info { width: 100%; padding: 7px 0 3px; gap: 6px; }
   .product-info h3 { height: 2.6em; max-height: 2.6em; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; font-size: 11px; line-height: 1.3; }
