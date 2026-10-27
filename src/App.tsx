@@ -445,6 +445,13 @@ function FilterMultiSelect({ label, options, value, onChange }: { label: string;
   </div>
 }
 
+function FilterTextInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
+  return <label className="filter-text-field">
+    <span>{label}</span>
+    <input type="search" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} aria-label={label} />
+  </label>
+}
+
 function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => void; collectionTitle?: string } & ProductCardActions) {
   const pageTitle = collectionTitle ?? 'ALL BOOKS'
   const allBooks = Array.from({ length: 28 }, (_, rowIndex) => products.map((product, productIndex) => ({
@@ -459,11 +466,11 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
   const initialCategory = [...categoryGroups.flatMap((group) => [group.label, ...group.children])].find((category) => category.toLowerCase().replaceAll(' ', '-') === categoryFromUrl) ?? null
   const publishers = [...new Set(allBooks.map((product) => product.publisher))].sort()
   const [draftCategories, setDraftCategories] = useState<string[]>(initialCategory ? [initialCategory] : [])
-  const [draftWriters, setDraftWriters] = useState<string[]>([])
+  const [draftWriterQuery, setDraftWriterQuery] = useState('')
   const [draftPublishers, setDraftPublishers] = useState<string[]>([])
   const [draftSort, setDraftSort] = useState('default')
   const [activeCategories, setActiveCategories] = useState<string[]>(initialCategory ? [initialCategory] : [])
-  const [activeWriters, setActiveWriters] = useState<string[]>([])
+  const [activeWriterQuery, setActiveWriterQuery] = useState('')
   const [activePublishers, setActivePublishers] = useState<string[]>([])
   const [activeSort, setActiveSort] = useState('default')
   const [filterOpen, setFilterOpen] = useState(false)
@@ -475,7 +482,7 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
   }
   const filteredBooks = allBooks
     .filter((product) => activeCategories.length === 0 || activeCategories.some((category) => matchesCategory(product, category)))
-    .filter((product) => activeWriters.length === 0 || activeWriters.includes(product.writerType))
+    .filter((product) => activeWriterQuery.length === 0 || product.author.toLowerCase().includes(activeWriterQuery.toLowerCase()))
     .filter((product) => activePublishers.length === 0 || activePublishers.includes(product.publisher))
     .sort((first, second) => {
       if (activeSort === 'price-asc' || activeSort === 'price-desc') {
@@ -505,7 +512,7 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
         <nav className="all-books-breadcrumb" aria-label="Breadcrumb"><a href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><span aria-hidden="true">/</span><span>{pageTitle}</span></nav>
         <button className={`all-books-filter-toggle ${filterOpen ? 'is-open' : ''}`} type="button" aria-expanded={filterOpen} onClick={() => setFilterOpen((open) => !open)}><i className="bi bi-sliders2" aria-hidden="true" /> Filter &amp; sort</button>
       </div>
-      <form className={`all-books-filter-panel ${filterOpen ? 'is-open' : ''}`} aria-hidden={!filterOpen} onSubmit={(event) => { event.preventDefault(); setActiveCategories(draftCategories); setActiveWriters(draftWriters); setActivePublishers(draftPublishers); setActiveSort(draftSort); setCurrentPage(1) }}>
+      <form className={`all-books-filter-panel ${filterOpen ? 'is-open' : ''}`} aria-hidden={!filterOpen} onSubmit={(event) => { event.preventDefault(); setActiveCategories(draftCategories); setActiveWriterQuery(draftWriterQuery.trim()); setActivePublishers(draftPublishers); setActiveSort(draftSort); setCurrentPage(1) }}>
         <fieldset>
           <legend>Books</legend>
           <div className="all-books-filter-category-groups">{categoryGroups.map((group) => <div className="all-books-filter-category-group" key={group.label}>
@@ -513,7 +520,7 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
             {group.children.map((category) => <label className="all-books-filter-child" key={category}><input type="checkbox" checked={draftCategories.includes(category)} onChange={(event) => setDraftCategories((current) => event.target.checked ? [...current, category] : current.filter((item) => item !== category))} /> <span>{category}</span></label>)}
           </div>)}</div>
         </fieldset>
-        <FilterMultiSelect label="Writers" options={['Authors', 'Translators']} value={draftWriters} onChange={setDraftWriters} />
+        <FilterTextInput label="Writers" value={draftWriterQuery} onChange={setDraftWriterQuery} placeholder="Enter writer name" />
         <FilterMultiSelect label="Publishers" options={publishers} value={draftPublishers} onChange={setDraftPublishers} />
         <label className="all-books-sort-field">Sort by
           <select value={draftSort} onChange={(event) => setDraftSort(event.target.value)}>
@@ -524,7 +531,7 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
             <option value="year-desc">Publication year: new to old</option>
           </select>
         </label>
-        <div className="all-books-filter-actions"><button type="button" onClick={() => { setDraftCategories([]); setDraftWriters([]); setDraftPublishers([]); setDraftSort('default') }}>Clear</button><button type="submit">Apply filter</button></div>
+        <div className="all-books-filter-actions"><button type="button" onClick={() => { setDraftCategories([]); setDraftWriterQuery(''); setDraftPublishers([]); setDraftSort('default'); setActiveCategories([]); setActiveWriterQuery(''); setActivePublishers([]); setActiveSort('default'); setCurrentPage(1) }}>Clear</button><button type="submit">Apply filter</button></div>
       </form>
       <section className="all-books-panel" aria-labelledby="all-books-title">
         <RibbonTitle title={pageTitle} id="all-books-title" heading />

@@ -267,8 +267,8 @@ main:has(.news-module) + .site-footer { margin-top: 36px; }
 .all-books-toolbar p { margin: 0; color: #777; font: italic 14px/1.4 var(--font-display); }
 .all-books-filter-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 8px 14px; border: 1px solid var(--color-olive); border-radius: 999px; background: var(--color-olive); color: #fff; font: 400 13px/1.2 var(--font-display); }
 .all-books-filter-toggle:hover, .all-books-filter-toggle:focus-visible, .all-books-filter-toggle.is-open { border-color: var(--color-olive-dark); background: var(--color-olive-dark); color: #fff; }
-.all-books-filter-panel { display: grid; width: 100%; max-height: 0; grid-template-columns: 1.35fr 1fr 220px; gap: 24px; margin: 0; padding: 0 20px; overflow: hidden; border: 0 solid rgba(155,148,47,.55); border-radius: 14px; background: #fff; box-shadow: 0 10px 26px rgba(31,42,36,.1); opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-14px); transition: max-height 520ms cubic-bezier(.22,.61,.36,1), margin 520ms cubic-bezier(.22,.61,.36,1), padding 420ms ease, border-width 420ms ease, opacity 260ms ease, visibility 0s linear 520ms, transform 520ms cubic-bezier(.22,.61,.36,1); }
-.all-books-filter-panel.is-open { max-height: 420px; margin: 24px 0; padding: 20px; border-width: 1px; opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); transition-delay: 0s; }
+.all-books-filter-panel { display: grid; width: 100%; max-height: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: max-content; column-gap: 24px; row-gap: 10px; align-content: start; margin: 0; padding: 0 20px; overflow: hidden; border: 0 solid rgba(155,148,47,.55); border-radius: 14px; background: #fff; box-shadow: 0 10px 26px rgba(31,42,36,.1); opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-14px); transition: max-height 520ms cubic-bezier(.22,.61,.36,1), margin 520ms cubic-bezier(.22,.61,.36,1), padding 420ms ease, border-width 420ms ease, opacity 260ms ease, visibility 0s linear 520ms, transform 520ms cubic-bezier(.22,.61,.36,1); }
+.all-books-filter-panel.is-open { position: relative; z-index: 10; max-height: 900px; margin: 24px 0; padding: 20px; overflow: visible; border-width: 1px; opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); transition-delay: 0s; }
 .all-books-filter-panel fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .all-books-filter-panel legend, .all-books-sort-field { display: block; margin: 0 0 10px; color: var(--color-ink); font: 600 14px/1.3 var(--font-display); }
 .all-books-filter-category-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
@@ -284,7 +284,13 @@ main:has(.news-module) + .site-footer { margin-top: 36px; }
 .all-books-filter-writers-options label { padding-left: 10px; }
 .all-books-filter-options label { display: flex; align-items: center; gap: 7px; min-width: 0; color: #555; font: 400 13px/1.3 var(--font-display); cursor: pointer; }
 .all-books-filter-options input { accent-color: var(--color-olive); }
-.filter-select2 { position: relative; min-width: 0; }
+.filter-select2 { position: relative; z-index: 1; min-width: 0; align-self: start; }
+.filter-select2.is-open { z-index: 6; }
+.filter-text-field { display: block; min-width: 0; align-self: start; color: var(--color-ink); font: 600 14px/1.3 var(--font-display); }
+.filter-text-field span { display: block; margin: 0 0 10px; }
+.filter-text-field input { display: block; width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid #d9d6c9; border-radius: 8px; background: #fff; color: var(--color-ink); font: 400 13px/1.3 var(--font-body); }
+.filter-text-field input::placeholder { color: #888; }
+.filter-text-field input:focus { border-color: var(--color-olive); outline: 0; box-shadow: 0 0 0 2px rgba(155,148,47,.14); }
 .filter-select2-label { display: block; margin: 0 0 10px; color: var(--color-ink); font: 600 14px/1.3 var(--font-display); }
 .filter-select2-control { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 42px; gap: 10px; padding: 6px 12px; border: 1px solid #d9d6c9; border-radius: 8px; background: #fff; color: var(--color-ink); font: 400 13px/1.3 var(--font-body); text-align: left; }
 .filter-select2-control:hover, .filter-select2.is-open .filter-select2-control, .filter-select2-control:focus-visible { border-color: var(--color-olive); outline: 0; box-shadow: 0 0 0 2px rgba(155,148,47,.14); }
@@ -302,8 +308,8 @@ main:has(.news-module) + .site-footer { margin-top: 36px; }
 .filter-select2-options label:hover { background: #f5f3e9; }
 .filter-select2-options input { accent-color: var(--color-olive); }
 .filter-select2-empty { margin: 4px; color: #888; font: 400 12px/1.3 var(--font-body); }
-.all-books-sort-field select { display: block; width: 100%; min-height: 38px; margin-top: 8px; padding: 8px 34px 8px 10px; border: 1px solid #d7d5c9; border-radius: 8px; background: #fff; color: var(--color-ink); font: 400 13px/1.2 var(--font-display); }
-.all-books-filter-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; padding-top: 14px; border-top: 1px solid #e1dfd5; }
+.all-books-sort-field select { display: block; width: 100%; min-height: 42px; margin-top: 10px; padding: 8px 34px 8px 10px; border: 1px solid #d7d5c9; border-radius: 8px; background: #fff; color: var(--color-ink); font: 400 13px/1.2 var(--font-display); }
+.all-books-filter-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; padding-top: 8px; border-top: 1px solid #e1dfd5; }
 .all-books-filter-actions button { min-height: 36px; padding: 8px 16px; border: 1px solid var(--color-olive); border-radius: 999px; background: transparent; color: var(--color-olive); font: 400 13px/1.2 var(--font-display); }
 .all-books-filter-actions button[type="submit"] { background: var(--color-olive); color: #fff; }
 .all-books-filter-actions button:hover, .all-books-filter-actions button:focus-visible { background: var(--color-olive-dark); color: #fff; }
