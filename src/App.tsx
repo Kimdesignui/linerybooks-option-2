@@ -4,8 +4,9 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 
 type Product = { image: string; gallery?: string[]; title: string; author: string; price: string; categories: string[]; available?: boolean }
 type CartItem = { product: Product; quantity: number }
+type PaymentMethod = 'wallet' | 'bank' | 'qr'
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
-type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'news' | 'news-detail' | 'login' | 'register'
+type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const loginSlides = [
   { image: '/assets/linery-login-artwork.png', quote: 'A quiet page can change the way we see the world.' },
@@ -132,6 +133,7 @@ const getViewFromPath = (pathname: string, hash: string): View => {
   if (pathname === '/all-books') return 'all-books'
   if (pathname === '/search') return 'search'
   if (pathname === '/cart') return 'cart'
+  if (pathname === '/checkout') return 'checkout'
   if (pathname === '/news') return 'news'
   if (pathname.startsWith('/news/') && getNewsFromPath(pathname)) return 'news-detail'
   if (pathname.startsWith('/authors/') && getAuthorFromPath(pathname)) return 'author'
@@ -931,9 +933,9 @@ function CartDrawer({ items, onClose, onRemove, onChangeQuantity, onViewCart, on
   </div>
 }
 
-function CartPage({ onHome, items, onRemove, onChangeQuantity }: { onHome: () => void; items: CartItem[]; onRemove: (title: string) => void; onChangeQuantity: (title: string, delta: number) => void }) {
+function CartPage({ onHome, onCheckout, items, onRemove, onChangeQuantity }: { onHome: () => void; onCheckout: () => void; items: CartItem[]; onRemove: (title: string) => void; onChangeQuantity: (title: string, delta: number) => void }) {
   const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
-  if (items.length > 0) return <main className="cart-page"><div className="cart-layout"><section className="cart-filled-card" aria-labelledby="cart-title"><div className="cart-filled-header"><h1 id="cart-title">My Cart</h1><button className="cart-continue-link" type="button" onClick={onHome}>Continue shopping</button></div><div className="cart-filled-items">{items.map((item) => <CartItemRow key={item.product.title} item={item} onRemove={() => onRemove(item.product.title)} onChangeQuantity={(delta) => onChangeQuantity(item.product.title, delta)} />)}</div></section><aside className="cart-summary-panel" aria-labelledby="order-summary-title"><h2 id="order-summary-title">Order Summary</h2><div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div><div className="cart-summary-line"><span>Delivery fee</span><strong>Free</strong></div><div className="cart-summary-total"><span>Total</span><strong>{formatPrice(subtotal)}</strong></div><button className="cart-primary-action" type="button">CHECKOUT NOW</button></aside></div></main>
+  if (items.length > 0) return <main className="cart-page"><div className="cart-layout"><section className="cart-filled-card" aria-labelledby="cart-title"><div className="cart-filled-header"><h1 id="cart-title">My Cart</h1><button className="cart-continue-link" type="button" onClick={onHome}>Continue shopping</button></div><div className="cart-filled-items">{items.map((item) => <CartItemRow key={item.product.title} item={item} onRemove={() => onRemove(item.product.title)} onChangeQuantity={(delta) => onChangeQuantity(item.product.title, delta)} />)}</div></section><aside className="cart-summary-panel" aria-labelledby="order-summary-title"><h2 id="order-summary-title">Order Summary</h2><div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div><div className="cart-summary-line"><span>Delivery fee</span><strong>Free</strong></div><div className="cart-summary-total"><span>Total</span><strong>{formatPrice(subtotal)}</strong></div><button className="cart-primary-action" type="button" onClick={onCheckout}>CHECKOUT NOW</button></aside></div></main>
   return <main className="cart-page">
     <section className="cart-empty-card" aria-labelledby="cart-empty-title">
         <i className="bi bi-bag cart-empty-icon" aria-hidden="true" />
@@ -941,6 +943,33 @@ function CartPage({ onHome, items, onRemove, onChangeQuantity }: { onHome: () =>
       <p className="cart-empty-message">There are no products in your cart.</p>
       <a className="cart-empty-action" href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Continue shopping</a>
     </section>
+  </main>
+}
+
+function CheckoutPage({ items, onHome, onBackToCart }: { items: CartItem[]; onHome: () => void; onBackToCart: () => void }) {
+  const [submitted, setSubmitted] = useState(false)
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('pending')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet')
+  const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
+
+  if (submitted) return <main className="checkout-page"><section className="checkout-success-card" aria-labelledby="checkout-success-title"><i className={`bi ${paymentStatus === 'paid' ? 'bi-check2' : 'bi-clock'}`} aria-hidden="true" /><p className="checkout-kicker">Order received</p><h1 id="checkout-success-title">Thank you for your order.</h1><div className={`checkout-payment-status checkout-payment-status-${paymentStatus}`}><strong>{paymentStatus === 'paid' ? 'Payment confirmed' : 'Payment pending'}</strong><span>{paymentStatus === 'paid' ? 'Your payment has been recorded successfully.' : 'Your order is recorded. Complete payment to update the status.'}</span></div>{paymentStatus === 'pending' && <><div className="checkout-payment-instructions"><strong>{paymentMethod === 'wallet' ? 'E-wallet payment' : paymentMethod === 'bank' ? 'Bank transfer' : 'QR code payment'}</strong><span>{paymentMethod === 'wallet' ? 'Continue in your selected e-wallet to complete the payment.' : paymentMethod === 'bank' ? 'Use the bank details provided by Linery to complete the transfer.' : 'Scan the QR code from your payment provider to complete the payment.'}</span>{paymentMethod === 'qr' && <div className="checkout-qr-panel" aria-label="QR code payment placeholder"><i className="bi bi-qr-code" aria-hidden="true" /><small>QR PAYMENT</small></div>}</div><button className="checkout-submit checkout-confirm-payment" type="button" onClick={() => setPaymentStatus('paid')}>I HAVE COMPLETED PAYMENT</button></>}<button className="cart-primary-action" type="button" onClick={onHome}>CONTINUE SHOPPING</button></section></main>
+  if (items.length === 0) return <main className="checkout-page"><section className="checkout-success-card" aria-labelledby="checkout-empty-title"><i className="bi bi-bag checkout-empty-icon" aria-hidden="true" /><h1 id="checkout-empty-title">Your cart is empty.</h1><p>Add a book before continuing to checkout.</p><button className="cart-primary-action" type="button" onClick={onHome}>CONTINUE SHOPPING</button></section></main>
+
+  return <main className="checkout-page">
+    <div className="checkout-header"><button className="checkout-back" type="button" onClick={onBackToCart}><i className="bi bi-arrow-left" aria-hidden="true" /> Back to cart</button><p>LINERY CHECKOUT</p></div>
+    <div className="checkout-layout">
+      <section className="checkout-form-card" aria-labelledby="checkout-title">
+        <p className="checkout-kicker">Complete your order</p>
+        <h1 id="checkout-title">Checkout</h1>
+        <form className="checkout-form" onSubmit={(event) => { event.preventDefault(); setSubmitted(true) }}>
+          <fieldset><legend>Contact information</legend><div className="checkout-field-grid"><label>Full name<input name="name" type="text" placeholder="Your full name" autoComplete="name" required /></label><label>Email address<input name="email" type="email" placeholder="you@example.com" autoComplete="email" required /></label><label>Phone number<input name="phone" type="tel" placeholder="Your phone number" autoComplete="tel" required /></label></div></fieldset>
+          <fieldset><legend>Delivery address</legend><label>Street address<input name="address" type="text" placeholder="House number and street" autoComplete="street-address" required /></label><div className="checkout-field-grid"><label>City<input name="city" type="text" placeholder="City" autoComplete="address-level2" required /></label><label>Postal code<input name="postalCode" type="text" placeholder="Postal code" autoComplete="postal-code" /></label></div></fieldset>
+          <fieldset><legend>Payment method</legend><label className="checkout-payment-option"><input type="radio" name="payment" value="wallet" checked={paymentMethod === 'wallet'} onChange={() => setPaymentMethod('wallet')} /> <span><strong>E-wallet</strong><small>Pay with your preferred electronic wallet.</small></span></label><label className="checkout-payment-option"><input type="radio" name="payment" value="bank" checked={paymentMethod === 'bank'} onChange={() => setPaymentMethod('bank')} /> <span><strong>Bank transfer</strong><small>Complete the transfer using Linery payment details.</small></span></label><label className="checkout-payment-option"><input type="radio" name="payment" value="qr" checked={paymentMethod === 'qr'} onChange={() => setPaymentMethod('qr')} /> <span><strong>Scan QR code</strong><small>Scan a QR code to pay securely from your banking or wallet app.</small></span></label></fieldset>
+          <button className="checkout-submit" type="submit">CONTINUE TO PAYMENT</button>
+        </form>
+      </section>
+      <aside className="checkout-summary" aria-labelledby="checkout-summary-title"><p className="checkout-kicker">Your order</p><h2 id="checkout-summary-title">Order summary</h2><div className="checkout-summary-items">{items.map((item) => <div className="checkout-summary-item" key={item.product.title}><img src={item.product.image} alt="" /><div><strong>{item.product.title}</strong><span>Qty {item.quantity}</span></div><b>{formatPrice(getPriceValue(item.product.price) * item.quantity)}</b></div>)}</div><div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div><div className="cart-summary-line"><span>Delivery fee</span><strong>Free</strong></div><div className="cart-summary-total"><span>Total</span><strong>{formatPrice(subtotal)}</strong></div></aside>
+    </div>
   </main>
 }
 
@@ -979,8 +1008,10 @@ function LoginPage({ onHome, onRegister }: { onHome: () => void; onRegister: () 
       <div className="login-card" aria-label="Log in">
         <button className="login-back" type="button" aria-label="Back to home" onClick={onHome}><i className="bi bi-arrow-left" aria-hidden="true" /></button>
         <div className="login-card-inner">
-          <p className="login-welcome">Welcome Back</p>
-          <p className="login-welcome-subtitle">Sign in to discover your next read.</p>
+          <div className="login-signin-heading">
+            <p className="login-welcome">Welcome Back</p>
+            <p className="login-welcome-subtitle">Sign in to discover your next read.</p>
+          </div>
           <form className="login-form" onSubmit={handleSubmit}>
             <label htmlFor="login-email">Email Address <span className="required-mark" aria-hidden="true">*</span></label>
             <input id="login-email" name="email" type="text" placeholder="Enter Email" autoComplete="username" required />
@@ -1225,6 +1256,15 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const showCheckout = () => {
+    navigateTo('/checkout')
+    setView('checkout')
+    setShopOpen(false)
+    setMenuOpen(false)
+    setCartDrawerOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const showSearch = (query: string) => {
     const trimmedQuery = query.trim()
     if (!trimmedQuery) return
@@ -1285,7 +1325,7 @@ export function App() {
   const changeCartQuantity = (title: string, delta: number) => setCartItems((items) => items.map((item) => item.product.title === title ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))
   const closeCartDrawer = () => setCartDrawerOpen(false)
   const openCartDrawer = () => setCartDrawerOpen(true)
-  const checkout = () => setCartDrawerOpen(false)
+  const checkout = () => showCheckout()
   const toggleQuickView = () => {
     if (quickViewOpen) {
       if (previewCloseTimer.current !== null) window.clearTimeout(previewCloseTimer.current)
@@ -1318,7 +1358,7 @@ export function App() {
     <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} onMenu={() => setMenuOpen(!menuOpen)} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAuthors={showAuthors} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (open) setHeroMotionKey((key) => key + 1); else setShopOpen(false) }} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
     <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAuthors={showAuthors} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} />
-    {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} /> : view === 'cart' ? <CartPage onHome={showHome} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
+     {view === 'authors' ? <AuthorsDirectory /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
       <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration">
         <div className="hero-art">
           <img className="hero-art-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" />
