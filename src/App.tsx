@@ -572,7 +572,7 @@ function SearchResultsPage({ query, ...actions }: { query: string } & ProductCar
       </> : <section className="search-empty" aria-live="polite">
         <img src="/assets/icon-search.svg" alt="" aria-hidden="true" />
         <h2>No books found</h2>
-        <p>We couldn’t find a book matching “{query}”. Try another title, author, or category.</p>
+        <p>We couldn’t find a book matching “{query}”.<br />Try another title, author, or category.</p>
       </section>}
     </div>
   </main>
