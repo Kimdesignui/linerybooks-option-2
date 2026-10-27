@@ -975,12 +975,14 @@ function UtilityPanel({ activeTab, items, product, onTabChange, onClose, onRemov
           <div className="cart-drawer-actions"><button className="cart-secondary-action" type="button" onClick={onViewCart}>VIEW CART</button><button className="cart-primary-action" type="button" onClick={onCheckout}>CHECKOUT NOW</button></div>
         </div>
       </> : <div className="utility-panel-empty"><i className="bi bi-bag" aria-hidden="true" /><p>Your cart is empty.</p><button type="button" onClick={onClose}>Continue shopping</button></div> : product ? <>
-        <img className="book-preview-cover" src={product.image} alt={product.title} loading="lazy" decoding="async" />
-        <div className="book-preview-copy"><h2>{product.title}</h2><p className="book-preview-author">{product.author}</p><p className="book-preview-price">{product.price}</p></div>
-        <dl className="book-preview-details"><div><dt>Publisher</dt><dd>{publisher}</dd></div><div><dt>ISBN</dt><dd>978-0-00-000000-0</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div></dl>
-        <div className="book-preview-actions"><button className="book-preview-add-button" type="button" onClick={() => onAddToCart(product)}>Add to cart</button><button className="book-preview-buy-button" type="button" onClick={() => onBuyNow(product)}>Buy Now</button></div>
-        <a className="book-preview-link" href="#a" onClick={(event) => { event.preventDefault(); onOpenDetail(product) }}>View full details <span aria-hidden="true">→</span></a>
-      </> : <div className="book-preview-empty"><img src="/assets/quick-view-illustration.png" alt="" aria-hidden="true" /><p>Hello — I’m here to help you preview book information.</p><span>Choose a book to see its cover and publication details.</span></div>}
+        <div className="utility-panel-scroll">
+          <img className="book-preview-cover" src={product.image} alt={product.title} loading="lazy" decoding="async" />
+          <div className="book-preview-copy"><h2>{product.title}</h2><p className="book-preview-author">{product.author}</p><p className="book-preview-price">{product.price}</p></div>
+          <dl className="book-preview-details"><div><dt>Publisher</dt><dd>{publisher}</dd></div><div><dt>ISBN</dt><dd>978-0-00-000000-0</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div></dl>
+          <a className="book-preview-link" href="#a" onClick={(event) => { event.preventDefault(); onOpenDetail(product) }}>View full details <span aria-hidden="true">→</span></a>
+        </div>
+        <div className="utility-panel-footer book-preview-actions"><button className="book-preview-add-button" type="button" onClick={() => onAddToCart(product)}>Add to cart</button><button className="book-preview-buy-button" type="button" onClick={() => onBuyNow(product)}>Buy Now</button></div>
+      </> : <div className="utility-panel-empty"><img src="/assets/quick-view-illustration.png" alt="" aria-hidden="true" /><p>Hello — I’m here to help you preview book information.</p><span>Choose a book to see its cover and publication details.</span></div>}
     </aside>
   </div>
 }
