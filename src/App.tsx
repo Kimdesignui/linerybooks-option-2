@@ -2,12 +2,12 @@ import { useEffect, useRef, useState, type ElementType, type FormEvent } from 'r
 import { Menu } from 'lucide-react'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
-type Product = { image: string; gallery?: string[]; title: string; author: string; price: string; categories: string[]; year?: number; available?: boolean }
+type Product = { image: string; gallery?: string[]; title: string; author: string; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean }
 type CartItem = { product: Product; quantity: number }
 type PaymentMethod = 'vnpay' | 'bank' | 'momo' | 'apple' | 'zalopay'
 type FulfillmentMethod = 'pickup' | 'delivery'
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
-type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete' | 'account'
+type View = 'home' | 'authors' | 'all-books' | 'collection' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete' | 'account'
 type AccountTab = 'profile' | 'orders' | 'orders-demo' | 'order-detail' | 'transactions' | 'transaction-detail' | 'security'
 type WriterDirectoryFilter = 'all' | 'authors' | 'translators'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
@@ -44,12 +44,12 @@ function RibbonTitle({ title, id, heading = false }: { title: string; id?: strin
 }
 
 const products: Product[] = [
-  { image: '/assets/cover-edward.png', title: 'Power, Politics, and Culture: Interviews with Edward W. Said', author: 'Edward W. Said', price: '460.000₫', categories: ['Non-fiction', 'Essays'], year: 2004 },
-  { image: '/assets/cover-ethics.png', title: 'Ethics: A Very Short Introduction', author: 'Simon Blackburn', price: '460.000₫', categories: ['Non-fiction', 'Research & Studies'], year: 2001, available: false },
-  { image: '/assets/cover-existentialism.png', title: 'Existentialism: A Very Short Introduction', author: 'Thomas R. Flynn', price: '460.000₫', categories: ['Non-fiction', 'Research & Studies'], year: 2006 },
-  { image: '/assets/cover-jung.png', title: 'Jung: A Very Short Introduction', author: 'Anthony Stevens', price: '460.000₫', categories: ['Non-fiction', 'Memoir & Biography'], year: 1999 },
-  { image: '/assets/cover-derrida.png', title: 'Derrida: A Very Short Introduction', author: 'Simon Glendinning', price: '280.000₫', categories: ['Non-fiction', 'Research & Studies'], year: 2011 },
-  { image: '/assets/cover-black-folk.png', title: 'The Souls of Black Folk', author: 'W. E. B. Du Bois', price: '310.000₫', categories: ['Non-fiction', 'Essays'], year: 1903 },
+  { image: '/assets/cover-edward.png', title: 'Power, Politics, and Culture: Interviews with Edward W. Said', author: 'Edward W. Said', price: '460.000₫', categories: ['Non-fiction', 'Essays'], publisher: 'Penguin Random House', writerType: 'Authors', year: 2004 },
+  { image: '/assets/cover-ethics.png', title: 'Ethics: A Very Short Introduction', author: 'Simon Blackburn', price: '460.000₫', categories: ['Non-fiction', 'Research & Studies'], publisher: 'Oxford University Press', writerType: 'Authors', year: 2001, available: false },
+  { image: '/assets/cover-existentialism.png', title: 'Existentialism: A Very Short Introduction', author: 'Thomas R. Flynn', price: '460.000₫', categories: ['Non-fiction', 'Research & Studies'], publisher: 'Oxford University Press', writerType: 'Authors', year: 2006 },
+  { image: '/assets/cover-jung.png', title: 'Jung: A Very Short Introduction', author: 'Anthony Stevens', price: '460.000₫', categories: ['Non-fiction', 'Memoir & Biography'], publisher: 'HarperCollins', writerType: 'Authors', year: 1999 },
+  { image: '/assets/cover-derrida.png', title: 'Derrida: A Very Short Introduction', author: 'Simon Glendinning', price: '280.000₫', categories: ['Non-fiction', 'Research & Studies'], publisher: 'Simon & Schuster', writerType: 'Authors', year: 2011 },
+  { image: '/assets/cover-black-folk.png', title: 'The Souls of Black Folk', author: 'W. E. B. Du Bois', price: '310.000₫', categories: ['Non-fiction', 'Essays'], publisher: 'Macmillan Publishers', writerType: 'Authors', year: 1903 },
 ]
 
 const newsItems: NewsItem[] = [
@@ -141,6 +141,7 @@ const getViewFromPath = (pathname: string, hash: string): View => {
   if (hash === '#account') return 'account'
   if (pathname === '/authors') return 'authors'
   if (pathname === '/all-books') return 'all-books'
+  if (pathname.startsWith('/collections/') && getCollectionTitleFromPath(pathname)) return 'collection'
   if (pathname === '/search') return 'search'
   if (pathname === '/cart') return 'cart'
   if (pathname === '/checkout') return 'checkout'
@@ -160,6 +161,12 @@ const sections = [
   { title: 'LINERY PRESS', items: products },
   { title: 'LINERY PICKS', items: products },
 ]
+const collectionTitles = ['NEW & UPCOMING', 'LINERY PRESS', 'LINERY PICKS'] as const
+const collectionSlug = (title: string) => title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
+const getCollectionTitleFromPath = (pathname: string) => {
+  const slug = pathname.startsWith('/collections/') ? pathname.split('/').pop() ?? '' : ''
+  return collectionTitles.find((title) => collectionSlug(title) === slug) ?? null
+}
 
 type MenuColumn = { eyebrow: string; links: string[] }
 type ShopCategory = { label: string; children?: ShopCategory[] }
@@ -177,7 +184,7 @@ const shopOnlyCategories = shopCategories
   .flatMap((category) => category.label === 'Books' ? (category.children ?? []) : [category])
   .filter((category) => category.label !== 'Authors')
 const desktopShopColumns: MenuColumn[] = [
-  { eyebrow: '', links: ['All books'] },
+  { eyebrow: '', links: ['All books', 'NEW & UPCOMING', 'LINERY PRESS', 'LINERY PICKS'] },
   { eyebrow: 'Fiction', links: ['Novels', 'Short stories', 'Poetry & Drama'] },
   { eyebrow: 'Non-fiction', links: ['Essays', 'Research & Studies', 'Memoir & Biography'] },
 ]
@@ -202,13 +209,16 @@ function MenuColumns({ columns }: { columns: MenuColumn[] }) {
   return <div className="menu-columns">{columns.map((column) => <div className="menu-column" key={column.eyebrow}><p className="menu-eyebrow">{column.eyebrow}</p>{column.links.map((link) => <a href={`/authors/${authorSlug(link)}`} key={link}>{link}</a>)}</div>)}</div>
 }
 
-function ShopMenu({ onAllBooks }: { onAllBooks: () => void }) {
+function ShopMenu({ onAllBooks, onCollection }: { onAllBooks: () => void; onCollection: (title: string) => void }) {
   return <section className="shop-menu menu-navigation" aria-label="Books categories">
     <div className="shop-menu-inner menu-navigation-inner">
       <div className="shop-menu-columns menu-navigation-list">
         {desktopShopColumns.map((column, columnIndex) => <div className={`shop-menu-column menu-section menu-branch menu-level-${columnIndex === 0 ? 0 : 1}`} key={column.eyebrow || column.links[0]}>
           {column.eyebrow && <p className="menu-eyebrow menu-section-title">{column.eyebrow}</p>}
-          {column.links.map((link) => <a className="menu-item menu-item-link menu-item-text" href={link === 'All books' ? '/all-books' : `#${link.toLowerCase().replaceAll(' ', '-')}`} key={link} onClick={link === 'All books' ? (event) => { event.preventDefault(); onAllBooks() } : undefined}>{link}</a>)}
+          {column.links.map((link) => {
+            const isCollection = collectionTitles.includes(link as typeof collectionTitles[number])
+            return <a className="menu-item menu-item-link menu-item-text" href={link === 'All books' ? '/all-books' : isCollection ? `/collections/${collectionSlug(link)}` : `#${link.toLowerCase().replaceAll(' ', '-')}`} key={link} onClick={link === 'All books' ? (event) => { event.preventDefault(); onAllBooks() } : isCollection ? (event) => { event.preventDefault(); onCollection(link) } : undefined}>{link}</a>
+          })}
           </div>)}
       </div>
     </div>
@@ -227,7 +237,7 @@ function WritersMenu({ onAllWriters, onAuthors, onTranslators }: { onAllWriters:
   </section>
 }
 
-function MobileMenu({ isOpen, onShop, onAllBooks, onAllWriters, onAuthors, onTranslators, onSearch, language, onSelectLanguage }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void }) {
+function MobileMenu({ isOpen, onShop, onAllBooks, onCollection, onAllWriters, onAuthors, onTranslators, onSearch, language, onSelectLanguage }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onCollection: (title: string) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void }) {
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Fiction: true, 'Non-fiction': true, 'Linery Press': true })
   const [query, setQuery] = useState('')
   const toggleBranch = (label: string) => setOpenBranches((current) => ({ ...current, [label]: !current[label] }))
@@ -251,6 +261,7 @@ function MobileMenu({ isOpen, onShop, onAllBooks, onAllWriters, onAuthors, onTra
     <section className="mobile-menu-section menu-section" aria-labelledby="mobile-shop-heading">
       <h2 id="mobile-shop-heading" className="mobile-menu-section-title menu-section-title">Books</h2>
       <button className="mobile-menu-item mobile-menu-level-0 menu-item menu-level-0" onClick={onAllBooks}><span className="mobile-menu-text menu-item-text">View All</span></button>
+      {['NEW & UPCOMING', 'LINERY PRESS', 'LINERY PICKS'].map((title) => <button className="mobile-menu-item mobile-menu-level-0 menu-item menu-level-0" key={title} onClick={() => onCollection(title)}><span className="mobile-menu-text menu-item-text">{title}</span></button>)}
       <div className="mobile-menu-tree">
         {shopOnlyCategories.map((category) => {
           const categoryOpen = openBranches[category.label] ?? true
@@ -413,7 +424,29 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
   </main>
 }
 
-function AllBooksPage({ onHome, ...actions }: { onHome: () => void } & ProductCardActions) {
+function FilterMultiSelect({ label, options, value, onChange }: { label: string; options: string[]; value: string[]; onChange: (value: string[]) => void }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const visibleOptions = options.filter((option) => option.toLowerCase().includes(query.toLowerCase()))
+
+  const toggleOption = (option: string) => onChange(value.includes(option) ? value.filter((item) => item !== option) : [...value, option])
+
+  return <div className={`filter-select2 ${open ? 'is-open' : ''}`}>
+    <span className="filter-select2-label">{label}</span>
+    <div className="filter-select2-control" role="button" tabIndex={0} aria-expanded={open} onClick={() => setOpen((current) => !current)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setOpen((current) => !current) } }}>
+      <span className="filter-select2-tags">{value.length > 0 ? value.map((item) => <span className="filter-select2-tag" key={item}>{item}<button type="button" aria-label={`Remove ${item}`} onClick={(event) => { event.stopPropagation(); toggleOption(item) }}>×</button></span>) : <span className="filter-select2-placeholder">Select {label.toLowerCase()}</span>}</span>
+      <i className="bi bi-chevron-down" aria-hidden="true" />
+    </div>
+    {open && <div className="filter-select2-dropdown">
+      <input className="filter-select2-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${label.toLowerCase()}`} aria-label={`Search ${label.toLowerCase()}`} />
+      <div className="filter-select2-options">{visibleOptions.map((option) => <label key={option}><input type="checkbox" checked={value.includes(option)} onChange={() => toggleOption(option)} /> <span>{option}</span></label>)}</div>
+      {visibleOptions.length === 0 && <p className="filter-select2-empty">No matches found.</p>}
+    </div>}
+  </div>
+}
+
+function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => void; collectionTitle?: string } & ProductCardActions) {
+  const pageTitle = collectionTitle ?? 'ALL BOOKS'
   const allBooks = Array.from({ length: 28 }, (_, rowIndex) => products.map((product, productIndex) => ({
     ...product,
     key: `${rowIndex}-${productIndex}-${product.title}`,
@@ -422,11 +455,16 @@ function AllBooksPage({ onHome, ...actions }: { onHome: () => void } & ProductCa
     { label: 'Fiction', children: ['Novels', 'Short stories', 'Poetry & Drama'] },
     { label: 'Non-fiction', children: ['Essays', 'Research & Studies', 'Memoir & Biography'] },
   ]
-  const [draftCategories, setDraftCategories] = useState<string[]>([])
+  const categoryFromUrl = new URLSearchParams(window.location.search).get('category')
+  const initialCategory = [...categoryGroups.flatMap((group) => [group.label, ...group.children])].find((category) => category.toLowerCase().replaceAll(' ', '-') === categoryFromUrl) ?? null
+  const publishers = [...new Set(allBooks.map((product) => product.publisher))].sort()
+  const [draftCategories, setDraftCategories] = useState<string[]>(initialCategory ? [initialCategory] : [])
   const [draftWriters, setDraftWriters] = useState<string[]>([])
+  const [draftPublishers, setDraftPublishers] = useState<string[]>([])
   const [draftSort, setDraftSort] = useState('default')
-  const [activeCategories, setActiveCategories] = useState<string[]>([])
+  const [activeCategories, setActiveCategories] = useState<string[]>(initialCategory ? [initialCategory] : [])
   const [activeWriters, setActiveWriters] = useState<string[]>([])
+  const [activePublishers, setActivePublishers] = useState<string[]>([])
   const [activeSort, setActiveSort] = useState('default')
   const [filterOpen, setFilterOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -437,7 +475,8 @@ function AllBooksPage({ onHome, ...actions }: { onHome: () => void } & ProductCa
   }
   const filteredBooks = allBooks
     .filter((product) => activeCategories.length === 0 || activeCategories.some((category) => matchesCategory(product, category)))
-    .filter((product) => activeWriters.length === 0 || activeWriters.includes('Authors'))
+    .filter((product) => activeWriters.length === 0 || activeWriters.includes(product.writerType))
+    .filter((product) => activePublishers.length === 0 || activePublishers.includes(product.publisher))
     .sort((first, second) => {
       if (activeSort === 'price-asc' || activeSort === 'price-desc') {
         const firstPrice = Number(first.price.replace(/[^0-9]/g, ''))
@@ -463,10 +502,10 @@ function AllBooksPage({ onHome, ...actions }: { onHome: () => void } & ProductCa
     <div className="all-books-content">
       <div className="all-books-hero"><picture><source srcSet="/assets/all-books-hero.webp" type="image/webp" /><img src="/assets/all-books-hero.png" alt="Children exploring a garden together" width="2560" height="866" fetchPriority="high" decoding="async" /></picture></div>
       <div className="all-books-heading-row">
-        <nav className="all-books-breadcrumb" aria-label="Breadcrumb"><a href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><span aria-hidden="true">/</span><span>All Books</span></nav>
+        <nav className="all-books-breadcrumb" aria-label="Breadcrumb"><a href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><span aria-hidden="true">/</span><span>{pageTitle}</span></nav>
         <button className={`all-books-filter-toggle ${filterOpen ? 'is-open' : ''}`} type="button" aria-expanded={filterOpen} onClick={() => setFilterOpen((open) => !open)}><i className="bi bi-sliders2" aria-hidden="true" /> Filter &amp; sort</button>
       </div>
-      <form className={`all-books-filter-panel ${filterOpen ? 'is-open' : ''}`} aria-hidden={!filterOpen} onSubmit={(event) => { event.preventDefault(); setActiveCategories(draftCategories); setActiveWriters(draftWriters); setActiveSort(draftSort); setCurrentPage(1) }}>
+      <form className={`all-books-filter-panel ${filterOpen ? 'is-open' : ''}`} aria-hidden={!filterOpen} onSubmit={(event) => { event.preventDefault(); setActiveCategories(draftCategories); setActiveWriters(draftWriters); setActivePublishers(draftPublishers); setActiveSort(draftSort); setCurrentPage(1) }}>
         <fieldset>
           <legend>Books</legend>
           <div className="all-books-filter-category-groups">{categoryGroups.map((group) => <div className="all-books-filter-category-group" key={group.label}>
@@ -474,10 +513,8 @@ function AllBooksPage({ onHome, ...actions }: { onHome: () => void } & ProductCa
             {group.children.map((category) => <label className="all-books-filter-child" key={category}><input type="checkbox" checked={draftCategories.includes(category)} onChange={(event) => setDraftCategories((current) => event.target.checked ? [...current, category] : current.filter((item) => item !== category))} /> <span>{category}</span></label>)}
           </div>)}</div>
         </fieldset>
-        <fieldset>
-          <legend>Writers</legend>
-          <div className="all-books-filter-options all-books-filter-writers-options">{['Authors', 'Translators'].map((writerType) => <label key={writerType}><input type="checkbox" checked={draftWriters.includes(writerType)} onChange={(event) => setDraftWriters((current) => event.target.checked ? [...current, writerType] : current.filter((item) => item !== writerType))} /> <span>{writerType}</span></label>)}</div>
-        </fieldset>
+        <FilterMultiSelect label="Writers" options={['Authors', 'Translators']} value={draftWriters} onChange={setDraftWriters} />
+        <FilterMultiSelect label="Publishers" options={publishers} value={draftPublishers} onChange={setDraftPublishers} />
         <label className="all-books-sort-field">Sort by
           <select value={draftSort} onChange={(event) => setDraftSort(event.target.value)}>
             <option value="default">Default</option>
@@ -487,10 +524,10 @@ function AllBooksPage({ onHome, ...actions }: { onHome: () => void } & ProductCa
             <option value="year-desc">Publication year: new to old</option>
           </select>
         </label>
-        <div className="all-books-filter-actions"><button type="button" onClick={() => { setDraftCategories([]); setDraftWriters([]); setDraftSort('default') }}>Clear</button><button type="submit">Apply filter</button></div>
+        <div className="all-books-filter-actions"><button type="button" onClick={() => { setDraftCategories([]); setDraftWriters([]); setDraftPublishers([]); setDraftSort('default') }}>Clear</button><button type="submit">Apply filter</button></div>
       </form>
       <section className="all-books-panel" aria-labelledby="all-books-title">
-        <RibbonTitle title="ALL BOOKS" id="all-books-title" heading />
+        <RibbonTitle title={pageTitle} id="all-books-title" heading />
         {visibleBooks.length > 0 ? <div className="all-books-grid">{visibleBooks.map((product) => <ProductCard key={product.key} product={product} {...actions} />)}</div> : <p className="all-books-empty">No books match these filters.</p>}
         {pageCount > 1 && <nav className="all-books-pagination" aria-label="All books pages">
           <button type="button" aria-label="Previous page" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}><i className="bi bi-chevron-left" aria-hidden="true" /></button>
@@ -560,6 +597,7 @@ const getProductSearchScore = (product: Product, query: string) => {
   return Math.max(
     getSearchFieldScore(product.title, query) * 4,
     getSearchFieldScore(product.author, query) * 3,
+    getSearchFieldScore(product.publisher, query) * 2,
     getSearchFieldScore(product.categories.join(' '), query),
   )
 }
@@ -660,7 +698,7 @@ function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 
   </main>
 }
 
-function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop, onShopHover, onAllWriters, onAuthors, onTranslators, onAllBooks, onSearch, onQuickView, onCart, quickViewOpen, quickViewAvailable, activeView, shopOpen, writersOpen, onWritersHover, onDesktopMenuHover, accountMenuOpen, onAccountMenuToggle, accountTab, onAccountTabChange, accountMenuEnabled }: { cartCount: number; menuOpen: boolean; onMenu: () => void; onHome: () => void; onLogin: () => void; onLogout: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onAllBooks: () => void; onSearch: (query: string) => void; onQuickView: () => void; onCart: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean; writersOpen: boolean; onWritersHover: (open: boolean) => void; onDesktopMenuHover: (open: boolean) => void; accountMenuOpen: boolean; onAccountMenuToggle: () => void; accountTab: AccountTab; onAccountTabChange: (tab: AccountTab) => void; accountMenuEnabled: boolean }) {
+function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop, onShopHover, onAllWriters, onAuthors, onTranslators, onAllBooks, onCollection, onSearch, onQuickView, onCart, quickViewOpen, quickViewAvailable, activeView, shopOpen, writersOpen, onWritersHover, onDesktopMenuHover, accountMenuOpen, onAccountMenuToggle, accountTab, onAccountTabChange, accountMenuEnabled }: { cartCount: number; menuOpen: boolean; onMenu: () => void; onHome: () => void; onLogin: () => void; onLogout: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onAllBooks: () => void; onCollection: (title: string) => void; onSearch: (query: string) => void; onQuickView: () => void; onCart: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean; writersOpen: boolean; onWritersHover: (open: boolean) => void; onDesktopMenuHover: (open: boolean) => void; accountMenuOpen: boolean; onAccountMenuToggle: () => void; accountTab: AccountTab; onAccountTabChange: (tab: AccountTab) => void; accountMenuEnabled: boolean }) {
   const headerRef = useRef<HTMLElement | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -700,7 +738,7 @@ function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop
         </div>
       </div>
     </div>
-    {shopOpen && activeView !== 'authors' && <ShopMenu onAllBooks={onAllBooks} />}
+    {shopOpen && activeView !== 'authors' && <ShopMenu onAllBooks={onAllBooks} onCollection={onCollection} />}
     {writersOpen && <WritersMenu onAllWriters={onAllWriters} onAuthors={onAuthors} onTranslators={onTranslators} />}
   </header>
 }
@@ -752,7 +790,7 @@ function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewL
   </article>
 }
 
-function Collection({ title, items, onAllBooks, ...actions }: { title: string; items: Product[]; onAllBooks: () => void } & ProductCardActions) {
+function Collection({ title, items, onCollection, ...actions }: { title: string; items: Product[]; onCollection: (title: string) => void } & ProductCardActions) {
   const [trackPosition, setTrackPosition] = useState(1)
   const [isJumping, setIsJumping] = useState(false)
   const wheelLock = useRef(false)
@@ -820,13 +858,12 @@ function Collection({ title, items, onAllBooks, ...actions }: { title: string; i
         </div>)}
       </div>
     </div>
-    <div className="collection-controls"><div className="pagination" aria-label={`${title} pagination`}>{slides.map((_, index) => <button key={`${title}-dot-${index}`} className={index === activeSlide ? 'active' : ''} aria-label={`Xem slide ${index + 1}`} aria-current={index === activeSlide ? 'true' : undefined} onClick={() => goToSlide(index)} />)}</div><a className="news-see-more collection-see-more" href="/all-books" onClick={(event) => { event.preventDefault(); onAllBooks() }}>View All</a></div>
+    <div className="collection-controls"><div className="pagination" aria-label={`${title} pagination`}>{slides.map((_, index) => <button key={`${title}-dot-${index}`} className={index === activeSlide ? 'active' : ''} aria-label={`Xem slide ${index + 1}`} aria-current={index === activeSlide ? 'true' : undefined} onClick={() => goToSlide(index)} />)}</div><a className="news-see-more collection-see-more" href={`/collections/${collectionSlug(title)}`} onClick={(event) => { event.preventDefault(); onCollection(title) }}>View All</a></div>
   </section>
 }
 
-function BookDetail({ product, onBack, onAuthor, onAddToCart }: { product: Product; onBack: () => void; onAuthor: (author: string) => void; onAddToCart: (product: Product) => void }) {
+function BookDetail({ product, onBack, onAuthor, onAddToCart, onBuyNow }: { product: Product; onBack: () => void; onAuthor: (author: string) => void; onAddToCart: (product: Product) => void; onBuyNow: (product: Product) => void }) {
   const galleryImages = [product.image]
-  const demoAuthorPath = '/authors/edward-w-said'
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
@@ -860,7 +897,7 @@ function BookDetail({ product, onBack, onAuthor, onAddToCart }: { product: Produ
       </div>
       <div className="book-detail-copy">
         <h1>{product.title}</h1>
-        <p className="book-detail-author">by <a href={demoAuthorPath} onClick={(event) => { event.preventDefault(); onAuthor('Edward W. Said') }}>{product.author}</a></p>
+        <p className="book-detail-author">by <a href={`/authors/${authorSlug(product.author)}`} onClick={(event) => { event.preventDefault(); onAuthor(product.author) }}>{product.author}</a></p>
         <div className="book-detail-rule" />
         <div className="book-detail-category"><span>Classification</span><div>{product.categories.map((category) => <a className="book-classification-link" key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}</a>)}</div></div>
         <div className="book-detail-purchase">
@@ -877,7 +914,7 @@ function BookDetail({ product, onBack, onAuthor, onAddToCart }: { product: Produ
           <div className="book-detail-actions">
             {isAvailable ? <>
               <button className="book-add-button" type="button" onClick={() => onAddToCart(product)}>Add to Cart</button>
-              <button className="book-buy-button" type="button">Buy Now</button>
+              <button className="book-buy-button" type="button" onClick={() => onBuyNow(product)}>Buy Now</button>
             </> : <button className="book-out-of-stock-button" type="button" disabled>Out of stock</button>}
           </div>
         </div>
@@ -895,7 +932,7 @@ function BookDetail({ product, onBack, onAuthor, onAddToCart }: { product: Produ
         </section>
         <section className="book-details-grid book-detail-inline-details" aria-labelledby="details-title">
           <h2 id="details-title">Details</h2>
-          <dl><div><dt>Publisher</dt><dd>Linery Books</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Format</dt><dd>Paperback</dd></div></dl>
+          <dl><div><dt>Publisher</dt><dd>{product.publisher}</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Format</dt><dd>Paperback</dd></div></dl>
         </section>
       </div>
     </section>
@@ -940,7 +977,7 @@ function BookDetail({ product, onBack, onAuthor, onAddToCart }: { product: Produ
 }
 
 function BookPreview({ product, onClose, onOpenDetail }: { product: Product | null; onClose: () => void; onOpenDetail: (product: Product) => void }) {
-  const publisher = product?.title.includes('Very Short') ? 'Oxford University Press' : 'Linery Books'
+  const publisher = product?.publisher ?? 'Linery Books'
   return <aside className={`book-preview ${product ? '' : 'is-empty'}`} aria-label="Quick view">
     <div className="book-preview-header"><p>Quick view</p><button type="button" aria-label="Close quick view" onClick={onClose}>×</button></div>
     {product ? <>
@@ -968,7 +1005,7 @@ function BookPreview({ product, onClose, onOpenDetail }: { product: Product | nu
 
 function UtilityPanel({ activeTab, items, product, onTabChange, onClose, onRemove, onChangeQuantity, onViewCart, onCheckout, onOpenDetail, onAddToCart, onBuyNow }: { activeTab: 'cart' | 'quickview'; items: CartItem[]; product: Product | null; onTabChange: (tab: 'cart' | 'quickview') => void; onClose: () => void; onRemove: (title: string) => void; onChangeQuantity: (title: string, delta: number) => void; onViewCart: () => void; onCheckout: () => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onBuyNow: (product: Product) => void }) {
   const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
-  const publisher = product?.title.includes('Very Short') ? 'Oxford University Press' : 'Linery Books'
+  const publisher = product?.publisher ?? 'Linery Books'
   return <div className="utility-panel-layer" role="presentation">
     <aside className="utility-panel" aria-label="Flash cart and quick view">
       <div className="utility-panel-header">
@@ -1371,6 +1408,7 @@ export function App() {
   const [writersOpen, setWritersOpen] = useState(false)
   const [heroMotionOpen, setHeroMotionOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => getProductFromPath(window.location.pathname))
+  const [selectedCollection, setSelectedCollection] = useState<string | null>(() => getCollectionTitleFromPath(window.location.pathname))
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false)
   const [quickViewOpen, setQuickViewOpen] = useState(false)
@@ -1387,6 +1425,7 @@ export function App() {
       setSelectedAuthor(getAuthorFromPath(window.location.pathname))
       setSelectedNews(getNewsFromPath(window.location.pathname))
       setSelectedProduct(getProductFromPath(window.location.pathname))
+      setSelectedCollection(getCollectionTitleFromPath(window.location.pathname))
       setView(getViewFromPath(window.location.pathname, window.location.hash))
     }
     window.addEventListener('popstate', syncRoute)
@@ -1474,6 +1513,15 @@ export function App() {
     setShopOpen(false)
     setWritersOpen(false)
     setMenuOpen(false)
+  }
+
+  const showCollection = (title: string) => {
+    navigateTo(`/collections/${collectionSlug(title)}`)
+    setSelectedCollection(title)
+    setView('collection')
+    setShopOpen(false)
+    setMenuOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const showLogin = () => {
@@ -1628,7 +1676,7 @@ export function App() {
     addToCart(product)
     setCartDrawerOpen(false)
     setQuickViewOpen(false)
-    showCart()
+    showCheckout()
   }
   const toggleQuickView = () => {
     if (quickViewOpen) {
@@ -1674,17 +1722,17 @@ export function App() {
   return <>
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
     <div id="top" className={`page-shell ${(quickViewAvailable && quickViewOpen) || cartDrawerOpen ? 'utility-panel-active' : ''}`}>
-    <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (!open) { setShopOpen(false); setWritersOpen(false) } }} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} />
+    <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (!open) { setShopOpen(false); setWritersOpen(false) } }} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
-    <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} />
-     {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
+    <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} />
+     {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'collection' ? <AllBooksPage collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} onBuyNow={buyNow} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
       <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration">
         <div className="hero-art">
           <img className="hero-art-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" />
           <img className="hero-art-hover" src="/assets/hero-children-shop-hover.webp" alt="" aria-hidden="true" />
         </div>
       </section>
-      <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onAllBooks={showAllBooks} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} />)}</div>
+      <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onCollection={showCollection} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} />)}</div>
     <LineryNewsSection language={language} onOpen={showNewsDetail} onSeeMore={showNews} />
     </main>}
     <Footer />

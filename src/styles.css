@@ -284,6 +284,24 @@ main:has(.news-module) + .site-footer { margin-top: 36px; }
 .all-books-filter-writers-options label { padding-left: 10px; }
 .all-books-filter-options label { display: flex; align-items: center; gap: 7px; min-width: 0; color: #555; font: 400 13px/1.3 var(--font-display); cursor: pointer; }
 .all-books-filter-options input { accent-color: var(--color-olive); }
+.filter-select2 { position: relative; min-width: 0; }
+.filter-select2-label { display: block; margin: 0 0 10px; color: var(--color-ink); font: 600 14px/1.3 var(--font-display); }
+.filter-select2-control { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 42px; gap: 10px; padding: 6px 12px; border: 1px solid #d9d6c9; border-radius: 8px; background: #fff; color: var(--color-ink); font: 400 13px/1.3 var(--font-body); text-align: left; }
+.filter-select2-control:hover, .filter-select2.is-open .filter-select2-control, .filter-select2-control:focus-visible { border-color: var(--color-olive); outline: 0; box-shadow: 0 0 0 2px rgba(155,148,47,.14); }
+.filter-select2-control > i { flex: 0 0 auto; color: var(--color-olive); transition: transform 180ms ease; }
+.filter-select2.is-open .filter-select2-control > i { transform: rotate(180deg); }
+.filter-select2-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; min-width: 0; }
+.filter-select2-placeholder { color: #888; }
+.filter-select2-tag { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 7px; border-radius: 5px; background: rgba(155,148,47,.14); color: var(--color-ink); font-size: 12px; }
+.filter-select2-tag button { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; padding: 0; border: 0; background: transparent; color: var(--color-olive-dark); font: 600 15px/1 var(--font-body); }
+.filter-select2-dropdown { position: absolute; z-index: 4; top: calc(100% + 6px); right: 0; left: 0; padding: 10px; border: 1px solid #d9d6c9; border-radius: 8px; background: #fff; box-shadow: 0 12px 26px rgba(31,42,36,.16); }
+.filter-select2-search { width: 100%; min-height: 34px; margin-bottom: 8px; padding: 7px 9px; border: 1px solid #e1dfd5; border-radius: 6px; background: #faf9f4; color: var(--color-ink); font: 400 13px/1.2 var(--font-body); }
+.filter-select2-search:focus { border-color: var(--color-olive); outline: 0; }
+.filter-select2-options { display: grid; max-height: 156px; gap: 5px; overflow-y: auto; }
+.filter-select2-options label { display: flex; align-items: center; gap: 7px; padding: 5px 4px; color: #555; font: 400 13px/1.3 var(--font-body); cursor: pointer; }
+.filter-select2-options label:hover { background: #f5f3e9; }
+.filter-select2-options input { accent-color: var(--color-olive); }
+.filter-select2-empty { margin: 4px; color: #888; font: 400 12px/1.3 var(--font-body); }
 .all-books-sort-field select { display: block; width: 100%; min-height: 38px; margin-top: 8px; padding: 8px 34px 8px 10px; border: 1px solid #d7d5c9; border-radius: 8px; background: #fff; color: var(--color-ink); font: 400 13px/1.2 var(--font-display); }
 .all-books-filter-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; padding-top: 14px; border-top: 1px solid #e1dfd5; }
 .all-books-filter-actions button { min-height: 36px; padding: 8px 16px; border: 1px solid var(--color-olive); border-radius: 999px; background: transparent; color: var(--color-olive); font: 400 13px/1.2 var(--font-display); }
@@ -1239,7 +1257,7 @@ body.login-open { overflow: hidden; }
 @media (max-width: 900px) {
   .login-page { padding: 16px; }
   .login-layout { grid-template-columns: 1fr; min-height: auto; width: 100%; border-radius: 0; }
-  .login-visual { grid-column: 1; grid-row: 1; min-height: 240px; border-radius: 0; }
+  .login-visual { grid-column: 1; grid-row: 1; min-height: 240px; border-radius: 0; background-position: center top; }
   .login-card { grid-column: 1; grid-row: 2; min-height: 0; margin: 0; padding: 44px clamp(28px, 8vw, 72px) 36px; border-radius: 0; }
 }
 @media (max-width: 520px) {
