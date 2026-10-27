@@ -7,7 +7,7 @@ type CartItem = { product: Product; quantity: number }
 type PaymentMethod = 'vnpay' | 'bank' | 'momo' | 'apple' | 'zalopay'
 type FulfillmentMethod = 'pickup' | 'delivery'
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
-type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register'
+type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete'
 type WriterDirectoryFilter = 'all' | 'authors' | 'translators'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const loginSlides = [
@@ -133,6 +133,10 @@ const getAuthorFromPath = (pathname: string) => {
 const getViewFromPath = (pathname: string, hash: string): View => {
   if (hash === '#login') return 'login'
   if (hash === '#register') return 'register'
+  if (hash === '#forgot-password') return 'forgot-password'
+  if (hash === '#password-reset-sent') return 'password-reset-sent'
+  if (hash === '#reset-password') return 'reset-password'
+  if (hash === '#password-reset-complete') return 'password-reset-complete'
   if (pathname === '/authors') return 'authors'
   if (pathname === '/all-books') return 'all-books'
   if (pathname === '/search') return 'search'
@@ -1064,6 +1068,48 @@ function CartPage({ onHome, onCheckout, items, onRemove, onChangeQuantity }: { o
   </main>
 }
 
+function BankTransferPayment({ subtotal, onConfirm, onHome, onBackToCart }: { subtotal: number; onConfirm: () => void; onHome: () => void; onBackToCart: () => void }) {
+  const [secondsRemaining, setSecondsRemaining] = useState(300)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+  useEffect(() => {
+    if (secondsRemaining <= 0) return undefined
+    const timer = window.setInterval(() => setSecondsRemaining((seconds) => Math.max(0, seconds - 1)), 1000)
+    return () => window.clearInterval(timer)
+  }, [secondsRemaining])
+  const copyValue = async (field: string, value: string) => {
+    await navigator.clipboard.writeText(value)
+    setCopiedField(field)
+    window.setTimeout(() => setCopiedField((current) => current === field ? null : current), 1600)
+  }
+  const CopyButton = ({ field, value }: { field: string; value: string }) => <button className="checkout-copy-button" type="button" aria-label={`Copy ${field}`} onClick={() => copyValue(field, value)}><i className={`bi bi-${copiedField === field ? 'check2' : 'clipboard'}`} aria-hidden="true" /></button>
+  const isExpired = secondsRemaining === 0
+  const minutes = String(Math.floor(secondsRemaining / 60)).padStart(2, '0')
+  const seconds = String(secondsRemaining % 60).padStart(2, '0')
+  return <main className="checkout-page">
+    <div className="checkout-bank-layout">
+      <section className="checkout-bank-information" aria-labelledby="bank-transfer-title">
+        <p className="checkout-kicker">Payment instructions</p>
+        <h1 id="bank-transfer-title">Bank transfer information</h1>
+        <div className="checkout-bank-qr-row">
+          <img src="/assets/bank-transfer-qr.svg" alt="QR code for Linery bank transfer" />
+          <div><strong>Scan to pay by QR code</strong><span>Use your banking app to scan the QR code, or transfer manually using the details below.</span><div className={`checkout-bank-countdown ${isExpired ? 'is-expired' : ''}`}><span className="checkout-countdown-progress" aria-label={isExpired ? 'Payment time expired' : `${minutes} minutes ${seconds} seconds remaining`}><span>{isExpired ? '00:00' : `${minutes}:${seconds}`}</span></span><span className="checkout-countdown-copy">{isExpired ? 'Please return to your cart and try the payment again.' : 'Your order will be held for 5 minutes. If payment is not received, please return to your cart and try again.'}</span></div></div>
+        </div>
+        <div className="checkout-bank-reference"><strong>Transfer content</strong><div className="checkout-copy-field"><code>940347</code><CopyButton field="transfer content" value="940347" /></div><span>Please include this transfer content exactly so we can match your payment.</span></div>
+        <dl className="checkout-bank-details"><div><dt>Bank</dt><dd><span>Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)</span><img src="/assets/bidv-logo.svg" alt="BIDV" /></dd></div><div><dt>Branch</dt><dd><span>CN Demo</span><CopyButton field="branch" value="CN Demo" /></dd></div><div><dt>Account number</dt><dd><span>120 6161 626</span><CopyButton field="account number" value="120 6161 626" /></dd></div><div><dt>Account holder</dt><dd><span>Linery Books</span><CopyButton field="account holder" value="Linery Books" /></dd></div></dl>
+      </section>
+      <aside className="checkout-bank-summary" aria-label="Order payment summary">
+        <div className="checkout-bank-summary-line"><span>Order code</span><strong>#LINERY-ORDER</strong></div>
+        <div className="checkout-bank-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div>
+        <div className="checkout-bank-summary-line"><span>Discount</span><strong>−0₫</strong></div>
+        <div className="checkout-bank-summary-total"><span>Total</span><strong>{formatPrice(subtotal)}</strong></div>
+        <p className="checkout-bank-summary-note">By confirming, you agree to the Linery Bookstore order terms.</p>
+        <button className="checkout-submit checkout-bank-confirm" type="button" onClick={onConfirm} disabled={isExpired}>I HAVE COMPLETED PAYMENT</button>
+        <button className="checkout-bank-back" type="button" onClick={isExpired ? onBackToCart : onHome}>{isExpired ? 'RETURN TO CART' : 'Back to shopping'}</button>
+      </aside>
+    </div>
+  </main>
+}
+
 function CheckoutPage({ items, onHome, onBackToCart }: { items: CartItem[]; onHome: () => void; onBackToCart: () => void }) {
   const [submitted, setSubmitted] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('pending')
@@ -1072,7 +1118,8 @@ function CheckoutPage({ items, onHome, onBackToCart }: { items: CartItem[]; onHo
   const [voucherCode, setVoucherCode] = useState('')
   const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
 
-  if (submitted) return <main className="checkout-page"><section className="checkout-success-card" aria-labelledby="checkout-success-title"><i className={`bi ${paymentStatus === 'paid' ? 'bi-check2' : 'bi-clock'}`} aria-hidden="true" /><p className="checkout-kicker">Order received</p><h1 id="checkout-success-title">Thank you for your order.</h1><div className={`checkout-payment-status checkout-payment-status-${paymentStatus}`}><strong>{paymentStatus === 'paid' ? 'Payment confirmed' : 'Payment pending'}</strong><span>{paymentStatus === 'paid' ? 'Your payment has been recorded successfully.' : 'Your order is recorded. Complete payment to update the status.'}</span></div>{paymentStatus === 'pending' && <><div className="checkout-payment-instructions"><strong>{paymentMethod === 'vnpay' ? 'VNPay - Wallet' : paymentMethod === 'bank' ? 'Bank transfer' : paymentMethod === 'momo' ? 'MoMo wallet' : paymentMethod === 'apple' ? 'Apple Pay' : 'ZaloPay'}</strong><span>{paymentMethod === 'vnpay' ? 'Continue in VNPay wallet to complete the payment.' : paymentMethod === 'bank' ? 'Use the bank details provided by Linery to complete the transfer.' : paymentMethod === 'momo' ? 'Continue in MoMo wallet to complete the payment.' : paymentMethod === 'apple' ? 'Continue in Apple Pay to complete the payment.' : 'Continue in ZaloPay to complete the payment.'}</span>{paymentMethod === 'momo' && <div className="checkout-momo-panel" aria-label="MoMo wallet payment"><img src="/assets/payment-momo.svg" alt="MoMo" /><small>MoMo wallet</small></div>}</div><button className="checkout-submit checkout-confirm-payment" type="button" onClick={() => setPaymentStatus('paid')}>I HAVE COMPLETED PAYMENT</button></>}<button className="cart-primary-action" type="button" onClick={onHome}>CONTINUE SHOPPING</button></section></main>
+  if (submitted && paymentMethod === 'bank' && paymentStatus === 'pending') return <BankTransferPayment subtotal={subtotal} onConfirm={() => setPaymentStatus('paid')} onHome={onHome} onBackToCart={onBackToCart} />
+  if (submitted) return <main className="checkout-page"><section className="checkout-success-card" aria-labelledby="checkout-success-title"><i className={`bi ${paymentStatus === 'paid' ? 'bi-check2' : 'bi-clock'}`} aria-hidden="true" /><p className="checkout-kicker">Order received</p><h1 id="checkout-success-title">Thank you for your order.</h1><div className={`checkout-payment-status checkout-payment-status-${paymentStatus}`}><strong>{paymentStatus === 'paid' ? 'Payment confirmed' : 'Payment pending'}</strong><span>{paymentStatus === 'paid' ? 'Your payment has been recorded successfully.' : 'Your order is recorded. Complete payment to update the status.'}</span></div>{paymentStatus === 'pending' && <><div className="checkout-payment-instructions"><strong>{paymentMethod === 'vnpay' ? 'VNPay - Wallet' : paymentMethod === 'bank' ? 'Bank transfer' : paymentMethod === 'momo' ? 'MoMo wallet' : paymentMethod === 'apple' ? 'Apple Pay' : 'ZaloPay'}</strong><span>{paymentMethod === 'vnpay' ? 'Continue in VNPay wallet to complete the payment.' : paymentMethod === 'momo' ? 'Continue in MoMo wallet to complete the payment.' : paymentMethod === 'apple' ? 'Continue in Apple Pay to complete the payment.' : 'Continue in ZaloPay to complete the payment.'}</span>{paymentMethod === 'momo' && <div className="checkout-momo-panel" aria-label="MoMo wallet payment"><img src="/assets/payment-momo.svg" alt="MoMo" /><small>MoMo wallet</small></div>}</div><button className="checkout-submit checkout-confirm-payment" type="button" onClick={() => setPaymentStatus('paid')}>I HAVE COMPLETED PAYMENT</button></>}<button className="cart-primary-action" type="button" onClick={onHome}>CONTINUE SHOPPING</button></section></main>
   if (items.length === 0) return <main className="cart-page"><section className="cart-empty-card" aria-labelledby="checkout-empty-title"><i className="bi bi-bag cart-empty-icon" aria-hidden="true" /><h1 id="checkout-empty-title">Your cart is empty</h1><p className="cart-empty-message">There are no products in your cart.</p><a className="cart-empty-action" href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Continue shopping</a></section></main>
 
   return <main className="checkout-page">
@@ -1093,7 +1140,7 @@ function CheckoutPage({ items, onHome, onBackToCart }: { items: CartItem[]; onHo
   </main>
 }
 
-function LoginPage({ onHome, onRegister }: { onHome: () => void; onRegister: () => void }) {
+function LoginPage({ onHome, onRegister, onForgotPassword }: { onHome: () => void; onRegister: () => void; onForgotPassword: () => void }) {
   const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [activeSlide, setActiveSlide] = useState(0)
@@ -1142,7 +1189,7 @@ function LoginPage({ onHome, onRegister }: { onHome: () => void; onRegister: () 
             </div>
             <div className="login-options">
               <label className="login-remember"><input type="checkbox" name="remember" /> <span>Remember me</span></label>
-              <a href="#login" onClick={(event) => event.preventDefault()}>Forgot Password</a>
+              <a href="#forgot-password" onClick={(event) => { event.preventDefault(); onForgotPassword() }}>Forgot Password</a>
             </div>
             <button className="login-submit" type="submit">Sign in</button>
           </form>
@@ -1154,6 +1201,48 @@ function LoginPage({ onHome, onRegister }: { onHome: () => void; onRegister: () 
             <button type="button" aria-label="Sign in with Apple" onClick={() => handleSso('Apple')}><i className="bi bi-apple" aria-hidden="true" /></button>
           </div>
           {message && <p className="login-message" role="status">{message}</p>}
+        </div>
+      </div>
+    </section>
+  </main>
+}
+
+type RecoveryMode = 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete'
+
+function PasswordRecoveryPage({ mode, onHome, onLogin, onEmailSent, onResetPassword, onComplete }: { mode: RecoveryMode; onHome: () => void; onLogin: () => void; onEmailSent: () => void; onResetPassword: () => void; onComplete: () => void }) {
+  const [activeSlide, setActiveSlide] = useState(0)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setActiveSlide((slide) => (slide + 1) % loginSlides.length), 3000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const isForgotForm = mode === 'forgot-password'
+  const isSent = mode === 'password-reset-sent'
+  const isResetForm = mode === 'reset-password'
+  const isComplete = mode === 'password-reset-complete'
+  const heading = isForgotForm ? 'Forgot password?' : isSent ? 'Email sent successfully' : isResetForm ? 'Create a new password' : 'Password updated'
+  const intro = isForgotForm ? 'Enter your email and we’ll send you a link to reset your password.' : isSent ? 'Please check your email to create a new password.' : isResetForm ? 'Choose a strong password to keep your Linery account secure.' : 'Your new password has been created successfully.'
+
+  return <main className="login-page recovery-page">
+    <div className="login-page-backdrop" aria-hidden="true" />
+    <section className="login-layout" aria-label="Password recovery">
+      <div className={`login-visual login-slide-${activeSlide}`}>
+        <button className="login-brand" type="button" onClick={onHome} aria-label="Back to home">LINERY BOOKSTORE</button>
+        <div className="login-visual-copy"><p>{loginSlides[activeSlide].quote}</p><span>Books selected with care for curious minds.</span><div className="login-visual-dots" aria-label="Password recovery background slides">{loginSlides.map((slide, index) => <button key={slide.image} type="button" className={index === activeSlide ? 'is-active' : ''} aria-label={`Show slide ${index + 1}`} aria-pressed={index === activeSlide} onClick={() => setActiveSlide(index)} />)}</div></div>
+      </div>
+      <div className="login-card recovery-card" aria-labelledby="recovery-title">
+        <button className="login-back" type="button" aria-label="Back to sign in" onClick={onLogin}><i className="bi bi-arrow-left" aria-hidden="true" /></button>
+        <div className="login-card-inner">
+          <h1 id="recovery-title">{heading}</h1>
+          <p className="login-intro">{intro}</p>
+          {isForgotForm && <form className="login-form" onSubmit={(event) => { event.preventDefault(); onEmailSent() }}><label htmlFor="recovery-email">Email Address <span className="required-mark" aria-hidden="true">*</span></label><input id="recovery-email" name="email" type="email" placeholder="Enter Email" autoComplete="email" required /><button className="login-submit" type="submit">SEND RESET LINK</button></form>}
+          {isSent && <div className="recovery-status-card" role="status"><i className="bi bi-envelope-check" aria-hidden="true" /><strong>Reset email sent</strong><span>We’ve sent the password recovery email successfully. Please check your inbox and follow the link to create a new password.</span><button className="login-submit" type="button" onClick={onResetPassword}>OPEN RESET LINK</button></div>}
+          {isResetForm && <form className="login-form" onSubmit={(event) => { event.preventDefault(); onComplete() }}><label htmlFor="new-password">New Password <span className="required-mark" aria-hidden="true">*</span></label><div className="login-password-field"><input id="new-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter new password" autoComplete="new-password" required /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button></div><label htmlFor="confirm-new-password">Confirm Password <span className="required-mark" aria-hidden="true">*</span></label><div className="login-password-field"><input id="confirm-new-password" name="confirmPassword" type={showConfirmation ? 'text' : 'password'} placeholder="Confirm new password" autoComplete="new-password" required /><button type="button" aria-label={showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'} onClick={() => setShowConfirmation((visible) => !visible)}><i className={`bi ${showConfirmation ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button></div><button className="login-submit" type="submit">SAVE NEW PASSWORD</button></form>}
+          {isComplete && <div className="recovery-status-card recovery-complete-card" role="status"><i className="bi bi-check2-circle" aria-hidden="true" /><strong>Password changed</strong><span>You can now sign in with your new password and continue discovering your next read.</span><button className="login-submit" type="button" onClick={onLogin}>BACK TO SIGN IN</button></div>}
+          {!isComplete && <p className="recovery-back-link"><button type="button" onClick={onLogin}>Back to sign in</button></p>}
         </div>
       </div>
     </section>
@@ -1289,7 +1378,7 @@ export function App() {
   }, [welcomeOpen])
 
   useEffect(() => {
-    document.body.classList.toggle('login-open', view === 'login' || view === 'register')
+    document.body.classList.toggle('login-open', view === 'login' || view === 'register' || view === 'forgot-password' || view === 'password-reset-sent' || view === 'reset-password' || view === 'password-reset-complete')
     return () => document.body.classList.remove('login-open')
   }, [view])
 
@@ -1349,13 +1438,33 @@ export function App() {
   }
 
   const showLogin = () => {
-    window.location.hash = 'login'
+    navigateTo('/#login')
     setView('login')
   }
 
   const showRegister = () => {
-    window.location.hash = 'register'
+    navigateTo('/#register')
     setView('register')
+  }
+
+  const showForgotPassword = () => {
+    navigateTo('/#forgot-password')
+    setView('forgot-password')
+  }
+
+  const showPasswordResetSent = () => {
+    navigateTo('/#password-reset-sent')
+    setView('password-reset-sent')
+  }
+
+  const showResetPassword = () => {
+    navigateTo('/#reset-password')
+    setView('reset-password')
+  }
+
+  const showPasswordResetComplete = () => {
+    navigateTo('/#password-reset-complete')
+    setView('password-reset-complete')
   }
 
   const showAuthors = (filter: WriterDirectoryFilter = 'all') => {
@@ -1528,8 +1637,9 @@ export function App() {
       <i className="bi bi-arrow-up" aria-hidden="true" />
     </button>
     </div>
-    {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} />}
+    {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} onForgotPassword={showForgotPassword} />}
     {view === 'register' && <RegisterPage onHome={showHome} onLogin={showLogin} language={language} />}
+    {(view === 'forgot-password' || view === 'password-reset-sent' || view === 'reset-password' || view === 'password-reset-complete') && <PasswordRecoveryPage mode={view} onHome={showHome} onLogin={showLogin} onEmailSent={showPasswordResetSent} onResetPassword={showResetPassword} onComplete={showPasswordResetComplete} />}
     {((quickViewAvailable && quickViewOpen) || cartDrawerOpen) && <UtilityPanel activeTab={utilityPanelTab} items={cartItems} product={previewProduct} onTabChange={changeUtilityPanelTab} onClose={utilityPanelTab === 'cart' ? closeCartDrawer : closePreview} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} onViewCart={() => { closeCartDrawer(); showCart() }} onCheckout={checkout} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} />}
   </>
 }
