@@ -7,7 +7,8 @@ type CartItem = { product: Product; quantity: number }
 type PaymentMethod = 'vnpay' | 'bank' | 'momo' | 'apple' | 'zalopay'
 type FulfillmentMethod = 'pickup' | 'delivery'
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
-type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete'
+type View = 'home' | 'authors' | 'all-books' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete' | 'account'
+type AccountTab = 'profile' | 'orders' | 'orders-demo' | 'order-detail' | 'transactions' | 'transaction-detail' | 'security'
 type WriterDirectoryFilter = 'all' | 'authors' | 'translators'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const loginSlides = [
@@ -137,6 +138,7 @@ const getViewFromPath = (pathname: string, hash: string): View => {
   if (hash === '#password-reset-sent') return 'password-reset-sent'
   if (hash === '#reset-password') return 'reset-password'
   if (hash === '#password-reset-complete') return 'password-reset-complete'
+  if (hash === '#account') return 'account'
   if (pathname === '/authors') return 'authors'
   if (pathname === '/all-books') return 'all-books'
   if (pathname === '/search') return 'search'
@@ -658,10 +660,11 @@ function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 
   </main>
 }
 
-function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onShop, onShopHover, onAllWriters, onAuthors, onTranslators, onAllBooks, onSearch, onQuickView, onCart, quickViewOpen, quickViewAvailable, activeView, shopOpen, writersOpen, onWritersHover, onDesktopMenuHover }: { cartCount: number; menuOpen: boolean; onMenu: () => void; onHome: () => void; onLogin: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onAllBooks: () => void; onSearch: (query: string) => void; onQuickView: () => void; onCart: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean; writersOpen: boolean; onWritersHover: (open: boolean) => void; onDesktopMenuHover: (open: boolean) => void }) {
+function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop, onShopHover, onAllWriters, onAuthors, onTranslators, onAllBooks, onSearch, onQuickView, onCart, quickViewOpen, quickViewAvailable, activeView, shopOpen, writersOpen, onWritersHover, onDesktopMenuHover, accountMenuOpen, onAccountMenuToggle, accountTab, onAccountTabChange, accountMenuEnabled }: { cartCount: number; menuOpen: boolean; onMenu: () => void; onHome: () => void; onLogin: () => void; onLogout: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onAllBooks: () => void; onSearch: (query: string) => void; onQuickView: () => void; onCart: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean; writersOpen: boolean; onWritersHover: (open: boolean) => void; onDesktopMenuHover: (open: boolean) => void; accountMenuOpen: boolean; onAccountMenuToggle: () => void; accountTab: AccountTab; onAccountTabChange: (tab: AccountTab) => void; accountMenuEnabled: boolean }) {
   const headerRef = useRef<HTMLElement | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [accountHoverOpen, setAccountHoverOpen] = useState(false)
 
   useEffect(() => {
     if (!searchOpen) return undefined
@@ -679,7 +682,7 @@ function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onShop, onShopHo
     setSearchOpen(false)
   }
 
-  return <header ref={headerRef} className={`site-header ${menuOpen ? 'is-menu-open' : ''}`} onMouseLeave={() => onDesktopMenuHover(false)}>
+  return <header ref={headerRef} className={`site-header ${menuOpen ? 'is-menu-open' : ''} ${activeView === 'account' ? 'is-account-view' : ''}`} onMouseLeave={() => onDesktopMenuHover(false)}>
     <div className="header-inner">
       <button className="menu-button" aria-label="Mở menu" onClick={onMenu}><Menu /></button>
       <nav className="desktop-nav" aria-label="Điều hướng chính" onMouseEnter={() => onDesktopMenuHover(true)}><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false) }} onFocus={() => { onShopHover(false); onWritersHover(false) }} onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onShop} onMouseEnter={() => { onShopHover(true); onWritersHover(false) }} onFocus={() => { onShopHover(true); onWritersHover(false) }} aria-expanded={shopOpen}>Books<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true) }} onClick={onAllWriters} aria-expanded={writersOpen}>Writes<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
@@ -691,7 +694,10 @@ function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onShop, onShopHo
         </form>
         {quickViewAvailable && <button className={`quick-view-button quick-view-icon-button ${quickViewOpen ? 'is-active' : ''}`} type="button" onClick={onQuickView} aria-label="Quick view" aria-expanded={quickViewOpen}><i className="bi bi-lightning-charge-fill" aria-hidden="true" /></button>}
         <a className="icon-button cart-button" href="/cart" aria-label={`Giỏ hàng, ${cartCount} sản phẩm`} onClick={(event) => { event.preventDefault(); onCart() }}><img src="/assets/icon-cart.svg" alt="" />{cartCount > 0 && <span>{cartCount}</span>}</a>
-        <button className="icon-button login-icon" type="button" aria-label="Log in" onClick={onLogin}><i className="bi bi-person" aria-hidden="true" /></button>
+        <div className="account-menu-region" onMouseEnter={() => setAccountHoverOpen(true)} onMouseLeave={() => setAccountHoverOpen(false)}>
+          <button className="icon-button login-icon" type="button" aria-label={activeView === 'account' ? 'Account menu' : 'Log in'} aria-expanded={accountMenuEnabled && (activeView === 'account' ? accountMenuOpen : accountHoverOpen)} onClick={onLogin}><i className="bi bi-person" aria-hidden="true" /></button>
+          {accountMenuEnabled && <div className={`account-header-menu ${accountMenuOpen || accountHoverOpen ? 'is-open' : ''}`} aria-label="Account menu"><button className={accountTab === 'profile' ? 'is-active' : ''} type="button" onClick={() => { onAccountTabChange('profile'); onAccountMenuToggle() }}><i className="bi bi-person" aria-hidden="true" />Profile</button><button className={accountTab === 'orders' ? 'is-active' : ''} type="button" onClick={() => { onAccountTabChange('orders'); onAccountMenuToggle() }}><i className="bi bi-bag" aria-hidden="true" />Order history</button><button className={accountTab === 'orders-demo' ? 'is-active' : ''} type="button" onClick={() => { onAccountTabChange('orders-demo'); onAccountMenuToggle() }}><i className="bi bi-bag-check" aria-hidden="true" />Order history demo</button><button className={accountTab === 'transactions' ? 'is-active' : ''} type="button" onClick={() => { onAccountTabChange('transactions'); onAccountMenuToggle() }}><i className="bi bi-receipt" aria-hidden="true" />Transaction history</button><button className={accountTab === 'security' ? 'is-active' : ''} type="button" onClick={() => { onAccountTabChange('security'); onAccountMenuToggle() }}><i className="bi bi-shield-lock" aria-hidden="true" />Security</button><button className="account-header-menu-logout" type="button" onClick={onLogout}><i className="bi bi-box-arrow-right" aria-hidden="true" />Log out</button></div>}
+        </div>
       </div>
     </div>
     {shopOpen && activeView !== 'authors' && <ShopMenu onAllBooks={onAllBooks} />}
@@ -1140,7 +1146,37 @@ function CheckoutPage({ items, onHome, onBackToCart }: { items: CartItem[]; onHo
   </main>
 }
 
-function LoginPage({ onHome, onRegister, onForgotPassword }: { onHome: () => void; onRegister: () => void; onForgotPassword: () => void }) {
+function AccountPage({ onHome, onLogout, activeTab, onTabChange }: { onHome: () => void; onLogout: () => void; activeTab: AccountTab; onTabChange: (tab: AccountTab) => void }) {
+  const setActiveTab = onTabChange
+  const [saved, setSaved] = useState(false)
+
+  return <main className="account-page">
+    <section className="account-card" aria-labelledby="account-title">
+      <div className="account-heading"><div><p className="checkout-kicker">My account</p><h1 id="account-title">Welcome back, Linery reader</h1><p>Manage your personal details, orders and account security in one place.</p></div><button className="account-back" type="button" onClick={onHome}>Continue shopping</button><nav className="account-mobile-header-nav" aria-label="Account sections"><button className={activeTab === 'profile' ? 'is-active' : ''} type="button" onClick={() => setActiveTab('profile')}><i className="bi bi-person" aria-hidden="true" /><span>Profile</span></button><button className={activeTab === 'orders' ? 'is-active' : ''} type="button" onClick={() => setActiveTab('orders')}><i className="bi bi-bag" aria-hidden="true" /><span>Order history</span></button><button className={activeTab === 'orders-demo' ? 'is-active' : ''} type="button" onClick={() => setActiveTab('orders-demo')}><i className="bi bi-bag-check" aria-hidden="true" /><span>Order history demo</span></button><button className={activeTab === 'transactions' ? 'is-active' : ''} type="button" onClick={() => setActiveTab('transactions')}><i className="bi bi-receipt" aria-hidden="true" /><span>Transaction history</span></button><button className={activeTab === 'security' ? 'is-active' : ''} type="button" onClick={() => setActiveTab('security')}><i className="bi bi-shield-lock" aria-hidden="true" /><span>Security</span></button><button className="account-mobile-header-logout" type="button" onClick={onLogout}><i className="bi bi-box-arrow-right" aria-hidden="true" /><span>Log out</span></button></nav></div>
+      <div className="account-layout">
+        <nav className="account-nav" aria-label="Account sections"><div className="account-nav-options">
+          <button className={activeTab === 'profile' ? 'is-active' : ''} type="button" onClick={() => setActiveTab('profile')}><i className="bi bi-person" aria-hidden="true" />Profile</button>
+          <button className={activeTab === 'orders' ? 'is-active' : ''} type="button" onClick={() => setActiveTab('orders')}><i className="bi bi-bag" aria-hidden="true" />Order history</button>
+          <button className={`account-order-nav ${activeTab === 'orders-demo' ? 'is-active' : ''}`} type="button" onClick={() => setActiveTab('orders-demo')}><i className="bi bi-bag-check" aria-hidden="true" /><span>Order history demo</span><span className="account-nav-info" tabIndex={0} aria-label="Demo order history"><i className="bi bi-info-circle" aria-hidden="true" /><span className="account-nav-tooltip" role="tooltip">Đây là màn hình demo lịch sử đơn hàng, dùng dữ liệu mẫu để Dev ghép API đơn hàng thực tế.</span></span></button>
+          <button className={activeTab === 'transactions' ? 'is-active' : ''} type="button" onClick={() => setActiveTab('transactions')}><i className="bi bi-receipt" aria-hidden="true" />Transaction history</button>
+          <button className={activeTab === 'security' ? 'is-active' : ''} type="button" onClick={() => setActiveTab('security')}><i className="bi bi-shield-lock" aria-hidden="true" />Security</button>
+          <button className="account-logout" type="button" onClick={onLogout}><i className="bi bi-box-arrow-right" aria-hidden="true" />Log out</button></div>
+        </nav>
+        <div className="account-content">
+          {activeTab === 'profile' && <form className="account-form" onSubmit={(event) => { event.preventDefault(); setSaved(true) }}><div className="account-section-heading"><h2>Personal information</h2><span>Keep your contact details up to date.</span></div><div className="account-field-grid"><label>Full name<input name="name" defaultValue="Linery Reader" /></label><label>Email address<input name="email" type="email" defaultValue="reader@example.com" /></label><label>Phone number<input name="phone" type="tel" placeholder="Add your phone number" /></label><label>Preferred language<select name="language" defaultValue="en"><option value="en">English</option><option value="vi">Tiếng Việt</option></select></label></div><button className="account-primary" type="submit">Save changes</button>{saved && <p className="account-message" role="status">Your account details have been saved.</p>}</form>}
+          {activeTab === 'orders' && <div className="account-section"><div className="account-section-heading"><h2>Order history</h2><span>Track your recent Linery Books orders.</span></div><div className="account-order-empty"><i className="bi bi-journal-bookmark" aria-hidden="true" /><strong>No orders yet</strong><span>Your completed orders will appear here.</span><button className="account-primary" type="button" onClick={onHome}>Browse books</button></div></div>}
+          {activeTab === 'orders-demo' && <div className="account-section"><div className="account-section-heading"><h2>Order history demo</h2><span>Sample order history for Dev integration.</span></div><div className="account-order-table-wrap"><table className="account-order-table"><thead><tr><th scope="col">Order code</th><th scope="col">Date</th><th scope="col">Status</th><th scope="col">Books</th><th scope="col">Total</th><th scope="col">Action</th></tr></thead><tbody><tr><td>#LINERY-20261027-001</td><td>27 Oct 2026</td><td><span className="account-order-status is-delivered">Delivered</span></td><td>3 books</td><td>1.200.000₫</td><td><button className="account-order-detail" type="button" onClick={() => setActiveTab('order-detail')}>View details <i className="bi bi-arrow-right" aria-hidden="true" /></button></td></tr><tr><td>#LINERY-20261012-008</td><td>12 Oct 2026</td><td><span className="account-order-status is-processing">Processing</span></td><td>2 books</td><td>740.000₫</td><td><button className="account-order-detail" type="button" onClick={() => setActiveTab('order-detail')}>View details <i className="bi bi-arrow-right" aria-hidden="true" /></button></td></tr></tbody></table></div><div className="account-order-list account-order-mobile-list"><article className="account-order-card"><div className="account-order-card-heading"><div><span className="account-order-code">#LINERY-20261027-001</span><strong>27 Oct 2026</strong></div><span className="account-order-status is-delivered">Delivered</span></div><div className="account-order-card-body"><span>3 books</span><strong>1.200.000₫</strong></div><button className="account-order-detail" type="button" onClick={() => setActiveTab('order-detail')}>View order details <i className="bi bi-arrow-right" aria-hidden="true" /></button></article><article className="account-order-card"><div className="account-order-card-heading"><div><span className="account-order-code">#LINERY-20261012-008</span><strong>12 Oct 2026</strong></div><span className="account-order-status is-processing">Processing</span></div><div className="account-order-card-body"><span>2 books</span><strong>740.000₫</strong></div><button className="account-order-detail" type="button" onClick={() => setActiveTab('order-detail')}>View order details <i className="bi bi-arrow-right" aria-hidden="true" /></button></article></div></div>}
+          {activeTab === 'order-detail' && <div className="account-section"><button className="account-inline-back" type="button" onClick={() => setActiveTab('orders-demo')}><i className="bi bi-arrow-left" aria-hidden="true" /> Back to order history demo</button><div className="account-section-heading"><h2>Order details</h2><span>#LINERY-20261027-001 · 27 Oct 2026</span></div><div className="account-detail-status"><span>Delivered</span><small>Your order has been completed.</small></div><div className="account-detail-payment"><div><span>Payment method</span><strong>Bank transfer</strong></div><div><span>Transaction ID</span><strong>TRX-LINERY-001</strong></div><div><span>Payment status</span><strong className="is-paid">Paid</strong></div></div><div className="account-detail-items"><div><span>Power, Politics, and Culture</span><small>Qty 1</small><strong>460.000₫</strong></div><div><span>Ethics: A Very Short Introduction</span><small>Qty 1</small><strong>460.000₫</strong></div><div><span>Existentialism: A Very Short Introduction</span><small>Qty 1</small><strong>280.000₫</strong></div></div><div className="account-detail-summary"><div><span>Subtotal</span><strong>1.200.000₫</strong></div><div><span>Discount</span><strong>−0₫</strong></div><div><span>Delivery fee</span><strong>Free</strong></div><div className="account-detail-total"><span>Total paid</span><strong>1.200.000₫</strong></div></div></div>}
+          {activeTab === 'transactions' && <div className="account-section"><div className="account-section-heading"><h2>Transaction history</h2><span>Payment records only. Order details are kept in Order history.</span></div><div className="account-transaction-table-wrap"><table className="account-transaction-table"><thead><tr><th scope="col">Order code</th><th scope="col">Date</th><th scope="col">Transaction ID</th><th scope="col">Payment method</th><th scope="col">Amount</th></tr></thead><tbody><tr><td><button className="account-transaction-order" type="button" onClick={() => setActiveTab('transaction-detail')}>#LINERY-20261027-001</button><span className="account-transaction-mobile-meta">27 Oct 2026 · TRX-LINERY-001</span></td><td>27 Oct 2026</td><td>TRX-LINERY-001</td><td>Bank transfer</td><td className="account-transaction-paid">+1.200.000₫</td></tr><tr><td><button className="account-transaction-order" type="button" onClick={() => setActiveTab('transaction-detail')}>#LINERY-20261012-008</button><span className="account-transaction-mobile-meta">12 Oct 2026 · TRX-LINERY-008</span></td><td>12 Oct 2026</td><td>TRX-LINERY-008</td><td>VNPay - Wallet</td><td className="account-transaction-paid">+740.000₫</td></tr></tbody></table></div></div>}
+          {activeTab === 'transaction-detail' && <div className="account-section"><button className="account-inline-back" type="button" onClick={() => setActiveTab('transactions')}><i className="bi bi-arrow-left" aria-hidden="true" /> Back to transaction history</button><div className="account-section-heading"><h2>Transaction details</h2><span>TRX-LINERY-001 · 27 Oct 2026</span></div><div className="account-transaction-detail-card"><div><span>Transaction ID</span><strong>TRX-LINERY-001</strong></div><div><span>Order code</span><button type="button" onClick={() => setActiveTab('order-detail')}>#LINERY-20261027-001 <i className="bi bi-arrow-up-right" aria-hidden="true" /></button></div><div><span>Payment method</span><strong>Bank transfer</strong></div><div><span>Payment status</span><strong className="is-paid">Paid</strong></div><div><span>Amount</span><strong className="account-transaction-detail-amount">1.200.000₫</strong></div></div></div>}
+          {activeTab === 'security' && <form className="account-form" onSubmit={(event) => { event.preventDefault(); setSaved(true) }}><div className="account-section-heading"><h2>Password & security</h2><span>Update your password to keep your account protected.</span></div><label>Current password<input type="password" autoComplete="current-password" required /></label><label>New password<input type="password" autoComplete="new-password" required /></label><label>Confirm new password<input type="password" autoComplete="new-password" required /></label><button className="account-primary" type="submit">Update password</button>{saved && <p className="account-message" role="status">Your password has been updated.</p>}</form>}
+        </div>
+      </div>
+    </section>
+  </main>
+}
+
+function LoginPage({ onHome, onRegister, onForgotPassword, onLoginSuccess }: { onHome: () => void; onRegister: () => void; onForgotPassword: () => void; onLoginSuccess: () => void }) {
   const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [activeSlide, setActiveSlide] = useState(0)
@@ -1152,7 +1188,7 @@ function LoginPage({ onHome, onRegister, onForgotPassword }: { onHome: () => voi
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setMessage('Sign-in is ready for connection to your account service.')
+    onLoginSuccess()
   }
 
   const handleSso = (provider: string) => {
@@ -1324,6 +1360,9 @@ export function App() {
   const [language, setLanguage] = useState<'en' | 'vi'>(() => window.localStorage.getItem('linery-language') === 'vi' ? 'vi' : 'en')
   const [menuOpen, setMenuOpen] = useState(false)
   const [view, setView] = useState<View>(() => getViewFromPath(window.location.pathname, window.location.hash))
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [accountTab, setAccountTab] = useState<AccountTab>('profile')
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [writerFilter, setWriterFilter] = useState<WriterDirectoryFilter>(() => getWriterFilterFromSearch(window.location.search))
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('query') ?? '')
   const [selectedAuthor, setSelectedAuthor] = useState(() => getAuthorFromPath(window.location.pathname))
@@ -1440,6 +1479,22 @@ export function App() {
   const showLogin = () => {
     navigateTo('/#login')
     setView('login')
+  }
+
+  const showAccount = () => {
+    navigateTo('/#account')
+    setView('account')
+    setMenuOpen(false)
+  }
+
+  const completeLogin = () => {
+    setIsAuthenticated(true)
+    showAccount()
+  }
+
+  const logout = () => {
+    setIsAuthenticated(false)
+    showHome()
   }
 
   const showRegister = () => {
@@ -1619,10 +1674,10 @@ export function App() {
   return <>
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
     <div id="top" className={`page-shell ${(quickViewAvailable && quickViewOpen) || cartDrawerOpen ? 'utility-panel-active' : ''}`}>
-    <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={showLogin} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (!open) { setShopOpen(false); setWritersOpen(false) } }} />
+    <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (!open) { setShopOpen(false); setWritersOpen(false) } }} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
     <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} />
-     {view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
+     {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
       <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration">
         <div className="hero-art">
           <img className="hero-art-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" />
@@ -1637,7 +1692,7 @@ export function App() {
       <i className="bi bi-arrow-up" aria-hidden="true" />
     </button>
     </div>
-    {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} onForgotPassword={showForgotPassword} />}
+    {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} onForgotPassword={showForgotPassword} onLoginSuccess={completeLogin} />}
     {view === 'register' && <RegisterPage onHome={showHome} onLogin={showLogin} language={language} />}
     {(view === 'forgot-password' || view === 'password-reset-sent' || view === 'reset-password' || view === 'password-reset-complete') && <PasswordRecoveryPage mode={view} onHome={showHome} onLogin={showLogin} onEmailSent={showPasswordResetSent} onResetPassword={showResetPassword} onComplete={showPasswordResetComplete} />}
     {((quickViewAvailable && quickViewOpen) || cartDrawerOpen) && <UtilityPanel activeTab={utilityPanelTab} items={cartItems} product={previewProduct} onTabChange={changeUtilityPanelTab} onClose={utilityPanelTab === 'cart' ? closeCartDrawer : closePreview} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} onViewCart={() => { closeCartDrawer(); showCart() }} onCheckout={checkout} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} />}
