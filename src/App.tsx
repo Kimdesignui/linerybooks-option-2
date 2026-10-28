@@ -177,8 +177,6 @@ const shopCategories: ShopCategory[] = [
     { label: 'Non-fiction', children: [{ label: 'Essays' }, { label: 'Research & Studies' }, { label: 'Memoir & Biography' }] },
   ] },
   { label: 'Authors' },
-  { label: 'LINERY PRESS' },
-  { label: 'LINERY JOURNAL' },
 ]
 const shopOnlyCategories = shopCategories
   .flatMap((category) => category.label === 'Books' ? (category.children ?? []) : [category])
