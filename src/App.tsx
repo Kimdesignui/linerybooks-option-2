@@ -52,6 +52,17 @@ const products: Product[] = [
   { image: '/assets/cover-black-folk.png', title: 'The Souls of Black Folk', author: 'W. E. B. Du Bois', price: '310.000₫', categories: ['Non-fiction', 'Essays'], publisher: 'Macmillan Publishers', writerType: 'Authors', year: 1903 },
 ]
 
+const artbookProducts: Product[] = [
+  { image: '/assets/cover-art-thief.jpg', title: 'The Art Thief', author: 'Michael Finkel', price: '520.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'Vintage', writerType: 'Authors', year: 2024 },
+  { image: '/assets/cover-art-artist.jpg', title: 'How to Be an Artist', author: 'Jerry Saltz', price: '460.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'Riverhead Books', writerType: 'Authors', year: 2020 },
+  { image: '/assets/cover-art-futures.jpg', title: 'Futures in the Making', author: 'Theo Reeves-Evison', price: '780.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'The MIT Press', writerType: 'Authors', year: 2026 },
+  { image: '/assets/cover-art-lady-in-gold.jpg', title: 'The Lady in Gold', author: "Anne-Marie O'Connor", price: '580.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'Vintage', writerType: 'Authors', year: 2015 },
+  { image: '/assets/cover-art-chasers.jpg', title: 'Chasers of the Light', author: 'Tyler Knott Gregson', price: '390.000₫', categories: ['Non-fiction', 'Poetry & Drama'], publisher: 'Tarcher', writerType: 'Authors', year: 2014 },
+  { image: '/assets/cover-art-white-papers.jpg', title: 'White Papers on Dissent', author: 'Barbara Cueto', price: '820.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'The MIT Press', writerType: 'Authors', year: 2026 },
+]
+
+const catalogProducts = [...products, ...artbookProducts]
+
 const newsItems: NewsItem[] = [
   {
     image: '/assets/news-instagram-01.jpg',
@@ -122,12 +133,12 @@ const authorSlug = (author: string) => author.toLowerCase().replaceAll(/[^a-z0-9
 const productSlug = (title: string) => title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const getProductFromPath = (pathname: string) => {
   const slug = pathname.startsWith('/books/') ? pathname.split('/').pop() ?? '' : ''
-  return products.find((product) => productSlug(product.title) === slug) ?? null
+  return catalogProducts.find((product) => productSlug(product.title) === slug) ?? null
 }
 const getAuthorFromPath = (pathname: string) => {
   const slug = pathname.startsWith('/authors/') ? pathname.split('/').pop() ?? '' : ''
   if (!slug) return ''
-  const knownAuthor = products.find((product) => authorSlug(product.author) === slug)?.author ?? Object.keys(authorProfiles).find((author) => authorSlug(author) === slug)
+  const knownAuthor = catalogProducts.find((product) => authorSlug(product.author) === slug)?.author ?? Object.keys(authorProfiles).find((author) => authorSlug(author) === slug)
   if (knownAuthor) return knownAuthor
   return slug.split('-').map((part) => part ? `${part[0].toUpperCase()}${part.slice(1)}` : '').join(' ')
 }
@@ -160,8 +171,9 @@ const sections = [
   { title: 'NEW & UPCOMING', items: products },
   { title: 'LINERY PRESS', items: products },
   { title: 'LINERY PICKS', items: products },
+  { title: 'LINERY ART BOOKS', items: artbookProducts },
 ]
-const collectionTitles = ['NEW & UPCOMING', 'LINERY PRESS', 'LINERY PICKS'] as const
+const collectionTitles = ['NEW & UPCOMING', 'LINERY PRESS', 'LINERY PICKS', 'LINERY ART BOOKS'] as const
 const collectionSlug = (title: string) => title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const getCollectionTitleFromPath = (pathname: string) => {
   const slug = pathname.startsWith('/collections/') ? pathname.split('/').pop() ?? '' : ''
@@ -305,7 +317,7 @@ function AuthorsDirectory({ filter }: { filter: WriterDirectoryFilter }) {
 }
 
 function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack: () => void } & ProductCardActions) {
-  const authorBooks = products.filter((product) => product.author === author)
+  const authorBooks = catalogProducts.filter((product) => product.author === author)
   const [authorFactsOpen, setAuthorFactsOpen] = useState(true)
   const [authorBioOpen, setAuthorBioOpen] = useState(false)
   const [authorWorksPage, setAuthorWorksPage] = useState(0)
@@ -453,7 +465,8 @@ function FilterTextInput({ label, value, onChange, placeholder }: { label: strin
 
 function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => void; collectionTitle?: string } & ProductCardActions) {
   const pageTitle = collectionTitle ?? 'ALL BOOKS'
-  const allBooks = Array.from({ length: 28 }, (_, rowIndex) => products.map((product, productIndex) => ({
+  const sourceProducts = collectionTitle === 'LINERY ART BOOKS' ? artbookProducts : products
+  const allBooks = Array.from({ length: 28 }, (_, rowIndex) => sourceProducts.map((product, productIndex) => ({
     ...product,
     key: `${rowIndex}-${productIndex}-${product.title}`,
   }))).flat()
