@@ -207,8 +207,8 @@ function MenuColumns({ columns }: { columns: MenuColumn[] }) {
   return <div className="menu-columns">{columns.map((column) => <div className="menu-column" key={column.eyebrow}><p className="menu-eyebrow">{column.eyebrow}</p>{column.links.map((link) => <a href={`/authors/${authorSlug(link)}`} key={link}>{link}</a>)}</div>)}</div>
 }
 
-function ShopMenu({ onAllBooks, onCollection }: { onAllBooks: () => void; onCollection: (title: string) => void }) {
-  return <section className="shop-menu menu-navigation" aria-label="Books categories">
+function ShopMenu({ isOpen, onAllBooks, onCollection }: { isOpen: boolean; onAllBooks: () => void; onCollection: (title: string) => void }) {
+  return <section className={`shop-menu menu-navigation ${isOpen ? 'is-open' : ''}`} aria-label="Books categories" aria-hidden={!isOpen}>
     <div className="shop-menu-inner menu-navigation-inner">
       <div className="shop-menu-columns menu-navigation-list">
         {desktopShopColumns.map((column, columnIndex) => <div className={`shop-menu-column menu-section menu-branch menu-level-${columnIndex === 0 ? 0 : 1}`} key={column.eyebrow || column.links[0]}>
@@ -223,8 +223,8 @@ function ShopMenu({ onAllBooks, onCollection }: { onAllBooks: () => void; onColl
   </section>
 }
 
-function WritersMenu({ onAllWriters, onAuthors, onTranslators }: { onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void }) {
-  return <section className="writers-menu menu-navigation" aria-label="Writers categories">
+function WritersMenu({ isOpen, onAllWriters, onAuthors, onTranslators }: { isOpen: boolean; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void }) {
+  return <section className={`writers-menu menu-navigation ${isOpen ? 'is-open' : ''}`} aria-label="Writers categories" aria-hidden={!isOpen}>
     <div className="writers-menu-inner menu-navigation-inner">
       <div className="writers-menu-list">
         <a className="menu-item menu-item-link menu-item-text" href="/authors" onClick={(event) => { event.preventDefault(); onAllWriters() }}>View All</a>
@@ -422,23 +422,24 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
   </main>
 }
 
-function FilterMultiSelect({ label, options, value, onChange }: { label: string; options: string[]; value: string[]; onChange: (value: string[]) => void }) {
+function FilterMultiSelect({ label, options, value, onChange, groups, searchable = true }: { label: string; options: string[]; value: string[]; onChange: (value: string[]) => void; groups?: Array<{ label: string; children: string[] }>; searchable?: boolean }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const visibleOptions = options.filter((option) => option.toLowerCase().includes(query.toLowerCase()))
+  const visibleGroups = groups?.map((group) => ({ ...group, children: group.children.filter((child) => child.toLowerCase().includes(query.toLowerCase())) })).filter((group) => group.label.toLowerCase().includes(query.toLowerCase()) || group.children.length > 0)
 
   const toggleOption = (option: string) => onChange(value.includes(option) ? value.filter((item) => item !== option) : [...value, option])
 
-  return <div className={`filter-select2 ${open ? 'is-open' : ''}`}>
+  return <div className={`filter-select2 ${open ? 'is-open' : ''}`} onMouseLeave={() => setOpen(false)}>
     <span className="filter-select2-label">{label}</span>
     <div className="filter-select2-control" role="button" tabIndex={0} aria-expanded={open} onClick={() => setOpen((current) => !current)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setOpen((current) => !current) } }}>
       <span className="filter-select2-tags">{value.length > 0 ? value.map((item) => <span className="filter-select2-tag" key={item}>{item}<button type="button" aria-label={`Remove ${item}`} onClick={(event) => { event.stopPropagation(); toggleOption(item) }}>×</button></span>) : <span className="filter-select2-placeholder">Select {label.toLowerCase()}</span>}</span>
       <i className="bi bi-chevron-down" aria-hidden="true" />
     </div>
     {open && <div className="filter-select2-dropdown">
-      <input className="filter-select2-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${label.toLowerCase()}`} aria-label={`Search ${label.toLowerCase()}`} />
-      <div className="filter-select2-options">{visibleOptions.map((option) => <label key={option}><input type="checkbox" checked={value.includes(option)} onChange={() => toggleOption(option)} /> <span>{option}</span></label>)}</div>
-      {visibleOptions.length === 0 && <p className="filter-select2-empty">No matches found.</p>}
+      {searchable && <input className="filter-select2-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${label.toLowerCase()}`} aria-label={`Search ${label.toLowerCase()}`} />}
+      <div className="filter-select2-options">{groups ? visibleGroups?.map((group) => <div className="filter-select2-group" key={group.label}><label className="filter-select2-option is-parent"><input type="checkbox" checked={value.includes(group.label)} onChange={() => toggleOption(group.label)} /> <span>{group.label}</span></label>{group.children.map((child) => <label className="filter-select2-option is-child" key={child}><input type="checkbox" checked={value.includes(child)} onChange={() => toggleOption(child)} /> <span>{child}</span></label>)}</div>) : visibleOptions.map((option) => <label className="filter-select2-option" key={option}><input type="checkbox" checked={value.includes(option)} onChange={() => toggleOption(option)} /> <span>{option}</span></label>)}</div>
+      {((groups && visibleGroups?.length === 0) || (!groups && visibleOptions.length === 0)) && <p className="filter-select2-empty">No matches found.</p>}
     </div>}
   </div>
 }
@@ -464,11 +465,13 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
   const initialCategory = [...categoryGroups.flatMap((group) => [group.label, ...group.children])].find((category) => category.toLowerCase().replaceAll(' ', '-') === categoryFromUrl) ?? null
   const publishers = [...new Set(allBooks.map((product) => product.publisher))].sort()
   const [draftCategories, setDraftCategories] = useState<string[]>(initialCategory ? [initialCategory] : [])
-  const [draftWriterQuery, setDraftWriterQuery] = useState('')
+  const categoryOptions = categoryGroups.flatMap((group) => [group.label, ...group.children])
+  const writers = [...new Set(allBooks.map((product) => product.author))].sort()
+  const [draftWriters, setDraftWriters] = useState<string[]>([])
   const [draftPublishers, setDraftPublishers] = useState<string[]>([])
   const [draftSort, setDraftSort] = useState('default')
   const [activeCategories, setActiveCategories] = useState<string[]>(initialCategory ? [initialCategory] : [])
-  const [activeWriterQuery, setActiveWriterQuery] = useState('')
+  const [activeWriters, setActiveWriters] = useState<string[]>([])
   const [activePublishers, setActivePublishers] = useState<string[]>([])
   const [activeSort, setActiveSort] = useState('default')
   const [filterOpen, setFilterOpen] = useState(false)
@@ -480,7 +483,7 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
   }
   const filteredBooks = allBooks
     .filter((product) => activeCategories.length === 0 || activeCategories.some((category) => matchesCategory(product, category)))
-    .filter((product) => activeWriterQuery.length === 0 || product.author.toLowerCase().includes(activeWriterQuery.toLowerCase()))
+    .filter((product) => activeWriters.length === 0 || activeWriters.includes(product.author))
     .filter((product) => activePublishers.length === 0 || activePublishers.includes(product.publisher))
     .sort((first, second) => {
       if (activeSort === 'price-asc' || activeSort === 'price-desc') {
@@ -510,15 +513,9 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
         <nav className="all-books-breadcrumb" aria-label="Breadcrumb"><a href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><span aria-hidden="true">/</span><span>{pageTitle}</span></nav>
         <button className={`all-books-filter-toggle ${filterOpen ? 'is-open' : ''}`} type="button" aria-expanded={filterOpen} onClick={() => setFilterOpen((open) => !open)}><i className="bi bi-sliders2" aria-hidden="true" /> Filter &amp; sort</button>
       </div>
-      <form className={`all-books-filter-panel ${filterOpen ? 'is-open' : ''}`} aria-hidden={!filterOpen} onSubmit={(event) => { event.preventDefault(); setActiveCategories(draftCategories); setActiveWriterQuery(draftWriterQuery.trim()); setActivePublishers(draftPublishers); setActiveSort(draftSort); setCurrentPage(1) }}>
-        <fieldset>
-          <legend>Books</legend>
-          <div className="all-books-filter-category-groups">{categoryGroups.map((group) => <div className="all-books-filter-category-group" key={group.label}>
-            <label className="all-books-filter-parent"><input type="checkbox" checked={draftCategories.includes(group.label)} onChange={(event) => setDraftCategories((current) => event.target.checked ? [...current, group.label] : current.filter((item) => item !== group.label))} /> <span>{group.label}</span></label>
-            {group.children.map((category) => <label className="all-books-filter-child" key={category}><input type="checkbox" checked={draftCategories.includes(category)} onChange={(event) => setDraftCategories((current) => event.target.checked ? [...current, category] : current.filter((item) => item !== category))} /> <span>{category}</span></label>)}
-          </div>)}</div>
-        </fieldset>
-        <FilterTextInput label="Writers" value={draftWriterQuery} onChange={setDraftWriterQuery} placeholder="Enter writer name" />
+      <form className={`all-books-filter-panel ${filterOpen ? 'is-open' : ''}`} aria-hidden={!filterOpen} onSubmit={(event) => { event.preventDefault(); setActiveCategories(draftCategories); setActiveWriters(draftWriters); setActivePublishers(draftPublishers); setActiveSort(draftSort); setCurrentPage(1) }}>
+        <FilterMultiSelect label="Books" options={categoryOptions} value={draftCategories} onChange={setDraftCategories} groups={categoryGroups} searchable={false} />
+        <FilterMultiSelect label="Writers" options={writers} value={draftWriters} onChange={setDraftWriters} />
         <FilterMultiSelect label="Publishers" options={publishers} value={draftPublishers} onChange={setDraftPublishers} />
         <label className="all-books-sort-field">Sort by
           <select value={draftSort} onChange={(event) => setDraftSort(event.target.value)}>
@@ -529,7 +526,7 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
             <option value="year-desc">Publication year: new to old</option>
           </select>
         </label>
-        <div className="all-books-filter-actions"><button type="button" onClick={() => { setDraftCategories([]); setDraftWriterQuery(''); setDraftPublishers([]); setDraftSort('default'); setActiveCategories([]); setActiveWriterQuery(''); setActivePublishers([]); setActiveSort('default'); setCurrentPage(1) }}>Clear</button><button type="submit">Apply filter</button></div>
+        <div className="all-books-filter-actions"><button type="button" onClick={() => { setDraftCategories([]); setDraftWriters([]); setDraftPublishers([]); setDraftSort('default'); setActiveCategories([]); setActiveWriters([]); setActivePublishers([]); setActiveSort('default'); setCurrentPage(1) }}>Clear</button><button type="submit">Apply filter</button></div>
       </form>
       <section className="all-books-panel" aria-labelledby="all-books-title">
         <RibbonTitle title={pageTitle} id="all-books-title" heading />
@@ -725,10 +722,10 @@ function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop
     setSearchOpen(false)
   }
 
-  return <header ref={headerRef} className={`site-header ${menuOpen ? 'is-menu-open' : ''} ${activeView === 'account' ? 'is-account-view' : ''}`} onMouseLeave={() => onDesktopMenuHover(false)}>
+  return <header ref={headerRef} className={`site-header ${menuOpen ? 'is-menu-open' : ''} ${activeView === 'account' ? 'is-account-view' : ''}`} onMouseLeave={() => { onDesktopMenuHover(false); onShopHover(false); onWritersHover(false) }}>
     <div className="header-inner">
       <button className="menu-button" aria-label="Mở menu" onClick={onMenu}><Menu /></button>
-      <nav className="desktop-nav" aria-label="Điều hướng chính" onMouseEnter={() => onDesktopMenuHover(true)}><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false) }} onFocus={() => { onShopHover(false); onWritersHover(false) }} onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onShop} onMouseEnter={() => { onShopHover(true); onWritersHover(false) }} onFocus={() => { onShopHover(true); onWritersHover(false) }} aria-expanded={shopOpen}>Books<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true) }} onClick={onAllWriters} aria-expanded={writersOpen}>Writes<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
+      <nav className="desktop-nav" aria-label="Điều hướng chính"><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(true) }} onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onShop} onMouseEnter={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} aria-expanded={shopOpen}>Books<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onClick={onAllWriters} aria-expanded={writersOpen}>Writes<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
       <a className="brand" href="/" aria-label="Linery Bookstore home">LINERY BOOKSTORE</a>
       <div className="header-actions">
         <form className={`search-control desktop-search-control ${searchOpen ? 'is-open' : ''}`} onSubmit={submitSearch}>
@@ -743,8 +740,8 @@ function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop
         </div>
       </div>
     </div>
-    {shopOpen && activeView !== 'authors' && <ShopMenu onAllBooks={onAllBooks} onCollection={onCollection} />}
-    {writersOpen && <WritersMenu onAllWriters={onAllWriters} onAuthors={onAuthors} onTranslators={onTranslators} />}
+    {activeView !== 'authors' && <ShopMenu isOpen={shopOpen} onAllBooks={onAllBooks} onCollection={onCollection} />}
+    <WritersMenu isOpen={writersOpen} onAllWriters={onAllWriters} onAuthors={onAuthors} onTranslators={onTranslators} />
   </header>
 }
 
@@ -1727,14 +1724,14 @@ export function App() {
   return <>
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
     <div id="top" className={`page-shell ${(quickViewAvailable && quickViewOpen) || cartDrawerOpen ? 'utility-panel-active' : ''}`}>
-    <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => { setHeroMotionOpen(open); if (!open) { setShopOpen(false); setWritersOpen(false) } }} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} />
+    <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => setHeroMotionOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
     <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} />
      {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'collection' ? <AllBooksPage collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} onBuyNow={buyNow} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
       <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration">
         <div className="hero-art">
           <img className="hero-art-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" />
-          <img className="hero-art-hover" src="/assets/hero-children-shop-hover.webp" alt="" aria-hidden="true" />
+        <img className="hero-art-hover" src="/assets/hero-children-shop-hover.png" alt="" aria-hidden="true" />
         </div>
       </section>
       <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onCollection={showCollection} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} />)}</div>
