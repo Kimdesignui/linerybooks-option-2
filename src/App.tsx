@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ElementType, type FormEvent } from 'r
 import { Menu } from 'lucide-react'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
-type Product = { image: string; gallery?: string[]; title: string; author: string; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean }
+type Product = { image: string; gallery?: string[]; title: string; author: string; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean; limited?: boolean }
 type CartItem = { product: Product; quantity: number }
 type PaymentMethod = 'vnpay' | 'bank' | 'momo' | 'apple' | 'zalopay'
 type FulfillmentMethod = 'pickup' | 'delivery'
@@ -61,6 +61,7 @@ const artbookProducts: Product[] = [
   { image: '/assets/cover-art-white-papers.jpg', title: 'White Papers on Dissent', author: 'Barbara Cueto', price: '820.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'The MIT Press', writerType: 'Authors', year: 2026 },
 ]
 
+const limitedProducts: Product[] = products.slice(0, 6).map((product) => ({ ...product, limited: true }))
 const catalogProducts = [...products, ...artbookProducts]
 
 const newsItems: NewsItem[] = [
@@ -171,9 +172,9 @@ const sections = [
   { title: 'NEW & UPCOMING', items: products },
   { title: 'LINERY PRESS', items: products },
   { title: 'LINERY PICKS', items: products },
-  { title: 'LINERY ART BOOKS', items: artbookProducts },
+  { title: 'GRAB & SAVE', items: limitedProducts },
 ]
-const collectionTitles = ['NEW & UPCOMING', 'LINERY PRESS', 'LINERY PICKS', 'LINERY ART BOOKS'] as const
+const collectionTitles = ['New & Upcoming', 'Linery Press', 'Linery Picks', 'Linery Art Books', 'Grab & Save'] as const
 const collectionSlug = (title: string) => title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const getCollectionTitleFromPath = (pathname: string) => {
   const slug = pathname.startsWith('/collections/') ? pathname.split('/').pop() ?? '' : ''
@@ -194,7 +195,7 @@ const shopOnlyCategories = shopCategories
   .flatMap((category) => category.label === 'Books' ? (category.children ?? []) : [category])
   .filter((category) => category.label !== 'Authors')
 const desktopShopColumns: MenuColumn[] = [
-  { eyebrow: '', links: ['All books', 'NEW & UPCOMING', 'LINERY PRESS', 'LINERY PICKS'] },
+  { eyebrow: '', links: ['All books', 'New & Upcoming', 'Linery Press', 'Linery Picks', 'Linery Art Books'] },
   { eyebrow: 'Fiction', links: ['Novels', 'Short stories', 'Poetry & Drama'] },
   { eyebrow: 'Non-fiction', links: ['Essays', 'Research & Studies', 'Memoir & Biography'] },
 ]
@@ -213,6 +214,13 @@ const translatorColumns: MenuColumn[] = [
   { eyebrow: 'J', links: ['Elisabeth Jaquette', 'Bryan Karetnyk', 'Grethe Kvernæs', 'Tanya Leslie', 'Antonia Lloyd-Jones', 'Charlotte Mandell', 'Megan McDowell', 'Anne McLean', 'Anna Moschovakis'] },
   { eyebrow: 'O', links: ['Patrick O’Brian', 'Leri Price', 'Mira Rosenthal', 'Julia Sanches', 'Caroline Schmidt', 'Damion Searls', 'Bela Shayevich', 'Brian Sneeden', 'Carol Stewart', 'Alison L. Strayer'] },
   { eyebrow: 'V', links: ['Saskia Vogel', 'Francesca Wade', 'Adrian Nathan West', 'Shaun Whiteside', 'Natasha Wimmer', 'Frank Wynne'] },
+]
+
+const writerMenuGroups: MenuColumn[] = [
+  { eyebrow: 'Role', links: ['Author', 'Translator', 'Illustrator'] },
+  { eyebrow: 'Gender', links: ['Male', 'Female', 'Other'] },
+  { eyebrow: 'Cultural Region', links: ['Vietnamese', 'East Asian', 'Western (US & Europe)', 'Middle Eastern', 'Latin American'] },
+  { eyebrow: 'Era', links: ['Ancient & Medieval', 'Renaissance & Enlightenment', '19th-Century Romanticism & Realism', 'Post-modernism', 'Digital & Contemporary'] },
 ]
 
 function MenuColumns({ columns }: { columns: MenuColumn[] }) {
@@ -239,16 +247,26 @@ function WritersMenu({ isOpen, onAllWriters, onAuthors, onTranslators }: { isOpe
   return <section className={`writers-menu menu-navigation ${isOpen ? 'is-open' : ''}`} aria-label="Writers categories" aria-hidden={!isOpen}>
     <div className="writers-menu-inner menu-navigation-inner">
       <div className="writers-menu-list">
-        <a className="menu-item menu-item-link menu-item-text" href="/authors" onClick={(event) => { event.preventDefault(); onAllWriters() }}>View All</a>
-        <a className="menu-item menu-item-link menu-item-text" href="/authors?type=authors" onClick={(event) => { event.preventDefault(); onAuthors() }}>Authors</a>
-        <a className="menu-item menu-item-link menu-item-text" href="/authors?type=translators" onClick={(event) => { event.preventDefault(); onTranslators() }}>Translators</a>
+        <a className="writers-menu-view-all menu-item menu-item-link menu-item-text" href="/authors" onClick={(event) => { event.preventDefault(); onAllWriters() }}>View All</a>
+        <div className="writers-menu-grid">
+          {writerMenuGroups.map((group) => <div className="writers-menu-group menu-section menu-branch" key={group.eyebrow}>
+            <p className="menu-eyebrow menu-section-title">{group.eyebrow}</p>
+            {group.links.map((link) => {
+              const isAuthor = link === 'Author'
+              const isTranslator = link === 'Translator'
+              const href = isAuthor ? '/authors?type=authors' : isTranslator ? '/authors?type=translators' : `#writers-${link.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`
+              const onClick = isAuthor ? (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onAuthors() } : isTranslator ? (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onTranslators() } : undefined
+              return <a className="menu-item menu-item-link menu-item-text" href={href} onClick={onClick} key={link}>{link}</a>
+            })}
+          </div>)}
+        </div>
       </div>
     </div>
   </section>
 }
 
 function MobileMenu({ isOpen, onShop, onAllBooks, onCollection, onAllWriters, onAuthors, onTranslators, onSearch, language, onSelectLanguage }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onCollection: (title: string) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void }) {
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Fiction: true, 'Non-fiction': true, 'Linery Press': true })
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Fiction: true, 'Non-fiction': true, 'Linery Press': true, Role: false, Gender: false, 'Cultural Region': true, Era: true })
   const [query, setQuery] = useState('')
   const toggleBranch = (label: string) => setOpenBranches((current) => ({ ...current, [label]: !current[label] }))
 
@@ -271,7 +289,7 @@ function MobileMenu({ isOpen, onShop, onAllBooks, onCollection, onAllWriters, on
     <section className="mobile-menu-section menu-section" aria-labelledby="mobile-shop-heading">
       <h2 id="mobile-shop-heading" className="mobile-menu-section-title menu-section-title">Books</h2>
       <button className="mobile-menu-item mobile-menu-level-0 menu-item menu-level-0" onClick={onAllBooks}><span className="mobile-menu-text menu-item-text">View All</span></button>
-      {['NEW & UPCOMING', 'LINERY PRESS', 'LINERY PICKS'].map((title) => <button className="mobile-menu-item mobile-menu-level-0 menu-item menu-level-0" key={title} onClick={() => onCollection(title)}><span className="mobile-menu-text menu-item-text">{title}</span></button>)}
+      {['New & Upcoming', 'Linery Press', 'Linery Picks', 'Linery Art Books'].map((title) => <button className="mobile-menu-item mobile-menu-level-0 menu-item menu-level-0" key={title} onClick={() => onCollection(title)}><span className="mobile-menu-text menu-item-text">{title}</span></button>)}
       <div className="mobile-menu-tree">
         {shopOnlyCategories.map((category) => {
           const categoryOpen = openBranches[category.label] ?? true
@@ -294,11 +312,17 @@ function MobileMenu({ isOpen, onShop, onAllBooks, onCollection, onAllWriters, on
     </section>
     <section className="mobile-menu-section menu-section mobile-menu-authors" aria-labelledby="mobile-authors-heading">
       <h2 id="mobile-authors-heading" className="mobile-menu-section-title menu-section-title">WRITERS</h2>
-      <div className="mobile-menu-children menu-children">
-        <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAllWriters}><span className="mobile-menu-text menu-item-text">View All</span><span aria-hidden="true">→</span></button>
-        <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAuthors}><span className="mobile-menu-text menu-item-text">Authors</span></button>
-        <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onTranslators}><span className="mobile-menu-text menu-item-text">Translators</span></button>
-      </div>
+      <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAllWriters}><span className="mobile-menu-text menu-item-text">View All</span><span aria-hidden="true">→</span></button>
+      {writerMenuGroups.map((group) => {
+        const isCollapsible = group.eyebrow === 'Role' || group.eyebrow === 'Gender'
+        const groupOpen = openBranches[group.eyebrow] ?? true
+        return <div className="mobile-writer-group" key={group.eyebrow}>
+          {isCollapsible ? <button className="mobile-writer-group-toggle" type="button" onClick={() => toggleBranch(group.eyebrow)} aria-expanded={groupOpen}><span>{group.eyebrow}</span><span aria-hidden="true">{groupOpen ? '−' : '+'}</span></button> : <p className="mobile-writer-group-title">{group.eyebrow}</p>}
+          {(!isCollapsible || groupOpen) && <div className="mobile-menu-children menu-children">
+            {group.links.map((link) => <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" key={link} onClick={link === 'Author' ? onAuthors : link === 'Translator' ? onTranslators : onAllWriters}><span className="mobile-menu-text menu-item-text">{link}</span></button>)}
+          </div>}
+        </div>
+      })}
     </section>
   </aside>
 }
@@ -465,7 +489,8 @@ function FilterTextInput({ label, value, onChange, placeholder }: { label: strin
 
 function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => void; collectionTitle?: string } & ProductCardActions) {
   const pageTitle = collectionTitle ?? 'ALL BOOKS'
-  const sourceProducts = collectionTitle === 'LINERY ART BOOKS' ? artbookProducts : products
+  const normalizedCollectionTitle = collectionTitle?.toLowerCase()
+  const sourceProducts = normalizedCollectionTitle === 'linery art books' ? artbookProducts : normalizedCollectionTitle === 'grab & save' ? limitedProducts : products
   const allBooks = Array.from({ length: 28 }, (_, rowIndex) => sourceProducts.map((product, productIndex) => ({
     ...product,
     key: `${rowIndex}-${productIndex}-${product.title}`,
@@ -738,7 +763,7 @@ function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop
   return <header ref={headerRef} className={`site-header ${menuOpen ? 'is-menu-open' : ''} ${activeView === 'account' ? 'is-account-view' : ''}`} onMouseLeave={() => { onDesktopMenuHover(false); onShopHover(false); onWritersHover(false) }}>
     <div className="header-inner">
       <button className="menu-button" aria-label="Mở menu" onClick={onMenu}><Menu /></button>
-      <nav className="desktop-nav" aria-label="Điều hướng chính"><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(true) }} onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onShop} onMouseEnter={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} aria-expanded={shopOpen}>Books<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onClick={onAllWriters} aria-expanded={writersOpen}>Writes<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
+      <nav className="desktop-nav" aria-label="Điều hướng chính"><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(true) }} onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onShop} onMouseEnter={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} aria-expanded={shopOpen}>Books<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onClick={(event) => { event.preventDefault(); onWritersHover(!writersOpen); onShopHover(false); onDesktopMenuHover(!writersOpen) }} aria-expanded={writersOpen}>Writes<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
       <a className="brand" href="/" aria-label="Linery Bookstore home">LINERY BOOKSTORE</a>
       <div className="header-actions">
         <form className={`search-control desktop-search-control ${searchOpen ? 'is-open' : ''}`} onSubmit={submitSearch}>
@@ -785,6 +810,7 @@ function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewL
       <div className="product-surface">
         <div className="product-cover-wrap">
           <img src={product.image} alt={product.title} className="product-cover" loading="lazy" decoding="async" />
+          {product.limited && <img className="product-limited-badge" src="/assets/limited-stamp.png" alt="Limited quantity" loading="lazy" decoding="async" />}
           <div className="product-overlay">
             <div className="product-overlay-copy"><strong>{product.title}</strong><span>{product.author}</span></div>
             <div className="product-overlay-actions">
@@ -1069,6 +1095,94 @@ function Footer() {
       <img className="footer-art" src="/assets/footer-children-bright.png" alt="Ba bạn nhỏ đang đọc sách" loading="lazy" decoding="async" />
     </div>
   </footer>
+}
+
+type ChatAttachment = { name: string; src: string; mimeType: string }
+type ChatMessage = { role: 'assistant' | 'user'; text: string; image?: ChatAttachment }
+const directGeminiApiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
+
+function ChatbotWidget() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [message, setMessage] = useState('')
+  const [attachment, setAttachment] = useState<ChatAttachment | null>(null)
+  const [isSending, setIsSending] = useState(false)
+  const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: 'Hi, I’m Linery Assistant. I can help you find books, authors, and order information.' }])
+
+  const sendMessage = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const nextMessage = message.trim()
+    if (!nextMessage && !attachment) return
+    const userText = nextMessage || 'Please identify this book cover and check whether it is available online.'
+    const attachmentText = attachment ? ` (${attachment.name})` : ''
+    const sentAttachment = attachment
+    setMessages((current) => [...current, { role: 'user', text: `${userText}${attachmentText}`, image: sentAttachment ?? undefined }])
+    setMessage('')
+    setAttachment(null)
+    setIsSending(true)
+
+    try {
+      const imageData = sentAttachment?.src.split(',')[1]
+      const requestBody = { message: userText, image: imageData ? { mimeType: sentAttachment.mimeType, data: imageData } : undefined }
+      const response = directGeminiApiKey
+        ? await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-goog-api-key': directGeminiApiKey },
+          body: JSON.stringify({ contents: [{ parts: [{ text: `You are Linery Assistant, a bookstore support agent. Answer in the user's language. If an image is provided, identify the book cover as accurately as possible. Do not invent a match. User request: ${userText}` }, ...(imageData ? [{ inline_data: { mime_type: sentAttachment.mimeType, data: imageData } }] : [])] }] }),
+        })
+        : await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      })
+      const result = await response.json() as { text?: string; error?: { message?: string } | string; candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }
+      const directText = result.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim()
+      const errorText = typeof result.error === 'string' ? result.error : result.error?.message
+      setMessages((current) => [...current, { role: 'assistant', text: response.ok && (directText || result.text) ? directText || result.text || '' : errorText || 'Sorry, I could not reach the book search service right now.' }])
+    } catch {
+      setMessages((current) => [...current, { role: 'assistant', text: 'Sorry, I could not reach the book search service right now.' }])
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => setAttachment({ name: file.name, src: String(reader.result), mimeType: file.type })
+    reader.readAsDataURL(file)
+    event.target.value = ''
+  }
+
+  const askDemoQuestion = (text: string) => {
+    setMessages((current) => [...current, { role: 'user', text }, { role: 'assistant', text: 'I’ll look that up for you once the chatbot is connected to the catalog.' }])
+  }
+
+  return <>
+    {!isOpen && <button className="chatbot-float-button" type="button" aria-label="Open Linery chatbot" onClick={() => setIsOpen(true)}><img src="/assets/chatbot.svg" alt="" aria-hidden="true" /></button>}
+    {isOpen && <section className={`chatbot-panel ${isExpanded ? 'is-expanded' : ''}`} role="dialog" aria-modal="false" aria-label="Linery chatbot">
+      <header className="chatbot-header">
+        <div className="chatbot-heading"><span className="chatbot-avatar"><img src="/assets/chatbot.svg" alt="" aria-hidden="true" /></span><div><strong>Linery Assistant</strong><span>Bookshop support</span></div></div>
+        <div className="chatbot-header-actions"><button type="button" aria-label={isExpanded ? 'Use compact chat size' : 'Use full chat size'} onClick={() => setIsExpanded((current) => !current)}><i className={`bi ${isExpanded ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'}`} aria-hidden="true" /></button><button type="button" aria-label="Close chatbot" onClick={() => setIsOpen(false)}><i className="bi bi-x-lg" aria-hidden="true" /></button></div>
+      </header>
+      <div className="chatbot-messages" aria-live="polite">
+        {messages.map((item, index) => <div className={`chatbot-message chatbot-message-${item.role}`} key={`${item.role}-${index}`}>{item.image && <img className="chatbot-message-image" src={item.image.src} alt={`Book cover: ${item.image.name}`} />}<p>{item.text}</p></div>)}
+        <div className="chatbot-prompts"><button type="button" onClick={() => askDemoQuestion('Find a book for me')}>Find a book</button><button type="button" onClick={() => askDemoQuestion('Track my order')}>Track an order</button></div>
+      </div>
+      <form className="chatbot-composer" onSubmit={sendMessage}>
+        {attachment && <div className="chatbot-attachment-preview"><img src={attachment.src} alt={`Selected ${attachment.name}`} /><span>{attachment.name}</span><button type="button" aria-label="Remove selected image" onClick={() => setAttachment(null)}><i className="bi bi-x-lg" aria-hidden="true" /></button></div>}
+        <div className="chatbot-composer-row">
+          <label className="chatbot-upload-button" aria-label="Upload a book cover image">
+            <i className="bi bi-image" aria-hidden="true" />
+            <input type="file" accept="image/*" onChange={handleImageUpload} />
+          </label>
+          <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ask about a book..." aria-label="Chat message" />
+          <button type="submit" aria-label="Send message" disabled={isSending}><i className={`bi ${isSending ? 'bi-hourglass-split' : 'bi-arrow-up'}`} aria-hidden="true" /></button>
+        </div>
+      </form>
+    </section>}
+  </>
 }
 
 const getPriceValue = (price: string) => Number(price.replace(/[^0-9]/g, '')) || 0
@@ -1751,6 +1865,7 @@ export function App() {
     <LineryNewsSection language={language} onOpen={showNewsDetail} onSeeMore={showNews} />
     </main>}
     <Footer />
+    <ChatbotWidget />
     <button className={`scroll-to-top ${showScrollTop ? 'is-visible' : ''}`} type="button" aria-label="Scroll to top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} tabIndex={showScrollTop ? 0 : -1}>
       <i className="bi bi-arrow-up" aria-hidden="true" />
     </button>
