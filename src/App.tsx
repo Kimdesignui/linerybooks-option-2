@@ -1141,7 +1141,7 @@ function ChatbotWidget() {
   const [message, setMessage] = useState('')
   const [attachment, setAttachment] = useState<ChatAttachment | null>(null)
   const [isSending, setIsSending] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: 'Hi, I’m Linery Assistant. I can help you find books, authors, and order information.' }])
+  const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: 'Hi, I’m Linbot. I can help you find books, authors, and order information.' }])
 
   const sendMessage = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -1162,7 +1162,7 @@ function ChatbotWidget() {
         ? await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-goog-api-key': directGeminiApiKey },
-          body: JSON.stringify({ contents: [{ parts: [{ text: `You are Linery Assistant, a bookstore support agent. Answer in the user's language. If an image is provided, identify the book cover as accurately as possible. Do not invent a match. User request: ${userText}` }, ...(imageData ? [{ inline_data: { mime_type: sentAttachment.mimeType, data: imageData } }] : [])] }] }),
+          body: JSON.stringify({ contents: [{ parts: [{ text: `You are Linbot, a bookstore support agent. Answer in the user's language. If an image is provided, identify the book cover as accurately as possible. Do not invent a match. User request: ${userText}` }, ...(imageData ? [{ inline_data: { mime_type: sentAttachment.mimeType, data: imageData } }] : [])] }] }),
         })
         : await fetch('/api/chat', {
         method: 'POST',
@@ -1197,7 +1197,7 @@ function ChatbotWidget() {
     {!isOpen && <button className="chatbot-float-button" type="button" aria-label="Open Linery chatbot" onClick={() => setIsOpen(true)}><img src="/assets/chatbot.svg" alt="" aria-hidden="true" /></button>}
     {isOpen && <section className={`chatbot-panel ${isExpanded ? 'is-expanded' : ''}`} role="dialog" aria-modal="false" aria-label="Linery chatbot">
       <header className="chatbot-header">
-        <div className="chatbot-heading"><span className="chatbot-avatar"><img src="/assets/chatbot.svg" alt="" aria-hidden="true" /></span><div><strong>Linery Assistant</strong><span>Bookshop support</span></div></div>
+        <div className="chatbot-heading"><span className="chatbot-avatar"><img src="/assets/chatbot.svg" alt="" aria-hidden="true" /></span><div><strong>Linbot</strong><span>Bookshop support</span></div></div>
         <div className="chatbot-header-actions"><button type="button" aria-label={isExpanded ? 'Use compact chat size' : 'Use full chat size'} onClick={() => setIsExpanded((current) => !current)}><i className={`bi ${isExpanded ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'}`} aria-hidden="true" /></button><button type="button" aria-label="Close chatbot" onClick={() => setIsOpen(false)}><i className="bi bi-x-lg" aria-hidden="true" /></button></div>
       </header>
       <div className="chatbot-messages" aria-live="polite">
