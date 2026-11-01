@@ -714,11 +714,11 @@ function LineryNewsSection({ language, onOpen, onSeeMore }: { language: 'en' | '
   </section>
 }
 
-function NewsPage({ language, onOpen }: { language: 'en' | 'vi'; onOpen: (item: NewsItem) => void }) {
+function NewsPage({ language, onOpen, heroMotionOpen = false }: { language: 'en' | 'vi'; onOpen: (item: NewsItem) => void; heroMotionOpen?: boolean }) {
   const pageTitle = language === 'vi' ? 'Tin tức & Sự kiện' : 'News & Events'
   return <main className="news-page">
     <div className="news-page-content">
-      <div className="all-books-hero news-page-hero"><img src="/assets/all-books-hero.png" alt="Children exploring a garden together" width="2560" height="866" fetchPriority="high" decoding="async" /></div>
+      <div className={`all-books-hero news-page-hero ${heroMotionOpen ? 'is-hovered' : ''}`}><img className="all-books-hero-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách" width="1342" height="495" fetchPriority="high" decoding="async" /><img className="all-books-hero-hover" src="/assets/hero-children-shop-hover.png" alt="" aria-hidden="true" width="1342" height="495" decoding="async" /></div>
       <nav className="news-breadcrumb news-page-breadcrumb" aria-label="Breadcrumb"><a href="/#home">Home</a><span aria-hidden="true">/</span><span>{pageTitle}</span></nav>
       <section className="news-page-panel" aria-labelledby="all-news-title">
         <RibbonTitle title={pageTitle.toUpperCase()} id="all-news-title" heading />
@@ -807,7 +807,7 @@ function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewL
     {product.limited && <span className="product-limited-badge" aria-label="Limited edition">Limited</span>}
   </div>
   const infoContent = <div className="product-info">
-    <h3>{product.title}</h3>
+    <h3 title={product.title}>{product.title}</h3>
     <p className="product-author">{product.author}</p>
     {product.available !== false && <p className="product-price">{product.price}</p>}
     {product.available === false && <p className="product-stock-status">Out of stock</p>}
@@ -1060,6 +1060,12 @@ function BookPreview({ product, onClose, onOpenDetail }: { product: Product | nu
 
 function UtilityPanel({ product, onClose, onOpenDetail, onAddToCart, onBuyNow, onToggleWishlist, isWishlisted }: { product: Product | null; onClose: () => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onBuyNow: (product: Product) => void; onToggleWishlist: (product: Product) => void; isWishlisted: (product: Product) => boolean }) {
   const publisher = product?.publisher ?? 'Linery Books'
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0
+  }, [product?.title])
+
   return <div className="utility-panel-layer" role="presentation">
     <aside className="utility-panel" aria-label="Quick view">
       <div className="utility-panel-header">
@@ -1067,14 +1073,16 @@ function UtilityPanel({ product, onClose, onOpenDetail, onAddToCart, onBuyNow, o
         <button className="utility-panel-close" type="button" aria-label="Close panel" onClick={onClose}>×</button>
       </div>
       {product ? <>
-        <div className="utility-panel-scroll">
+        <div ref={scrollRef} className="utility-panel-scroll">
+          <div className="utility-panel-product-transition" key={product.title}>
           <img className="book-preview-cover" src={product.image} alt={product.title} loading="lazy" decoding="async" />
           <div className="book-preview-copy"><h2>{product.title}</h2><p className="book-preview-author">{product.author}</p><p className="book-preview-price">{product.price}</p></div>
           <div className="book-preview-section-divider" aria-hidden="true" />
           <dl className="book-preview-details"><div><dt>Publisher</dt><dd>{publisher}</dd></div><div><dt>ISBN</dt><dd>978-0-00-000000-0</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div></dl>
           <a className="book-preview-link" href="#a" onClick={(event) => { event.preventDefault(); onOpenDetail(product) }}>View full details <span aria-hidden="true">→</span></a>
+          </div>
         </div>
-        <div className="utility-panel-footer book-preview-actions"><button className="book-preview-add-button" type="button" onClick={(event) => onAddToCart(product, event.currentTarget)}>Add to cart</button><button className="book-preview-buy-button" type="button" onClick={() => onBuyNow(product)}>Buy Now</button></div>
+        <div className="utility-panel-footer book-preview-actions">{product.available === false ? <button className="book-out-of-stock-button book-preview-out-of-stock" type="button" disabled>Out of stock</button> : <><button className="book-preview-add-button" type="button" onClick={(event) => onAddToCart(product, event.currentTarget)}>Add to cart</button><button className="book-preview-buy-button" type="button" onClick={() => onBuyNow(product)}>Buy Now</button></>}</div>
       </> : <div className="utility-panel-empty"><img src="/assets/quick-view-illustration.png" alt="" aria-hidden="true" /><p>Hello — I’m here to help you preview book information.</p><span>Choose a book to see its cover and publication details.</span></div>}
     </aside>
   </div>
