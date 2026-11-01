@@ -1059,6 +1059,7 @@ main:has(.news-module) + .site-footer { margin-top: var(--section-gap); }
   .news-detail-body { font-size: 16px; }
   .all-books-hero { border-radius: 14px; }
   .all-books-panel { margin-top: 24px; padding: 66px 16px 18px; border-radius: var(--module-radius); }
+  .collection-see-more { font-size: 15px; }
   .ribbon-title { --ribbon-height: 52px; font-size: 20px; line-height: 30px; }
   .ribbon-title-label { padding: 8px 14px 14px; font-size: 20px; line-height: 30px; }
   .all-books-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 0; }
