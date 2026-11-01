@@ -802,6 +802,8 @@ main:has(.news-module) + .site-footer { margin-top: var(--section-gap); }
 .carousel-track[data-slide="3"] { transform: translateX(-300%); }
 .carousel-track[data-slide="4"] { transform: translateX(-400%); }
 .carousel-track[data-slide="5"] { transform: translateX(-500%); }
+.carousel-track[data-slide="6"] { transform: translateX(-600%); }
+.carousel-track[data-slide="7"] { transform: translateX(-700%); }
 .carousel-slide { flex: 0 0 100%; min-width: 0; }
 .product-grid { display: grid; gap: 0; }
 .product-grid[data-columns="6"] { grid-template-columns: repeat(6, minmax(0, 1fr)); }

@@ -882,16 +882,6 @@ function Collection({ title, items, onCollection, quickViewOpen, language = 'en'
     return () => window.clearInterval(carouselTimer)
   }, [slides.length])
 
-  useEffect(() => {
-    if (trackPosition !== 0 && trackPosition !== slides.length + 1) return undefined
-    const resetTimer = window.setTimeout(() => {
-      setIsJumping(true)
-      setTrackPosition(trackPosition === 0 ? slides.length : 1)
-      window.setTimeout(() => setIsJumping(false), 16)
-    }, 760)
-    return () => window.clearTimeout(resetTimer)
-  }, [trackPosition, slides.length])
-
   const moveSlide = (direction: 1 | -1) => {
     setTrackPosition((current) => current + direction)
   }
@@ -899,16 +889,16 @@ function Collection({ title, items, onCollection, quickViewOpen, language = 'en'
   const goToSlide = (index: number) => setTrackPosition(index + 1)
 
   const handleTransitionEnd = (event: React.TransitionEvent<HTMLDivElement>) => {
-    if (event.propertyName !== 'transform') return
+    if (event.target !== event.currentTarget || event.propertyName !== 'transform') return
     if (trackPosition === 0) {
       setIsJumping(true)
       setTrackPosition(slides.length)
-      window.setTimeout(() => setIsJumping(false), 0)
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => setIsJumping(false)))
     }
     if (trackPosition === slides.length + 1) {
       setIsJumping(true)
       setTrackPosition(1)
-      window.setTimeout(() => setIsJumping(false), 0)
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => setIsJumping(false)))
     }
   }
 
