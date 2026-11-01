@@ -875,6 +875,14 @@ function Collection({ title, items, onCollection, quickViewOpen, language = 'en'
   }, [itemsPerSlide])
 
   useEffect(() => {
+    if (slides.length < 2) return undefined
+    const carouselTimer = window.setInterval(() => {
+      setTrackPosition((current) => current + 1)
+    }, 5000)
+    return () => window.clearInterval(carouselTimer)
+  }, [slides.length])
+
+  useEffect(() => {
     if (trackPosition !== 0 && trackPosition !== slides.length + 1) return undefined
     const resetTimer = window.setTimeout(() => {
       setIsJumping(true)
