@@ -10,7 +10,7 @@ type NewsItem = { image: string; title: string; titleVi: string; date: string; k
 type View = 'home' | 'authors' | 'all-books' | 'collection' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete' | 'account'
 type AccountTab = 'profile' | 'orders' | 'orders-demo' | 'order-detail' | 'transactions' | 'transaction-detail' | 'security'
 type WriterDirectoryFilter = 'all' | 'authors' | 'translators'
-type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
+type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const loginSlides = [
   { image: '/assets/linery-login-artwork.png', quote: 'A quiet page can change the way we see the world.' },
 ]
@@ -459,12 +459,29 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
 function FilterMultiSelect({ label, options, value, onChange, groups, searchable = true }: { label: string; options: string[]; value: string[]; onChange: (value: string[]) => void; groups?: Array<{ label: string; children: string[] }>; searchable?: boolean }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const selectRef = useRef<HTMLDivElement | null>(null)
   const visibleOptions = options.filter((option) => option.toLowerCase().includes(query.toLowerCase()))
   const visibleGroups = groups?.map((group) => ({ ...group, children: group.children.filter((child) => child.toLowerCase().includes(query.toLowerCase())) })).filter((group) => group.label.toLowerCase().includes(query.toLowerCase()) || group.children.length > 0)
 
+  useEffect(() => {
+    if (!open) return undefined
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (event.target instanceof Node && !selectRef.current?.contains(event.target)) setOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
   const toggleOption = (option: string) => onChange(value.includes(option) ? value.filter((item) => item !== option) : [...value, option])
 
-  return <div className={`filter-select2 ${open ? 'is-open' : ''}`} onMouseLeave={() => setOpen(false)}>
+  return <div ref={selectRef} className={`filter-select2 ${open ? 'is-open' : ''}`}>
     <span className="filter-select2-label">{label}</span>
     <div className="filter-select2-control" role="button" tabIndex={0} aria-expanded={open} onClick={() => setOpen((current) => !current)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setOpen((current) => !current) } }}>
       <span className="filter-select2-tags">{value.length > 0 ? value.map((item) => <span className="filter-select2-tag" key={item}>{item}<button type="button" aria-label={`Remove ${item}`} onClick={(event) => { event.stopPropagation(); toggleOption(item) }}>×</button></span>) : <span className="filter-select2-placeholder">Select {label.toLowerCase()}</span>}</span>
@@ -528,8 +545,9 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
         const secondPrice = Number(second.price.replace(/[^0-9]/g, ''))
         return activeSort === 'price-asc' ? firstPrice - secondPrice : secondPrice - firstPrice
       }
-      if (activeSort === 'year-asc' || activeSort === 'year-desc') {
-        return activeSort === 'year-asc' ? (first.year ?? 0) - (second.year ?? 0) : (second.year ?? 0) - (first.year ?? 0)
+      if (activeSort === 'title-asc' || activeSort === 'title-desc') {
+        const titleOrder = first.title.localeCompare(second.title, undefined, { sensitivity: 'base' })
+        return activeSort === 'title-asc' ? titleOrder : -titleOrder
       }
       return 0
     })
@@ -546,8 +564,8 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
   return <main className="all-books-page">
     <div className="all-books-content">
       <div className={`all-books-hero ${heroHovered ? 'is-hovered' : ''}`} onMouseEnter={() => setHeroHovered(true)} onMouseLeave={() => setHeroHovered(false)}>
-        <img className="all-books-hero-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách" width="2560" height="866" fetchPriority="high" decoding="async" />
-        <img className="all-books-hero-hover" src="/assets/hero-children-shop-hover.png" alt="" aria-hidden="true" width="2560" height="866" decoding="async" />
+        <img className="all-books-hero-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách" width="1342" height="495" fetchPriority="high" decoding="async" />
+        <img className="all-books-hero-hover" src="/assets/hero-children-shop-hover.png" alt="" aria-hidden="true" width="1342" height="495" decoding="async" />
       </div>
       <div className="all-books-heading-row">
         <nav className="all-books-breadcrumb" aria-label="Breadcrumb"><a href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><span aria-hidden="true">/</span><span>{pageTitle}</span></nav>
@@ -562,8 +580,8 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
             <option value="default">Default</option>
             <option value="price-asc">Price: low to high</option>
             <option value="price-desc">Price: high to low</option>
-            <option value="year-asc">Publication year: old to new</option>
-            <option value="year-desc">Publication year: new to old</option>
+            <option value="title-asc">Title: A–Z</option>
+            <option value="title-desc">Title: Z–A</option>
           </select>
         </label>
         <div className="all-books-filter-actions"><button type="button" onClick={() => { setDraftCategories([]); setDraftWriters([]); setDraftPublishers([]); setDraftSort('default'); setActiveCategories([]); setActiveWriters([]); setActivePublishers([]); setActiveSort('default'); setCurrentPage(1) }}>Clear</button><button type="submit">Apply filter</button></div>
@@ -710,7 +728,7 @@ function NewsPage({ language, onOpen }: { language: 'en' | 'vi'; onOpen: (item: 
           const excerpt = language === 'vi' ? item.excerptVi : item.excerpt
           return <article className="news-page-card" key={item.slug}>
             <button type="button" onClick={() => onOpen(item)}>
-              <div className="news-page-image-wrap"><img src={item.image} alt={title} loading="lazy" decoding="async" /></div>
+              <div className="news-page-image-wrap"><img src={item.image} alt={title} loading="eager" decoding="async" /></div>
               <p>{item.kicker}</p><h2>{title}</h2><span>{excerpt}</span>
             </button>
           </article>
@@ -740,7 +758,7 @@ function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 
   </main>
 }
 
-function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop, onShopHover, onAllWriters, onAuthors, onTranslators, onAllBooks, onCollection, onSearch, onQuickView, onCart, quickViewOpen, quickViewAvailable, activeView, shopOpen, writersOpen, onWritersHover, onDesktopMenuHover, accountMenuOpen, onAccountMenuToggle, accountTab, onAccountTabChange, accountMenuEnabled }: { cartCount: number; menuOpen: boolean; onMenu: () => void; onHome: () => void; onLogin: () => void; onLogout: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onAllBooks: () => void; onCollection: (title: string) => void; onSearch: (query: string) => void; onQuickView: () => void; onCart: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean; writersOpen: boolean; onWritersHover: (open: boolean) => void; onDesktopMenuHover: (open: boolean) => void; accountMenuOpen: boolean; onAccountMenuToggle: () => void; accountTab: AccountTab; onAccountTabChange: (tab: AccountTab) => void; accountMenuEnabled: boolean }) {
+function Header({ cartCount, cartPulse, menuOpen, onMenu, onHome, onLogin, onLogout, onShop, onShopHover, onAllWriters, onAuthors, onTranslators, onAllBooks, onCollection, onSearch, onQuickView, onCart, quickViewOpen, quickViewAvailable, activeView, shopOpen, writersOpen, onWritersHover, onDesktopMenuHover, accountMenuOpen, onAccountMenuToggle, accountTab, onAccountTabChange, accountMenuEnabled }: { cartCount: number; cartPulse: boolean; menuOpen: boolean; onMenu: () => void; onHome: () => void; onLogin: () => void; onLogout: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onAllBooks: () => void; onCollection: (title: string) => void; onSearch: (query: string) => void; onQuickView: () => void; onCart: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean; writersOpen: boolean; onWritersHover: (open: boolean) => void; onDesktopMenuHover: (open: boolean) => void; accountMenuOpen: boolean; onAccountMenuToggle: () => void; accountTab: AccountTab; onAccountTabChange: (tab: AccountTab) => void; accountMenuEnabled: boolean }) {
   const headerRef = useRef<HTMLElement | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -772,7 +790,7 @@ function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop
           <button className="search-toggle" type="button" aria-label="Tìm kiếm" aria-expanded={searchOpen} onClick={() => setSearchOpen((open) => !open)}><img src="/assets/icon-search.svg" alt="" /></button>
           <input className="search-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search books" aria-label="Search books" autoFocus={searchOpen} onKeyDown={(event) => { if (event.key === 'Escape') setSearchOpen(false) }} />
         </form>
-        <a className="icon-button cart-button" href="/cart" aria-label={`Giỏ hàng, ${cartCount} sản phẩm`} onClick={(event) => { event.preventDefault(); onCart() }}><img src="/assets/icon-cart.svg" alt="" />{cartCount > 0 && <span>{cartCount}</span>}</a>
+        <a className={`icon-button cart-button ${cartPulse ? 'is-pulsing' : ''}`} href="/cart" aria-label={`Giỏ hàng, ${cartCount} sản phẩm`} onClick={(event) => { event.preventDefault(); onCart() }}><img src="/assets/icon-cart.svg" alt="" />{cartCount > 0 && <span>{cartCount}</span>}</a>
         <div className="account-menu-region" onMouseEnter={() => setAccountHoverOpen(true)} onMouseLeave={() => setAccountHoverOpen(false)}>
           <button className="icon-button login-icon" type="button" aria-label={activeView === 'account' ? 'Account menu' : 'Log in'} aria-expanded={accountMenuEnabled && (activeView === 'account' ? accountMenuOpen : accountHoverOpen)} onClick={onLogin}><i className="bi bi-person" aria-hidden="true" /></button>
           {accountMenuEnabled && <div className={`account-header-menu ${accountMenuOpen || accountHoverOpen ? 'is-open' : ''}`} aria-label="Account menu"><button className={accountTab === 'profile' ? 'is-active' : ''} type="button" onClick={() => { onAccountTabChange('profile'); onAccountMenuToggle() }}><i className="bi bi-person" aria-hidden="true" />Profile</button><button className={accountTab === 'orders' ? 'is-active' : ''} type="button" onClick={() => { onAccountTabChange('orders'); onAccountMenuToggle() }}><i className="bi bi-bag" aria-hidden="true" />Order history</button><button className={accountTab === 'orders-demo' ? 'is-active' : ''} type="button" onClick={() => { onAccountTabChange('orders-demo'); onAccountMenuToggle() }}><i className="bi bi-bag-check" aria-hidden="true" />Order history demo</button><button className={accountTab === 'transactions' ? 'is-active' : ''} type="button" onClick={() => { onAccountTabChange('transactions'); onAccountMenuToggle() }}><i className="bi bi-receipt" aria-hidden="true" />Transaction history</button><button className={accountTab === 'security' ? 'is-active' : ''} type="button" onClick={() => { onAccountTabChange('security'); onAccountMenuToggle() }}><i className="bi bi-shield-lock" aria-hidden="true" />Security</button><button className="account-header-menu-logout" type="button" onClick={onLogout}><i className="bi bi-box-arrow-right" aria-hidden="true" />Log out</button></div>}
@@ -786,8 +804,8 @@ function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop
 
 function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewLeave, onSelectQuickView, quickViewOpen }: ProductCardActions & { product: Product }) {
   const coverContent = <div className="product-cover-wrap">
-    <img src={product.image} alt={product.title} className="product-cover" loading="lazy" decoding="async" />
-    {product.limited && <img className="product-limited-badge" src="/assets/limited-stamp.png" alt="Limited quantity" loading="lazy" decoding="async" />}
+    <img src={product.image} alt={product.title} className="product-cover" loading="eager" decoding="async" />
+    {product.limited && <span className="product-limited-badge" aria-label="Limited edition">Limited</span>}
   </div>
   const infoContent = <div className="product-info">
     <h3>{product.title}</h3>
@@ -815,7 +833,8 @@ function Collection({ title, items, onCollection, quickViewOpen, ...actions }: {
   const [itemsPerSlide, setItemsPerSlide] = useState(6)
   const wheelLock = useRef(false)
   const touchStart = useRef<number | null>(null)
-  const slides = itemsPerSlide >= items.length ? Array.from({ length: 4 }, (_, slideIndex) => items.map((_, index) => items[(index + slideIndex) % items.length])) : Array.from({ length: 4 }, (_, slideIndex) => items.slice((slideIndex % Math.ceil(items.length / itemsPerSlide)) * itemsPerSlide, ((slideIndex % Math.ceil(items.length / itemsPerSlide)) + 1) * itemsPerSlide))
+  const carouselItems = Array.from({ length: 24 }, (_, index) => items[index % items.length])
+  const slides = Array.from({ length: Math.ceil(carouselItems.length / itemsPerSlide) }, (_, slideIndex) => carouselItems.slice(slideIndex * itemsPerSlide, (slideIndex + 1) * itemsPerSlide))
   const activeSlide = (trackPosition + slides.length - 1) % slides.length
   const renderedSlides = [slides[slides.length - 1], ...slides, slides[0]]
 
@@ -824,7 +843,7 @@ function Collection({ title, items, onCollection, quickViewOpen, ...actions }: {
     if (!element) return undefined
     const syncItemsPerSlide = () => {
       const width = element.getBoundingClientRect().width
-      setItemsPerSlide(width >= 1000 ? 6 : width >= 680 ? 4 : 3)
+      setItemsPerSlide(width >= 1150 ? 6 : width >= 680 ? 4 : 3)
     }
     syncItemsPerSlide()
     const observer = new ResizeObserver(syncItemsPerSlide)
@@ -899,7 +918,7 @@ function Collection({ title, items, onCollection, quickViewOpen, ...actions }: {
   </section>
 }
 
-function BookDetail({ product, onBack, onAuthor, onAddToCart, onBuyNow }: { product: Product; onBack: () => void; onAuthor: (author: string) => void; onAddToCart: (product: Product) => void; onBuyNow: (product: Product) => void }) {
+function BookDetail({ product, onBack, onAuthor, onAddToCart, onBuyNow }: { product: Product; onBack: () => void; onAuthor: (author: string) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onBuyNow: (product: Product) => void }) {
   const galleryImages = [product.image]
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
@@ -950,7 +969,7 @@ function BookDetail({ product, onBack, onAuthor, onAddToCart, onBuyNow }: { prod
           </div>
           <div className="book-detail-actions">
             {isAvailable ? <>
-              <button className="book-add-button" type="button" onClick={() => onAddToCart(product)}>Add to Cart</button>
+              <button className="book-add-button" type="button" onClick={(event) => onAddToCart(product, event.currentTarget)}>Add to Cart</button>
               <button className="book-buy-button" type="button" onClick={() => onBuyNow(product)}>Buy Now</button>
             </> : <button className="book-out-of-stock-button" type="button" disabled>Out of stock</button>}
           </div>
@@ -1040,29 +1059,23 @@ function BookPreview({ product, onClose, onOpenDetail }: { product: Product | nu
   </aside>
 }
 
-function UtilityPanel({ activeTab, items, product, onClose, onRemove, onChangeQuantity, onViewCart, onCheckout, onOpenDetail, onAddToCart, onBuyNow, onToggleWishlist, isWishlisted }: { activeTab: 'cart' | 'quickview'; items: CartItem[]; product: Product | null; onClose: () => void; onRemove: (title: string) => void; onChangeQuantity: (title: string, delta: number) => void; onViewCart: () => void; onCheckout: () => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onBuyNow: (product: Product) => void; onToggleWishlist: (product: Product) => void; isWishlisted: (product: Product) => boolean }) {
-  const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
+function UtilityPanel({ product, onClose, onOpenDetail, onAddToCart, onBuyNow, onToggleWishlist, isWishlisted }: { product: Product | null; onClose: () => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onBuyNow: (product: Product) => void; onToggleWishlist: (product: Product) => void; isWishlisted: (product: Product) => boolean }) {
   const publisher = product?.publisher ?? 'Linery Books'
   return <div className="utility-panel-layer" role="presentation">
-    <aside className="utility-panel" aria-label="Flash cart and quick view">
+    <aside className="utility-panel" aria-label="Quick view">
       <div className="utility-panel-header">
-        {activeTab === 'quickview' && product ? <button className={`utility-panel-wishlist ${isWishlisted(product) ? 'is-active' : ''}`} type="button" aria-label={isWishlisted(product) ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`} title={isWishlisted(product) ? 'Remove from your wishlist' : 'Add to your wishlist'} aria-pressed={isWishlisted(product)} onClick={() => onToggleWishlist(product)}><i className={`bi ${isWishlisted(product) ? 'bi-heart-fill' : 'bi-heart'}`} aria-hidden="true" /></button> : <span aria-hidden="true" />}
+        {product ? <button className={`utility-panel-wishlist ${isWishlisted(product) ? 'is-active' : ''}`} type="button" aria-label={isWishlisted(product) ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`} title={isWishlisted(product) ? 'Remove from your wishlist' : 'Add to your wishlist'} aria-pressed={isWishlisted(product)} onClick={() => onToggleWishlist(product)}><i className={`bi ${isWishlisted(product) ? 'bi-heart-fill' : 'bi-heart'}`} aria-hidden="true" /></button> : <span aria-hidden="true" />}
         <button className="utility-panel-close" type="button" aria-label="Close panel" onClick={onClose}>×</button>
       </div>
-      {activeTab === 'cart' ? items.length > 0 ? <>
-        <div className="utility-panel-items">{items.map((item) => <CartItemRow key={item.product.title} item={item} onRemove={() => onRemove(item.product.title)} onChangeQuantity={(delta) => onChangeQuantity(item.product.title, delta)} />)}</div>
-        <div className="utility-panel-footer">
-          <div className="cart-subtotal"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div>
-          <div className="cart-drawer-actions"><button className="cart-secondary-action" type="button" onClick={onViewCart}>VIEW CART</button><button className="cart-primary-action" type="button" onClick={onCheckout}>CHECKOUT NOW</button></div>
-        </div>
-      </> : <div className="utility-panel-empty"><i className="bi bi-bag" aria-hidden="true" /><p>Your cart is empty.</p><button type="button" onClick={onClose}>Continue shopping</button></div> : product ? <>
+      {product ? <>
         <div className="utility-panel-scroll">
           <img className="book-preview-cover" src={product.image} alt={product.title} loading="lazy" decoding="async" />
           <div className="book-preview-copy"><h2>{product.title}</h2><p className="book-preview-author">{product.author}</p><p className="book-preview-price">{product.price}</p></div>
+          <div className="book-preview-section-divider" aria-hidden="true" />
           <dl className="book-preview-details"><div><dt>Publisher</dt><dd>{publisher}</dd></div><div><dt>ISBN</dt><dd>978-0-00-000000-0</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div></dl>
           <a className="book-preview-link" href="#a" onClick={(event) => { event.preventDefault(); onOpenDetail(product) }}>View full details <span aria-hidden="true">→</span></a>
         </div>
-        <div className="utility-panel-footer book-preview-actions"><button className="book-preview-add-button" type="button" onClick={() => onAddToCart(product)}>Add to cart</button><button className="book-preview-buy-button" type="button" onClick={() => onBuyNow(product)}>Buy Now</button></div>
+        <div className="utility-panel-footer book-preview-actions"><button className="book-preview-add-button" type="button" onClick={(event) => onAddToCart(product, event.currentTarget)}>Add to cart</button><button className="book-preview-buy-button" type="button" onClick={() => onBuyNow(product)}>Buy Now</button></div>
       </> : <div className="utility-panel-empty"><img src="/assets/quick-view-illustration.png" alt="" aria-hidden="true" /><p>Hello — I’m here to help you preview book information.</p><span>Choose a book to see its cover and publication details.</span></div>}
     </aside>
   </div>
@@ -1200,26 +1213,6 @@ function CartItemRow({ item, onRemove, onChangeQuantity }: { item: CartItem; onR
   </article>
 }
 
-function CartDrawer({ items, onClose, onRemove, onChangeQuantity, onViewCart, onCheckout }: { items: CartItem[]; onClose: () => void; onRemove: (title: string) => void; onChangeQuantity: (title: string, delta: number) => void; onViewCart: () => void; onCheckout: () => void }) {
-  const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
-  return <div className="cart-drawer-layer" role="presentation">
-    <button className="cart-drawer-backdrop" type="button" aria-label="Close cart" onClick={onClose} />
-    <aside className="cart-drawer" aria-label="Shopping cart">
-      <div className="cart-drawer-header">
-        <h1>My Cart</h1>
-        <button className="cart-drawer-close" type="button" aria-label="Close cart" onClick={onClose}>×</button>
-      </div>
-      {items.length > 0 ? <>
-        <div className="cart-drawer-items">{items.map((item) => <CartItemRow key={item.product.title} item={item} onRemove={() => onRemove(item.product.title)} onChangeQuantity={(delta) => onChangeQuantity(item.product.title, delta)} />)}</div>
-        <div className="cart-drawer-footer">
-          <div className="cart-subtotal"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div>
-          <div className="cart-drawer-actions"><button className="cart-secondary-action" type="button" onClick={onViewCart}>VIEW CART</button><button className="cart-primary-action" type="button" onClick={onCheckout}>CHECKOUT NOW</button></div>
-        </div>
-      </> : <div className="cart-drawer-empty"><i className="bi bi-bag" aria-hidden="true" /><p>Your cart is empty.</p><button type="button" onClick={onClose}>Continue shopping</button></div>}
-    </aside>
-  </div>
-}
-
 function CartPage({ onHome, onCheckout, items, onRemove, onChangeQuantity }: { onHome: () => void; onCheckout: () => void; items: CartItem[]; onRemove: (title: string) => void; onChangeQuantity: (title: string, delta: number) => void }) {
   const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
   if (items.length > 0) return <main className="cart-page"><div className="cart-layout"><section className="cart-filled-card" aria-labelledby="cart-title"><div className="cart-filled-header"><h1 id="cart-title">My Cart</h1><button className="cart-continue-link" type="button" onClick={onHome}>Continue shopping</button></div><div className="cart-filled-items">{items.map((item) => <CartItemRow key={item.product.title} item={item} onRemove={() => onRemove(item.product.title)} onChangeQuantity={(delta) => onChangeQuantity(item.product.title, delta)} />)}</div></section><aside className="cart-summary-panel" aria-labelledby="order-summary-title"><h2 id="order-summary-title">Order Summary</h2><div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div><div className="cart-summary-line"><span>Delivery fee</span><strong>Free</strong></div><div className="cart-summary-total"><span>Total</span><strong>{formatPrice(subtotal)}</strong></div><button className="cart-primary-action" type="button" onClick={onCheckout}>CHECKOUT NOW</button></aside></div></main>
@@ -1293,14 +1286,13 @@ function CheckoutPage({ items, onHome, onBackToCart }: { items: CartItem[]; onHo
       <section className="checkout-form-card" aria-labelledby="checkout-title">
         <p className="checkout-kicker">Complete your order</p>
         <h1 id="checkout-title">Checkout</h1>
-        <form className="checkout-form" onSubmit={(event) => { event.preventDefault(); setSubmitted(true) }}>
+        <form id="checkout-form" className="checkout-form" onSubmit={(event) => { event.preventDefault(); setSubmitted(true) }}>
           <fieldset><legend>Contact information</legend><label>Full name<input name="name" type="text" placeholder="Your full name" autoComplete="name" required /></label><div className="checkout-field-grid"><label>Email address<input name="email" type="email" placeholder="you@example.com" autoComplete="email" required /></label><label>Phone number<input name="phone" type="tel" placeholder="Your phone number" autoComplete="tel" required /></label></div></fieldset>
           <fieldset><legend>Payment method</legend><div className="checkout-payment-options"><label className="checkout-payment-option"><input type="radio" name="payment" value="vnpay" checked={paymentMethod === 'vnpay'} onChange={() => setPaymentMethod('vnpay')} /><span><strong>VNPay - Wallet</strong><small>Pay with your VNPay wallet.</small></span><img className="checkout-payment-icon" src="/assets/payment-vnpay.png" alt="VNPay" /></label><label className="checkout-payment-option"><input type="radio" name="payment" value="momo" checked={paymentMethod === 'momo'} onChange={() => setPaymentMethod('momo')} /><span><strong>MoMo wallet</strong><small>Pay securely with your MoMo wallet.</small></span><img className="checkout-payment-icon checkout-payment-icon-momo" src="/assets/payment-momo.svg" alt="MoMo" /></label><label className="checkout-payment-option"><input type="radio" name="payment" value="apple" checked={paymentMethod === 'apple'} onChange={() => setPaymentMethod('apple')} /><span><strong>Apple Pay</strong><small>Pay quickly with Apple Pay.</small></span><img className="checkout-payment-icon checkout-payment-icon-apple" src="/assets/payment-apple-pay.png" alt="Apple Pay" /></label><label className="checkout-payment-option"><input type="radio" name="payment" value="zalopay" checked={paymentMethod === 'zalopay'} onChange={() => setPaymentMethod('zalopay')} /><span><strong>ZaloPay</strong><small>Pay securely with your ZaloPay wallet.</small></span><img className="checkout-payment-icon checkout-payment-icon-zalopay" src="/assets/payment-zalopay.png" alt="ZaloPay" /></label><label className="checkout-payment-option checkout-payment-option-bank"><input type="radio" name="payment" value="bank" checked={paymentMethod === 'bank'} onChange={() => setPaymentMethod('bank')} /><span><strong>Bank transfer</strong><small>Complete the transfer using Linery payment details.</small></span><img className="checkout-payment-icon" src="/assets/payment-bank.png" alt="Bank transfer" /></label></div></fieldset>
           <fieldset><legend>Receiving method</legend><div className="checkout-method-tabs" role="tablist" aria-label="Receiving method"><button className={fulfillmentMethod === 'pickup' ? 'is-active' : ''} type="button" role="tab" aria-selected={fulfillmentMethod === 'pickup'} onClick={() => setFulfillmentMethod('pickup')}><i className={`bi ${fulfillmentMethod === 'pickup' ? 'bi-check-circle-fill' : 'bi-circle'}`} aria-hidden="true" />Pickup at counter</button><button className={fulfillmentMethod === 'delivery' ? 'is-active' : ''} type="button" role="tab" aria-selected={fulfillmentMethod === 'delivery'} onClick={() => setFulfillmentMethod('delivery')}><i className={`bi ${fulfillmentMethod === 'delivery' ? 'bi-check-circle-fill' : 'bi-circle'}`} aria-hidden="true" />Delivery</button></div>{fulfillmentMethod === 'pickup' ? <div className="checkout-tab-panel" role="tabpanel"><label className="checkout-select-field">Choose a store<select name="pickupStore" defaultValue="" required><option value="" disabled>Select a store</option><option value="store-1">Store 1: Hanoi Book Street, Cua Nam Ward, Hanoi</option><option value="store-2">Comming soon</option></select></label></div> : <div className="checkout-tab-panel checkout-delivery-fields" role="tabpanel"><label>Delivery address<input name="address" type="text" placeholder="House number and street" autoComplete="street-address" required /></label><div className="checkout-field-grid"><label>City<input name="city" type="text" placeholder="City" autoComplete="address-level2" required /></label><label>Postal code<input name="postalCode" type="text" placeholder="Postal code" autoComplete="postal-code" /></label></div><label>Delivery notes<textarea name="deliveryNotes" placeholder="Add instructions for delivery" rows={3} /></label></div>}</fieldset>
-          <button className="checkout-submit" type="submit">CONTINUE TO PAYMENT</button>
         </form>
       </section>
-      <aside className="checkout-summary" aria-labelledby="checkout-summary-title"><p className="checkout-kicker">Your order</p><h2 id="checkout-summary-title">Order summary</h2><div className="checkout-summary-items">{items.map((item) => <div className="checkout-summary-item" key={item.product.title}><img src={item.product.image} alt="" /><div><strong>{item.product.title}</strong><span>Qty {item.quantity}</span></div><b>{formatPrice(getPriceValue(item.product.price) * item.quantity)}</b></div>)}</div><form className="checkout-voucher" onSubmit={(event) => event.preventDefault()}><label htmlFor="voucher-code">Voucher / discount code</label><div className="checkout-voucher-row"><div className="checkout-voucher-input"><i className="bi bi-ticket-perforated" aria-hidden="true" /><input id="voucher-code" name="voucherCode" type="text" value={voucherCode} onChange={(event) => setVoucherCode(event.target.value)} placeholder="Enter your code" autoComplete="off" /></div><button type="submit">Apply</button></div></form><div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div><div className="cart-summary-line"><span>Delivery fee</span><strong>Free</strong></div><div className="cart-summary-total"><span>Total</span><strong>{formatPrice(subtotal)}</strong></div></aside>
+      <aside className="checkout-summary" aria-labelledby="checkout-summary-title"><p className="checkout-kicker">Your order</p><h2 id="checkout-summary-title">Order summary</h2><div className="checkout-summary-items">{items.map((item) => <div className="checkout-summary-item" key={item.product.title}><img src={item.product.image} alt="" /><div><strong>{item.product.title}</strong><span>Qty {item.quantity}</span></div><b>{formatPrice(getPriceValue(item.product.price) * item.quantity)}</b></div>)}</div><form className="checkout-voucher" onSubmit={(event) => event.preventDefault()}><label htmlFor="voucher-code">Voucher / discount code</label><div className="checkout-voucher-row"><div className="checkout-voucher-input"><i className="bi bi-ticket-perforated" aria-hidden="true" /><input id="voucher-code" name="voucherCode" type="text" value={voucherCode} onChange={(event) => setVoucherCode(event.target.value)} placeholder="Enter your code" autoComplete="off" /></div><button type="submit">Apply</button></div></form><div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div><div className="cart-summary-line"><span>Delivery fee</span><strong>Free</strong></div><div className="cart-summary-total"><span>Total</span><strong>{formatPrice(subtotal)}</strong></div><button className="checkout-submit checkout-summary-submit" type="submit" form="checkout-form">CONTINUE TO PAYMENT</button></aside>
     </div>
   </main>
 }
@@ -1532,16 +1524,16 @@ export function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => getProductFromPath(window.location.pathname))
   const [selectedCollection, setSelectedCollection] = useState<string | null>(() => getCollectionTitleFromPath(window.location.pathname))
   const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [cartDrawerOpen, setCartDrawerOpen] = useState(false)
+  const [cartPulse, setCartPulse] = useState(false)
   const [wishlistTitles, setWishlistTitles] = useState<string[]>(() => {
     try { return JSON.parse(window.localStorage.getItem('linery-wishlist') ?? '[]') as string[] } catch { return [] }
   })
   const [quickViewOpen, setQuickViewOpen] = useState(false)
-  const [utilityPanelTab, setUtilityPanelTab] = useState<'cart' | 'quickview'>('cart')
   const [quickViewAvailable, setQuickViewAvailable] = useState(() => window.matchMedia('(min-width: 1101px)').matches)
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const previewCloseTimer = useRef<number | null>(null)
+  const cartPulseTimer = useRef<number | null>(null)
 
   useEffect(() => {
     const syncRoute = () => {
@@ -1584,11 +1576,6 @@ export function App() {
     document.body.classList.toggle('login-open', view === 'login' || view === 'register' || view === 'forgot-password' || view === 'password-reset-sent' || view === 'reset-password' || view === 'password-reset-complete')
     return () => document.body.classList.remove('login-open')
   }, [view])
-
-  useEffect(() => {
-    document.body.classList.toggle('cart-drawer-open', cartDrawerOpen)
-    return () => document.body.classList.remove('cart-drawer-open')
-  }, [cartDrawerOpen])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 1101px)')
@@ -1724,7 +1711,6 @@ export function App() {
     setView('checkout')
     setShopOpen(false)
     setMenuOpen(false)
-    setCartDrawerOpen(false)
     setQuickViewOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -1777,15 +1763,38 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const addToCart = (product: Product) => {
+  const animateProductToCart = (product: Product, source?: HTMLElement) => {
+    const target = document.querySelector('.cart-button') as HTMLElement | null
+    if (!target || !source) return
+    const sourceRect = source.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    const flyer = document.createElement('img')
+    flyer.className = 'cart-flyer'
+    flyer.src = product.image
+    flyer.alt = ''
+    flyer.setAttribute('aria-hidden', 'true')
+    flyer.style.left = `${sourceRect.left + (sourceRect.width - 64) / 2}px`
+    flyer.style.top = `${sourceRect.top + (sourceRect.height - 96) / 2}px`
+    document.body.appendChild(flyer)
+    const deltaX = targetRect.left + targetRect.width / 2 - (sourceRect.left + sourceRect.width / 2)
+    const deltaY = targetRect.top + targetRect.height / 2 - (sourceRect.top + sourceRect.height / 2)
+    const animation = flyer.animate([
+      { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+      { transform: `translate(${deltaX}px, ${deltaY}px) scale(.18)`, opacity: .25 },
+    ], { duration: 720, easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' })
+    animation.finished.then(() => flyer.remove()).catch(() => flyer.remove())
+    setCartPulse(true)
+    if (cartPulseTimer.current !== null) window.clearTimeout(cartPulseTimer.current)
+    cartPulseTimer.current = window.setTimeout(() => setCartPulse(false), 560)
+  }
+
+  const addToCart = (product: Product, source?: HTMLElement) => {
     if (product.available === false) return
     setCartItems((items) => {
       const existing = items.find((item) => item.product.title === product.title)
       return existing ? items.map((item) => item.product.title === product.title ? { ...item, quantity: item.quantity + 1 } : item) : [...items, { product, quantity: 1 }]
     })
-    setUtilityPanelTab('cart')
-    setQuickViewOpen(false)
-    setCartDrawerOpen(true)
+    animateProductToCart(product, source)
   }
   const toggleWishlist = (product: Product) => {
     setWishlistTitles((titles) => {
@@ -1797,17 +1806,9 @@ export function App() {
   const isWishlisted = (product: Product) => wishlistTitles.includes(product.title)
   const removeFromCart = (title: string) => setCartItems((items) => items.filter((item) => item.product.title !== title))
   const changeCartQuantity = (title: string, delta: number) => setCartItems((items) => items.map((item) => item.product.title === title ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))
-  const closeCartDrawer = () => setCartDrawerOpen(false)
-  const openCartDrawer = () => {
-    setUtilityPanelTab('cart')
-    setQuickViewOpen(false)
-    setCartDrawerOpen(true)
-  }
-  const checkout = () => showCheckout()
   const buyNow = (product: Product) => {
     if (product.available === false) return
     addToCart(product)
-    setCartDrawerOpen(false)
     setQuickViewOpen(false)
     showCheckout()
   }
@@ -1818,22 +1819,16 @@ export function App() {
       setQuickViewOpen(false)
       return
     }
-    setUtilityPanelTab('quickview')
-    setCartDrawerOpen(false)
     setPreviewProduct(null)
     setQuickViewOpen(true)
   }
   const openPreview = (product: Product) => {
     if (previewCloseTimer.current !== null) window.clearTimeout(previewCloseTimer.current)
-    setUtilityPanelTab('quickview')
-    setCartDrawerOpen(false)
     setQuickViewOpen(true)
     setPreviewProduct(product)
   }
   const schedulePreviewClose = () => undefined
   const selectQuickView = (product: Product) => {
-    setUtilityPanelTab('quickview')
-    setCartDrawerOpen(false)
     setQuickViewOpen(true)
     setPreviewProduct(product)
   }
@@ -1843,21 +1838,10 @@ export function App() {
     setQuickViewOpen(false)
   }
 
-  const changeUtilityPanelTab = (tab: 'cart' | 'quickview') => {
-    setUtilityPanelTab(tab)
-    if (tab === 'cart') {
-      setQuickViewOpen(false)
-      setCartDrawerOpen(true)
-    } else {
-      setCartDrawerOpen(false)
-      setQuickViewOpen(true)
-    }
-  }
-
   return <>
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
-    <div id="top" className={`page-shell ${(quickViewAvailable && quickViewOpen) || cartDrawerOpen ? 'utility-panel-active' : ''}`}>
-    <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => setHeroMotionOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} />
+    <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'utility-panel-active' : ''}`}>
+    <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} cartPulse={cartPulse} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => setHeroMotionOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
     <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} />
      {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'collection' ? <AllBooksPage collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} onBuyNow={buyNow} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
@@ -1879,7 +1863,7 @@ export function App() {
     {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} onForgotPassword={showForgotPassword} onLoginSuccess={completeLogin} />}
     {view === 'register' && <RegisterPage onHome={showHome} onLogin={showLogin} language={language} />}
     {(view === 'forgot-password' || view === 'password-reset-sent' || view === 'reset-password' || view === 'password-reset-complete') && <PasswordRecoveryPage mode={view} onHome={showHome} onLogin={showLogin} onEmailSent={showPasswordResetSent} onResetPassword={showResetPassword} onComplete={showPasswordResetComplete} />}
-    {((quickViewAvailable && quickViewOpen) || cartDrawerOpen) && <UtilityPanel activeTab={utilityPanelTab} items={cartItems} product={previewProduct} onClose={utilityPanelTab === 'cart' ? closeCartDrawer : closePreview} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} onViewCart={() => { closeCartDrawer(); showCart() }} onCheckout={checkout} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} onToggleWishlist={toggleWishlist} isWishlisted={isWishlisted} />}
+    {quickViewAvailable && quickViewOpen && <UtilityPanel product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} onToggleWishlist={toggleWishlist} isWishlisted={isWishlisted} />}
   </>
 }
 
