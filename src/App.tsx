@@ -33,7 +33,6 @@ function WelcomeScreen({ onSelectLanguage }: { onSelectLanguage: (language: 'en'
     </div>
   </section>
 }
-
 function RibbonTitle({ title, id, heading = false }: { title: string; id?: string; heading?: boolean }) {
   const Label = (heading ? 'h1' : 'span') as ElementType
   return <div className={`ribbon-title ${heading ? 'ribbon-title-heading' : ''}`}>
@@ -42,7 +41,6 @@ function RibbonTitle({ title, id, heading = false }: { title: string; id?: strin
     <img className="ribbon ribbon-right" src="/assets/ribbon-right.svg" alt="" aria-hidden="true" />
   </div>
 }
-
 const products: Product[] = [
   { image: '/assets/cover-edward.png', title: 'Power, Politics, and Culture: Interviews with Edward W. Said', author: 'Edward W. Said', price: '460.000₫', categories: ['Non-fiction', 'Essays'], publisher: 'Penguin Random House', writerType: 'Authors', year: 2004 },
   { image: '/assets/cover-ethics.png', title: 'Ethics: A Very Short Introduction', author: 'Simon Blackburn', price: '460.000₫', categories: ['Non-fiction', 'Research & Studies'], publisher: 'Oxford University Press', writerType: 'Authors', year: 2001, available: false },
@@ -129,7 +127,6 @@ const authorProfiles: Record<string, { image: string; images?: string[]; born: s
     bio: 'Edward W. Said was a Palestinian-American literary critic, cultural theorist and public intellectual. He earned an AB from Princeton and an AM and PhD from Harvard, then taught at Columbia University, where he became the Parr Professor of English and Comparative Literature. His books Orientalism and Culture and Imperialism reshaped literary and cultural studies, while his writing and public work advocated for Palestinian national rights.',
   },
 }
-
 const authorSlug = (author: string) => author.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const productSlug = (title: string) => title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const getProductFromPath = (pathname: string) => {
@@ -235,7 +232,8 @@ function ShopMenu({ isOpen, onAllBooks, onCollection }: { isOpen: boolean; onAll
           {column.eyebrow && <p className="menu-eyebrow menu-section-title">{column.eyebrow}</p>}
           {column.links.map((link) => {
             const isCollection = collectionTitles.includes(link as typeof collectionTitles[number])
-            return <a className="menu-item menu-item-link menu-item-text" href={link === 'All books' ? '/all-books' : isCollection ? `/collections/${collectionSlug(link)}` : `#${link.toLowerCase().replaceAll(' ', '-')}`} key={link} onClick={link === 'All books' ? (event) => { event.preventDefault(); onAllBooks() } : isCollection ? (event) => { event.preventDefault(); onCollection(link) } : undefined}>{link}</a>
+            const isAllBooks = link === 'All books'
+            return <a className={`menu-item menu-item-link menu-item-text${isAllBooks ? ' shop-menu-view-all' : ''}`} href={isAllBooks ? '/all-books' : isCollection ? `/collections/${collectionSlug(link)}` : `#${link.toLowerCase().replaceAll(' ', '-')}`} key={link} onClick={isAllBooks ? (event) => { event.preventDefault(); onAllBooks() } : isCollection ? (event) => { event.preventDefault(); onCollection(link) } : undefined}><span>{isAllBooks ? 'View All' : link}</span>{isAllBooks && <span aria-hidden="true">→</span>}</a>
           })}
           </div>)}
       </div>
@@ -266,15 +264,16 @@ function WritersMenu({ isOpen, onAllWriters, onAuthors, onTranslators }: { isOpe
 }
 
 function MobileMenu({ isOpen, onShop, onAllBooks, onCollection, onAllWriters, onAuthors, onTranslators, onSearch, language, onSelectLanguage }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onCollection: (title: string) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void }) {
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Fiction: true, 'Non-fiction': true, 'Linery Press': true, Role: false, Gender: false, 'Cultural Region': true, Era: true })
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Fiction: true, 'Non-fiction': true, 'Linery Press': true, Role: false, Gender: false, 'Cultural Region': false, Era: false })
   const [query, setQuery] = useState('')
   const toggleBranch = (label: string) => setOpenBranches((current) => ({ ...current, [label]: !current[label] }))
 
   return <aside className={`mobile-menu menu-navigation ${isOpen ? 'is-open' : ''}`} aria-label="Mobile navigation" aria-hidden={!isOpen}>
     <div className="mobile-menu-header">
       <div className="mobile-menu-language-options" aria-label="Choose language">
-        <button type="button" className={language === 'en' ? 'is-active' : ''} aria-pressed={language === 'en'} onClick={() => onSelectLanguage('en')}>EN</button>
-        <button type="button" className={language === 'vi' ? 'is-active' : ''} aria-pressed={language === 'vi'} onClick={() => onSelectLanguage('vi')}>VI</button>
+        <button type="button" className="mobile-menu-language-toggle" role="switch" aria-checked={language === 'vi'} aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`} onClick={() => onSelectLanguage(language === 'en' ? 'vi' : 'en')}>
+          <span className={language === 'en' ? 'is-active' : ''}>EN</span><span className={language === 'vi' ? 'is-active' : ''}>VI</span><span className={`mobile-menu-language-thumb ${language === 'vi' ? 'is-vi' : ''}`} aria-hidden="true" />
+        </button>
       </div>
       <div className="mobile-menu-quick-actions" aria-label="Account actions">
         <a className="mobile-menu-icon" href="#login" aria-label="Log in"><i className="bi bi-person" aria-hidden="true" /></a>
@@ -288,22 +287,22 @@ function MobileMenu({ isOpen, onShop, onAllBooks, onCollection, onAllWriters, on
     </div>
     <section className="mobile-menu-section menu-section" aria-labelledby="mobile-shop-heading">
       <h2 id="mobile-shop-heading" className="mobile-menu-section-title menu-section-title">Books</h2>
-      <button className="mobile-menu-item mobile-menu-level-0 menu-item menu-level-0" onClick={onAllBooks}><span className="mobile-menu-text menu-item-text">View All</span></button>
-      {['New & Upcoming', 'Linery Press', 'Linery Picks', 'Linery Art Books'].map((title) => <button className="mobile-menu-item mobile-menu-level-0 menu-item menu-level-0" key={title} onClick={() => onCollection(title)}><span className="mobile-menu-text menu-item-text">{title}</span></button>)}
+      <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAllBooks}><span className="mobile-menu-text menu-item-text">View All</span><span aria-hidden="true">→</span></button>
+      {['New & Upcoming', 'Linery Press', 'Linery Picks', 'Linery Art Books'].map((title) => <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" key={title} onClick={() => onCollection(title)}><span className="mobile-menu-text menu-item-text">{title}</span></button>)}
       <div className="mobile-menu-tree">
         {shopOnlyCategories.map((category) => {
           const categoryOpen = openBranches[category.label] ?? true
           return <div className="mobile-menu-branch menu-branch" key={category.label}>
-            <button className="mobile-menu-item mobile-menu-level-0 menu-item menu-level-0" onClick={() => category.children ? toggleBranch(category.label) : onShop()} aria-expanded={category.children ? categoryOpen : undefined}>
+            <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={() => category.children ? toggleBranch(category.label) : onShop()} aria-expanded={category.children ? categoryOpen : undefined}>
               <span className="mobile-menu-text menu-item-text">{category.label}</span>{category.children && <span aria-hidden="true">{categoryOpen ? '−' : '+'}</span>}
             </button>
             {category.children && categoryOpen && <div className="mobile-menu-children menu-children">{category.children.map((child) => {
               const childOpen = openBranches[child.label] ?? true
               return <div className="mobile-menu-branch menu-branch" key={child.label}>
-                <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={() => child.children ? toggleBranch(child.label) : onShop()} aria-expanded={child.children ? childOpen : undefined}>
+                <button className="mobile-menu-item mobile-menu-level-2 menu-item menu-level-2" onClick={() => child.children ? toggleBranch(child.label) : onShop()} aria-expanded={child.children ? childOpen : undefined}>
                   <span className="mobile-menu-text menu-item-text">{child.label}</span>{child.children && <span aria-hidden="true">{childOpen ? '−' : '+'}</span>}
                 </button>
-                {child.children && childOpen && <div className="mobile-menu-children menu-children">{child.children.map((leaf) => <button className="mobile-menu-item mobile-menu-level-2 menu-item menu-level-2" key={leaf.label} onClick={onShop}><span className="mobile-menu-text menu-item-text">{leaf.label}</span></button>)}</div>}
+                {child.children && childOpen && <div className="mobile-menu-children menu-children">{child.children.map((leaf) => <button className="mobile-menu-item mobile-menu-level-3 menu-item menu-level-3" key={leaf.label} onClick={onShop}><span className="mobile-menu-text menu-item-text">{leaf.label}</span></button>)}</div>}
               </div>
             })}</div>}
           </div>
@@ -314,11 +313,10 @@ function MobileMenu({ isOpen, onShop, onAllBooks, onCollection, onAllWriters, on
       <h2 id="mobile-authors-heading" className="mobile-menu-section-title menu-section-title">WRITERS</h2>
       <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAllWriters}><span className="mobile-menu-text menu-item-text">View All</span><span aria-hidden="true">→</span></button>
       {writerMenuGroups.map((group) => {
-        const isCollapsible = group.eyebrow === 'Role' || group.eyebrow === 'Gender'
         const groupOpen = openBranches[group.eyebrow] ?? true
         return <div className="mobile-writer-group" key={group.eyebrow}>
-          {isCollapsible ? <button className="mobile-writer-group-toggle" type="button" onClick={() => toggleBranch(group.eyebrow)} aria-expanded={groupOpen}><span>{group.eyebrow}</span><span aria-hidden="true">{groupOpen ? '−' : '+'}</span></button> : <p className="mobile-writer-group-title">{group.eyebrow}</p>}
-          {(!isCollapsible || groupOpen) && <div className="mobile-menu-children menu-children">
+          <button className="mobile-writer-group-toggle" type="button" onClick={() => toggleBranch(group.eyebrow)} aria-expanded={groupOpen}><span>{group.eyebrow}</span><span aria-hidden="true">{groupOpen ? '−' : '+'}</span></button>
+          {groupOpen && <div className="mobile-menu-children menu-children">
             {group.links.map((link) => <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" key={link} onClick={link === 'Author' ? onAuthors : link === 'Translator' ? onTranslators : onAllWriters}><span className="mobile-menu-text menu-item-text">{link}</span></button>)}
           </div>}
         </div>
@@ -488,6 +486,7 @@ function FilterTextInput({ label, value, onChange, placeholder }: { label: strin
 }
 
 function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => void; collectionTitle?: string } & ProductCardActions) {
+  const [heroHovered, setHeroHovered] = useState(false)
   const pageTitle = collectionTitle ?? 'ALL BOOKS'
   const normalizedCollectionTitle = collectionTitle?.toLowerCase()
   const sourceProducts = normalizedCollectionTitle === 'linery art books' ? artbookProducts : normalizedCollectionTitle === 'grab & save' ? limitedProducts : products
@@ -546,7 +545,10 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
 
   return <main className="all-books-page">
     <div className="all-books-content">
-      <div className="all-books-hero"><picture><source srcSet="/assets/all-books-hero.webp" type="image/webp" /><img src="/assets/all-books-hero.png" alt="Children exploring a garden together" width="2560" height="866" fetchPriority="high" decoding="async" /></picture></div>
+      <div className={`all-books-hero ${heroHovered ? 'is-hovered' : ''}`} onMouseEnter={() => setHeroHovered(true)} onMouseLeave={() => setHeroHovered(false)}>
+        <img className="all-books-hero-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách" width="2560" height="866" fetchPriority="high" decoding="async" />
+        <img className="all-books-hero-hover" src="/assets/hero-children-shop-hover.png" alt="" aria-hidden="true" width="2560" height="866" decoding="async" />
+      </div>
       <div className="all-books-heading-row">
         <nav className="all-books-breadcrumb" aria-label="Breadcrumb"><a href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><span aria-hidden="true">/</span><span>{pageTitle}</span></nav>
         <button className={`all-books-filter-toggle ${filterOpen ? 'is-open' : ''}`} type="button" aria-expanded={filterOpen} onClick={() => setFilterOpen((open) => !open)}><i className="bi bi-sliders2" aria-hidden="true" /> Filter &amp; sort</button>
@@ -763,14 +765,13 @@ function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop
   return <header ref={headerRef} className={`site-header ${menuOpen ? 'is-menu-open' : ''} ${activeView === 'account' ? 'is-account-view' : ''}`} onMouseLeave={() => { onDesktopMenuHover(false); onShopHover(false); onWritersHover(false) }}>
     <div className="header-inner">
       <button className="menu-button" aria-label="Mở menu" onClick={onMenu}><Menu /></button>
-      <nav className="desktop-nav" aria-label="Điều hướng chính"><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(true) }} onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onShop} onMouseEnter={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} aria-expanded={shopOpen}>Books<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onClick={(event) => { event.preventDefault(); onWritersHover(!writersOpen); onShopHover(false); onDesktopMenuHover(!writersOpen) }} aria-expanded={writersOpen}>Writes<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
+      <nav className="desktop-nav" aria-label="Điều hướng chính"><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(true) }} onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onShop} onMouseEnter={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} aria-expanded={shopOpen}>Books<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onClick={(event) => { event.preventDefault(); onWritersHover(!writersOpen); onShopHover(false); onDesktopMenuHover(!writersOpen) }} aria-expanded={writersOpen}>Writers<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
       <a className="brand" href="/" aria-label="Linery Bookstore home">LINERY BOOKSTORE</a>
       <div className="header-actions">
         <form className={`search-control desktop-search-control ${searchOpen ? 'is-open' : ''}`} onSubmit={submitSearch}>
           <button className="search-toggle" type="button" aria-label="Tìm kiếm" aria-expanded={searchOpen} onClick={() => setSearchOpen((open) => !open)}><img src="/assets/icon-search.svg" alt="" /></button>
           <input className="search-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search books" aria-label="Search books" autoFocus={searchOpen} onKeyDown={(event) => { if (event.key === 'Escape') setSearchOpen(false) }} />
         </form>
-        {quickViewAvailable && <button className={`quick-view-button quick-view-icon-button ${quickViewOpen ? 'is-active' : ''}`} type="button" onClick={onQuickView} aria-label="Quick view" aria-expanded={quickViewOpen}><i className="bi bi-lightning-charge-fill" aria-hidden="true" /></button>}
         <a className="icon-button cart-button" href="/cart" aria-label={`Giỏ hàng, ${cartCount} sản phẩm`} onClick={(event) => { event.preventDefault(); onCart() }}><img src="/assets/icon-cart.svg" alt="" />{cartCount > 0 && <span>{cartCount}</span>}</a>
         <div className="account-menu-region" onMouseEnter={() => setAccountHoverOpen(true)} onMouseLeave={() => setAccountHoverOpen(false)}>
           <button className="icon-button login-icon" type="button" aria-label={activeView === 'account' ? 'Account menu' : 'Log in'} aria-expanded={accountMenuEnabled && (activeView === 'account' ? accountMenuOpen : accountHoverOpen)} onClick={onLogin}><i className="bi bi-person" aria-hidden="true" /></button>
@@ -784,61 +785,56 @@ function Header({ cartCount, menuOpen, onMenu, onHome, onLogin, onLogout, onShop
 }
 
 function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewLeave, onSelectQuickView, quickViewOpen }: ProductCardActions & { product: Product }) {
-  const [isWishlisted, setIsWishlisted] = useState(() => {
-    try {
-      return JSON.parse(window.localStorage.getItem('linery-wishlist') ?? '[]').includes(product.title)
-    } catch {
-      return false
-    }
-  })
+  const coverContent = <div className="product-cover-wrap">
+    <img src={product.image} alt={product.title} className="product-cover" loading="lazy" decoding="async" />
+    {product.limited && <img className="product-limited-badge" src="/assets/limited-stamp.png" alt="Limited quantity" loading="lazy" decoding="async" />}
+  </div>
+  const infoContent = <div className="product-info">
+    <h3>{product.title}</h3>
+    <p className="product-author">{product.author}</p>
+    {product.available !== false && <p className="product-price">{product.price}</p>}
+    {product.available === false && <p className="product-stock-status">Out of stock</p>}
+  </div>
+  const openDetail = (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onOpenDetail(product) }
+  const openQuickView = (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onSelectQuickView(product) }
 
-  const toggleWishlist = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-    try {
-      const wishlist = JSON.parse(window.localStorage.getItem('linery-wishlist') ?? '[]') as string[]
-      const nextWishlist = isWishlisted ? wishlist.filter((title) => title !== product.title) : [...new Set([...wishlist, product.title])]
-      window.localStorage.setItem('linery-wishlist', JSON.stringify(nextWishlist))
-      setIsWishlisted(!isWishlisted)
-    } catch {
-      setIsWishlisted(!isWishlisted)
-    }
-  }
-
-  return <article className="product-card" onMouseEnter={() => onPreview(product)} onMouseLeave={onPreviewLeave} onFocus={() => onPreview(product)}>
-    <a className="product-card-link" href="#a" onClick={(event) => { event.preventDefault(); quickViewOpen ? onSelectQuickView(product) : onOpenDetail(product) }}>
-      <div className="product-surface">
-        <div className="product-cover-wrap">
-          <img src={product.image} alt={product.title} className="product-cover" loading="lazy" decoding="async" />
-          {product.limited && <img className="product-limited-badge" src="/assets/limited-stamp.png" alt="Limited quantity" loading="lazy" decoding="async" />}
-          <div className="product-overlay">
-            <div className="product-overlay-copy"><strong>{product.title}</strong><span>{product.author}</span></div>
-            <div className="product-overlay-actions">
-              <button className={`product-wishlist ${isWishlisted ? 'is-active' : ''}`} type="button" aria-label={isWishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`} aria-pressed={isWishlisted} onClick={toggleWishlist}><i className="bi bi-heart product-action-icon" aria-hidden="true" /><span className="product-action-label">Wishlist</span></button>
-              <button className="product-cart" type="button" aria-label={`Add ${product.title} to Cart`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); onAddToCart(product) }}><i className="bi bi-cart3 product-action-icon" aria-hidden="true" /><span className="product-action-label">Add to Cart</span></button>
-            </div>
-            <span className="product-overlay-cta">Read more...</span>
-          </div>
-        </div>
-        <div className="product-info">
-          <h3>{product.title}</h3>
-          <p className="product-author">{product.author}</p>
-          {product.available !== false && <p className="product-price">{product.price}</p>}
-          {product.available === false && <p className="product-stock-status">Out of stock</p>}
-        </div>
-      </div>
-    </a>
+  return <article className="product-card">
+    {quickViewOpen ? <div className="product-surface">
+      <a className="product-card-link product-cover-link" href="#a" onClick={openQuickView} aria-label={`Quick view ${product.title}`}>{coverContent}</a>
+      <a className="product-card-link product-info-link" href="#a" onClick={openDetail} aria-label={`View details for ${product.title}`}>{infoContent}</a>
+    </div> : <a className="product-card-link" href="#a" onClick={openDetail} aria-label={`View ${product.title}`}>
+      <div className="product-surface">{coverContent}{infoContent}</div>
+    </a>}
   </article>
 }
 
-function Collection({ title, items, onCollection, ...actions }: { title: string; items: Product[]; onCollection: (title: string) => void } & ProductCardActions) {
+function Collection({ title, items, onCollection, quickViewOpen, ...actions }: { title: string; items: Product[]; onCollection: (title: string) => void } & ProductCardActions) {
+  const carouselRef = useRef<HTMLDivElement | null>(null)
   const [trackPosition, setTrackPosition] = useState(1)
   const [isJumping, setIsJumping] = useState(false)
+  const [itemsPerSlide, setItemsPerSlide] = useState(6)
   const wheelLock = useRef(false)
   const touchStart = useRef<number | null>(null)
-  const slides = Array.from({ length: 4 }, (_, slideIndex) => items.map((_, index) => items[(index + slideIndex) % items.length]))
+  const slides = itemsPerSlide >= items.length ? Array.from({ length: 4 }, (_, slideIndex) => items.map((_, index) => items[(index + slideIndex) % items.length])) : Array.from({ length: 4 }, (_, slideIndex) => items.slice((slideIndex % Math.ceil(items.length / itemsPerSlide)) * itemsPerSlide, ((slideIndex % Math.ceil(items.length / itemsPerSlide)) + 1) * itemsPerSlide))
   const activeSlide = (trackPosition + slides.length - 1) % slides.length
   const renderedSlides = [slides[slides.length - 1], ...slides, slides[0]]
+
+  useEffect(() => {
+    const element = carouselRef.current
+    if (!element) return undefined
+    const syncItemsPerSlide = () => {
+      const width = element.getBoundingClientRect().width
+      setItemsPerSlide(width >= 1000 ? 6 : width >= 680 ? 4 : 3)
+    }
+    syncItemsPerSlide()
+    const observer = new ResizeObserver(syncItemsPerSlide)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    setTrackPosition(1)
+  }, [itemsPerSlide])
 
   useEffect(() => {
     if (trackPosition !== 0 && trackPosition !== slides.length + 1) return undefined
@@ -892,10 +888,10 @@ function Collection({ title, items, onCollection, ...actions }: { title: string;
 
   return <section className="collection scroll-section" aria-labelledby={title.replaceAll(' ', '-')}>
     <RibbonTitle title={title} id={title.replaceAll(' ', '-')} />
-    <div className="carousel-viewport" onWheel={handleWheel} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} aria-roledescription="carousel" aria-label={`${title} book carousel`}>
+    <div ref={carouselRef} className="carousel-viewport" onWheel={handleWheel} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} aria-roledescription="carousel" aria-label={`${title} book carousel`}>
       <div className={`carousel-track ${isJumping ? 'is-jumping' : ''}`} data-slide={trackPosition} onTransitionEnd={handleTransitionEnd}>
         {renderedSlides.map((slide, slideIndex) => <div className="carousel-slide" key={`${title}-slide-${slideIndex}-${slideIndex === 0 ? 'clone-start' : slideIndex === renderedSlides.length - 1 ? 'clone-end' : 'real'}`} aria-hidden={slideIndex === 0 || slideIndex === renderedSlides.length - 1 || slideIndex !== trackPosition}>
-          <div className="product-grid">{slide.map((product, index) => <ProductCard key={`${title}-${slideIndex}-${index}`} product={product} {...actions} />)}</div>
+          <div className="product-grid" data-columns={itemsPerSlide}>{slide.map((product, index) => <ProductCard key={`${title}-${slideIndex}-${index}`} product={product} {...actions} quickViewOpen={quickViewOpen} />)}</div>
         </div>)}
       </div>
     </div>
@@ -1044,16 +1040,13 @@ function BookPreview({ product, onClose, onOpenDetail }: { product: Product | nu
   </aside>
 }
 
-function UtilityPanel({ activeTab, items, product, onTabChange, onClose, onRemove, onChangeQuantity, onViewCart, onCheckout, onOpenDetail, onAddToCart, onBuyNow }: { activeTab: 'cart' | 'quickview'; items: CartItem[]; product: Product | null; onTabChange: (tab: 'cart' | 'quickview') => void; onClose: () => void; onRemove: (title: string) => void; onChangeQuantity: (title: string, delta: number) => void; onViewCart: () => void; onCheckout: () => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onBuyNow: (product: Product) => void }) {
+function UtilityPanel({ activeTab, items, product, onClose, onRemove, onChangeQuantity, onViewCart, onCheckout, onOpenDetail, onAddToCart, onBuyNow, onToggleWishlist, isWishlisted }: { activeTab: 'cart' | 'quickview'; items: CartItem[]; product: Product | null; onClose: () => void; onRemove: (title: string) => void; onChangeQuantity: (title: string, delta: number) => void; onViewCart: () => void; onCheckout: () => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product) => void; onBuyNow: (product: Product) => void; onToggleWishlist: (product: Product) => void; isWishlisted: (product: Product) => boolean }) {
   const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
   const publisher = product?.publisher ?? 'Linery Books'
   return <div className="utility-panel-layer" role="presentation">
     <aside className="utility-panel" aria-label="Flash cart and quick view">
       <div className="utility-panel-header">
-        <div className="utility-panel-tabs" role="tablist" aria-label="Shopping tools">
-          <button className={activeTab === 'cart' ? 'is-active' : ''} type="button" role="tab" aria-selected={activeTab === 'cart'} onClick={() => onTabChange('cart')}>Flash cart</button>
-          <button className={activeTab === 'quickview' ? 'is-active' : ''} type="button" role="tab" aria-selected={activeTab === 'quickview'} onClick={() => onTabChange('quickview')}>Quick view</button>
-        </div>
+        {activeTab === 'quickview' && product ? <button className={`utility-panel-wishlist ${isWishlisted(product) ? 'is-active' : ''}`} type="button" aria-label={isWishlisted(product) ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`} title={isWishlisted(product) ? 'Remove from your wishlist' : 'Add to your wishlist'} aria-pressed={isWishlisted(product)} onClick={() => onToggleWishlist(product)}><i className={`bi ${isWishlisted(product) ? 'bi-heart-fill' : 'bi-heart'}`} aria-hidden="true" /></button> : <span aria-hidden="true" />}
         <button className="utility-panel-close" type="button" aria-label="Close panel" onClick={onClose}>×</button>
       </div>
       {activeTab === 'cart' ? items.length > 0 ? <>
@@ -1540,6 +1533,9 @@ export function App() {
   const [selectedCollection, setSelectedCollection] = useState<string | null>(() => getCollectionTitleFromPath(window.location.pathname))
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false)
+  const [wishlistTitles, setWishlistTitles] = useState<string[]>(() => {
+    try { return JSON.parse(window.localStorage.getItem('linery-wishlist') ?? '[]') as string[] } catch { return [] }
+  })
   const [quickViewOpen, setQuickViewOpen] = useState(false)
   const [utilityPanelTab, setUtilityPanelTab] = useState<'cart' | 'quickview'>('cart')
   const [quickViewAvailable, setQuickViewAvailable] = useState(() => window.matchMedia('(min-width: 1101px)').matches)
@@ -1791,6 +1787,14 @@ export function App() {
     setQuickViewOpen(false)
     setCartDrawerOpen(true)
   }
+  const toggleWishlist = (product: Product) => {
+    setWishlistTitles((titles) => {
+      const nextTitles = titles.includes(product.title) ? titles.filter((title) => title !== product.title) : [...titles, product.title]
+      window.localStorage.setItem('linery-wishlist', JSON.stringify(nextTitles))
+      return nextTitles
+    })
+  }
+  const isWishlisted = (product: Product) => wishlistTitles.includes(product.title)
   const removeFromCart = (title: string) => setCartItems((items) => items.filter((item) => item.product.title !== title))
   const changeCartQuantity = (title: string, delta: number) => setCartItems((items) => items.map((item) => item.product.title === title ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))
   const closeCartDrawer = () => setCartDrawerOpen(false)
@@ -1820,8 +1824,10 @@ export function App() {
     setQuickViewOpen(true)
   }
   const openPreview = (product: Product) => {
-    if (!quickViewOpen) return
     if (previewCloseTimer.current !== null) window.clearTimeout(previewCloseTimer.current)
+    setUtilityPanelTab('quickview')
+    setCartDrawerOpen(false)
+    setQuickViewOpen(true)
     setPreviewProduct(product)
   }
   const schedulePreviewClose = () => undefined
@@ -1854,14 +1860,14 @@ export function App() {
     <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => setHeroMotionOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} />
     <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
     <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} />
-     {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'collection' ? <AllBooksPage collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} onBuyNow={buyNow} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
+     {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'collection' ? <AllBooksPage collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} onBuyNow={buyNow} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
       <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration">
         <div className="hero-art">
           <img className="hero-art-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách trên nền đỏ" />
         <img className="hero-art-hover" src="/assets/hero-children-shop-hover.png" alt="" aria-hidden="true" />
         </div>
       </section>
-      <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onCollection={showCollection} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable && quickViewOpen} />)}</div>
+      <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} onCollection={showCollection} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} />)}</div>
     <LineryNewsSection language={language} onOpen={showNewsDetail} onSeeMore={showNews} />
     </main>}
     <Footer />
@@ -1873,6 +1879,7 @@ export function App() {
     {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} onForgotPassword={showForgotPassword} onLoginSuccess={completeLogin} />}
     {view === 'register' && <RegisterPage onHome={showHome} onLogin={showLogin} language={language} />}
     {(view === 'forgot-password' || view === 'password-reset-sent' || view === 'reset-password' || view === 'password-reset-complete') && <PasswordRecoveryPage mode={view} onHome={showHome} onLogin={showLogin} onEmailSent={showPasswordResetSent} onResetPassword={showResetPassword} onComplete={showPasswordResetComplete} />}
-    {((quickViewAvailable && quickViewOpen) || cartDrawerOpen) && <UtilityPanel activeTab={utilityPanelTab} items={cartItems} product={previewProduct} onTabChange={changeUtilityPanelTab} onClose={utilityPanelTab === 'cart' ? closeCartDrawer : closePreview} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} onViewCart={() => { closeCartDrawer(); showCart() }} onCheckout={checkout} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} />}
+    {((quickViewAvailable && quickViewOpen) || cartDrawerOpen) && <UtilityPanel activeTab={utilityPanelTab} items={cartItems} product={previewProduct} onClose={utilityPanelTab === 'cart' ? closeCartDrawer : closePreview} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} onViewCart={() => { closeCartDrawer(); showCart() }} onCheckout={checkout} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} onToggleWishlist={toggleWishlist} isWishlisted={isWishlisted} />}
   </>
 }
+
