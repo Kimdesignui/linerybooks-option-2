@@ -1047,8 +1047,8 @@ function EmagazineDemoPage({ item, language, onBack }: { item: NewsItem; languag
   return <main className="emagazine-page">
     <article className="emagazine-story" aria-labelledby="emagazine-title">
       <div className="emagazine-hero" aria-label="Hero eMagazine demo">
-        <img className="emagazine-hero-image emagazine-hero-image-base" src="/assets/hero-children.png" alt="Minh họa LineryBooks" />
-        <img className="emagazine-hero-image emagazine-hero-image-hover" src="/assets/hero-children-shop-hover.png" alt="" aria-hidden="true" />
+        <img className="emagazine-hero-image emagazine-hero-image-base" src="/assets/cover-art-thief.jpg" alt="Bìa sách nghệ thuật" />
+        <img className="emagazine-hero-image emagazine-hero-image-hover" src="/assets/cover-art-artist.jpg" alt="" aria-hidden="true" />
         <div className="emagazine-hero-shade" />
         <div className="emagazine-hero-caption"><span>LineryBooks · eMagazine demo</span><strong>Những câu chuyện<br />được kể bằng hình ảnh</strong></div>
       </div>
@@ -1062,7 +1062,7 @@ function EmagazineDemoPage({ item, language, onBack }: { item: NewsItem; languag
       <div className="emagazine-body">
         <p className="emagazine-dropcap">Một bài eMagazine không chỉ là một bài viết dài. Đó là cách nội dung được chia thành từng nhịp để người đọc quan sát, dừng lại và tiếp tục khám phá.</p>
         <p>Trong bản mẫu này, hero mở đầu tạo cảm giác chuyển động nhẹ, sau đó nội dung đi vào một đoạn dẫn ngắn trước khi mở ra các chương. Cấu trúc này có thể thay bằng ảnh, video, chú thích hoặc block tương tác từ Editor.js.</p>
-        <figure className="emagazine-figure"><img src="/assets/all-books-hero.png" alt="Minh họa không gian đọc và khám phá" /><figcaption>Khoảng trắng giúp hình ảnh có thời gian được nhìn thấy trước khi câu chuyện tiếp tục.</figcaption></figure>
+        <figure className="emagazine-figure"><img src="/assets/cover-art-futures.jpg" alt="Bìa sách nghệ thuật về tương lai" /><figcaption>Khoảng trắng giúp hình ảnh có thời gian được nhìn thấy trước khi câu chuyện tiếp tục.</figcaption></figure>
         <h2>Nhìn lại hình ảnh</h2>
         <p>Ở mỗi chương, hình ảnh giữ vai trò dẫn đường. Văn bản không lặp lại điều mắt đã thấy mà bổ sung bối cảnh, chi tiết và những câu hỏi để người đọc tự quan sát.</p>
         <div className="emagazine-pullquote">“Một trang đọc tốt luôn biết khi nào nên nói, khi nào nên để hình ảnh lên tiếng.”</div>
