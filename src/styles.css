@@ -26,8 +26,15 @@ body { margin: 0; min-width: 320px; background: var(--color-olive); }
 .admin-shell .admin-primary-action { color: #fff; font-size: var(--admin-body-size); line-height: 1; }
 .admin-shell .admin-primary-action:hover, .admin-shell .admin-primary-action:focus-visible { color: #fff; background: var(--color-olive-dark); }
 .admin-shell .admin-primary-icon { color: #fff; }
+.admin-shell .admin-primary-action { background: var(--color-secondary-brand); }
+.admin-shell .admin-primary-action:hover, .admin-shell .admin-primary-action:focus-visible { background: #934125; }
+.admin-shell .admin-status-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 10px; font: 600 12px/1.2 var(--font-admin); white-space: nowrap; }
+.admin-shell .admin-status-badge.is-success { background: #e9f8ef; color: #166534; }
+.admin-shell .admin-status-badge.is-warning { background: #fff5e6; color: #a85c00; }
+.admin-shell .admin-status-badge.is-danger { background: #fff0ee; color: #b52f2f; }
+.admin-shell .admin-status-badge.is-info { background: #eef6ff; color: #1467bd; }
 .admin-shell [class~="text-[10px]"], .admin-shell [class~="text-[11px]"], .admin-shell [class~="text-xs"] { font-size: 12px; line-height: 1.4; }
-.admin-shell .admin-sidebar { width: 240px; height: 100dvh; max-height: 100dvh; overflow: hidden; }
+.admin-shell .admin-sidebar { width: 240px; height: 100dvh; max-height: 100dvh; overflow: visible; }
 .admin-shell .admin-sidebar > nav { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .admin-shell .admin-sidebar nav > p:first-child { display: none; }
 .admin-sales-dashboard {
@@ -89,20 +96,79 @@ body[data-admin-module="/admin/reports"] .admin-shell main > section:last-child 
 .admin-info-tooltip:hover .admin-info-tooltip-content, .admin-info-tooltip:focus-within .admin-info-tooltip-content { opacity: 1; transform: translateY(0); }
 .admin-brand-link { display: inline-flex; min-width: 0; align-items: center; gap: 10px; color: var(--color-ink); text-decoration: none; }
 .admin-brand { display: inline-flex; min-width: 0; align-items: center; gap: 10px; }
-.admin-brand img { display: block; width: 32px; height: 32px; flex: 0 0 32px; border-radius: 8px; object-fit: cover; }
+.admin-brand img { display: block; width: 32px; min-width: 32px; max-width: 32px; height: 32px; min-height: 32px; max-height: 32px; flex: 0 0 32px; flex-shrink: 0; aspect-ratio: 1; border-radius: 50%; object-fit: cover; }
 .admin-brand span { overflow: hidden; color: var(--color-ink); font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
 /* Keep the remaining legacy admin shell on the same LineryBooks brand asset. */
-.admin-shell .admin-sidebar > div:first-child > a.font-display { display: inline-flex; width: 156px; height: 32px; align-items: center; overflow: hidden; background: url('/assets/linerybooks-logo-pixel-bg.svg') left center / 32px 32px no-repeat; padding-left: 42px; font-size: 0; letter-spacing: .02em; line-height: 32px; white-space: nowrap; }
+.admin-shell .admin-sidebar > div:first-child > a.font-display { display: inline-flex; width: 156px; height: 32px; align-items: center; overflow: hidden; background: url('/assets/linerybooks-favicon.svg') left center / 32px 32px no-repeat; padding-left: 42px; font-size: 0; letter-spacing: .02em; line-height: 32px; white-space: nowrap; }
 .admin-shell table img[alt^='Bìa '] { width: 48px; height: auto; aspect-ratio: 2 / 3; object-fit: cover; }
+.admin-shell table td > span.rounded-full { white-space: nowrap; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:last-child > button:last-child { background: #934125; color: #fff; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:last-child > button:last-child:hover,
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:last-child > button:last-child:focus-visible { background: #7e311f; color: #fff; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article { position: relative; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:first-child { height: 0; min-height: 0; padding: 0; border-bottom: 0; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:first-child > span { display: none; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:first-child > div:last-child { position: absolute; right: 16px; bottom: 16px; z-index: 2; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:first-child > div:last-child > button { width: 32px; height: 32px; border: 1px solid #dedbd0; border-radius: 8px; background: #fff; color: #62655f; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:first-child > div:last-child > button:hover,
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:first-child > div:last-child > button:focus-visible { border-color: var(--color-secondary-brand); background: #fff7f3; color: #934125; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:last-child > button:last-child { width: calc(100% - 84px); }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.overflow-hidden table { table-layout: fixed; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.overflow-hidden table th,
+body[data-admin-module="/admin/authors"] .admin-shell main > section.overflow-hidden table td { padding-top: 10px; padding-bottom: 10px; line-height: 1.25; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.overflow-hidden table th:last-child,
+body[data-admin-module="/admin/authors"] .admin-shell main > section.overflow-hidden table td:last-child { width: 116px; min-width: 116px; white-space: nowrap; text-align: center; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.overflow-hidden table td:last-child button { width: 32px; height: 32px; margin-inline: 2px; border: 1px solid #dedbd0; border-radius: 8px; background: #fff; color: #62655f; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.overflow-hidden table td:last-child button:hover,
+body[data-admin-module="/admin/authors"] .admin-shell main > section.overflow-hidden table td:last-child button:focus-visible { border-color: var(--color-secondary-brand); background: #fff7f3; color: #934125; }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > img { aspect-ratio: 4 / 5; height: auto; }
+@media (min-width: 900px) {
+  body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1400px) {
+  body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 1800px) {
+  body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .admin-shell > aside.admin-sidebar { height: 100dvh; min-height: 100dvh; max-height: 100dvh; align-self: flex-start; overflow: visible; }
+  .admin-shell > aside.admin-sidebar > .admin-sidebar-collapse { z-index: 100; }
+  .admin-shell > aside.admin-sidebar > nav { min-height: 0; height: calc(100dvh - 60px); overflow-y: auto; }
+}
 .admin-shell .admin-sidebar > div:first-child > a.font-display::after { color: var(--color-ink); content: 'LineryBooks'; font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: .02em; }
 .admin-shell .admin-sidebar > div:first-child > a.font-display > span { display: none; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar > div:first-child > a.font-display { width: 32px; padding-left: 0; background-position: center; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar > div:first-child > a.font-display::after { display: none; }
 .admin-shell .admin-sidebar nav { padding: 12px; }
 .admin-shell .admin-sidebar nav a, .admin-shell .admin-sidebar > div a { border-radius: 8px; padding: 8px 10px; }
+.admin-shell .admin-sidebar .admin-book-subnav { display: none; }
+.admin-shell .admin-sidebar nav > div:hover .admin-book-subnav,
+.admin-shell .admin-sidebar nav > div:focus-within .admin-book-subnav,
+.admin-shell .admin-sidebar nav > div:has(.admin-book-subnav a[aria-current='page']) .admin-book-subnav { display: block; }
 .admin-create-sidebar { position: relative; transform: translateX(0); }
 .admin-create-aside { position: static; }
 .admin-create-header-actions > * { box-sizing: border-box; }
+.admin-news-type-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid #e6e2d7; border-radius: 10px; background: #f7f6ef; }
+.admin-news-type-tab { min-height: 36px; padding: 0 16px; border: 0; border-radius: 7px; background: transparent; color: #62655f; font: 600 14px/1 var(--font-admin); transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease; }
+.admin-news-type-tab:hover, .admin-news-type-tab:focus-visible { color: var(--color-ink); outline: none; }
+.admin-news-type-tab.is-active { background: #fff; color: var(--color-olive-dark); box-shadow: 0 1px 4px rgba(31,42,36,.1); }
+.admin-news-type-note { margin: -6px 0 0; color: #74776f; font: 400 13px/1.5 var(--font-admin); }
+.admin-ckeditor .ck.ck-editor__main > .ck-editor__editable { min-height: 280px; border: 0; border-radius: 0; padding: 16px 18px; font: 400 15px/1.7 var(--font-admin); color: var(--color-ink); }
+.admin-ckeditor .ck.ck-toolbar { border: 0; border-bottom: 1px solid #eeeae0; background: #fcfbf7; padding: 8px; }
+.admin-ckeditor .ck.ck-toolbar .ck-button { border-radius: 6px; }
+.admin-ckeditor .ck.ck-editor__editable.ck-focused { border: 0; box-shadow: none; }
+.admin-editorjs-surface { min-height: 420px; padding: 22px 24px 28px; }
+.admin-editorjs-surface .codex-editor { max-width: none; }
+.admin-editorjs-surface .ce-block__content, .admin-editorjs-surface .ce-toolbar__content { max-width: none; }
+.admin-editorjs-surface .ce-paragraph, .admin-editorjs-surface .ce-header, .admin-editorjs-surface .cdx-quote, .admin-editorjs-surface .tc-table { font-family: var(--font-admin); }
+.admin-editorjs-surface .ce-paragraph { min-height: 28px; font-size: 15px; line-height: 1.7; }
+.admin-editorjs-surface .ce-header { line-height: 1.25; }
+.admin-editorjs-surface .cdx-quote { border-left: 3px solid var(--color-olive); padding-left: 16px; }
+.admin-editorjs-surface .tc-table { width: 100%; }
+.admin-editorjs-surface .ce-toolbar__plus, .admin-editorjs-surface .ce-toolbar__settings-btn { color: var(--color-olive-dark); }
+.admin-editorjs-surface .ce-toolbar__plus:hover, .admin-editorjs-surface .ce-toolbar__settings-btn:hover { background: rgba(155,148,47,.12); }
 .admin-create-actions { position: sticky; top: 64px; z-index: 19; display: flex; justify-content: flex-end; border-bottom: 1px solid #e5e2d7; background: rgba(255,255,255,.95); padding: 8px 16px; backdrop-filter: blur(10px); }
 .admin-create-actions .admin-create-header-actions { display: flex; min-width: 0; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 8px; }
 .admin-shell header { min-height: 60px; height: 60px; }
@@ -117,6 +183,7 @@ body[data-admin-module="/admin/reports"] .admin-shell main > section:last-child 
 .admin-shell .rounded-xl { border-radius: 8px; }
 /* Compact admin controls: keep forms dense while preserving readable labels and editors. */
 .admin-shell input:not([type='checkbox']):not([type='radio']):not([type='file']), .admin-shell select { min-height: 36px; padding-top: 6px; padding-bottom: 6px; line-height: 1.25; }
+.admin-shell select { appearance: none; padding-right: 36px; background-image: url('/assets/chevron-down.svg'); background-position: right 12px center; background-repeat: no-repeat; background-size: 12px 12px; color: var(--color-ink); font-weight: 400; }
 .admin-shell input:not([type='checkbox']):not([type='radio']):not([type='file'])::placeholder { line-height: 1.25; }
 .admin-shell label > span.mb-1\.5 { margin-bottom: 4px; }
 .admin-shell .admin-select2-tags { margin-top: 4px; gap: 4px; }
@@ -146,19 +213,31 @@ body[data-admin-module="/admin/news"] .admin-shell main section:first-of-type > 
 @media (min-width: 1024px) {
   .admin-sidebar { position: relative; }
 }
-.admin-sidebar-collapse { position: absolute; top: 12px; right: -12px; z-index: 3; display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border: 1px solid #dedbd0; border-radius: 50%; background: #fff; color: var(--color-ink); box-shadow: 0 2px 8px rgba(31,42,36,.08); cursor: pointer; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
+.admin-sidebar-collapse { position: absolute; top: 18px; right: -12px; z-index: 45; display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border: 1px solid #dedbd0; border-radius: 50%; background: #fff; color: var(--color-ink); box-shadow: 0 2px 8px rgba(31,42,36,.08); cursor: pointer; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
 .admin-sidebar-collapse:hover, .admin-sidebar-collapse:focus-visible { border-color: var(--color-olive); background: var(--color-olive); color: #fff; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar { width: 72px; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar > div:first-child { justify-content: center; padding-inline: 0; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar > div:first-child > a { width: 32px; overflow: hidden; font-size: 0; white-space: nowrap; }
-.admin-shell.admin-sidebar-collapsed .admin-sidebar > div:first-child .admin-brand-link { width: 32px; gap: 0; }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar > div:first-child .admin-brand-link { width: 32px; gap: 0; padding-inline: 0; justify-content: center; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar > div:first-child .admin-brand span { display: none; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar > div:first-child > a > span:not(.admin-brand) { display: none; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar nav p { overflow: hidden; height: 0; padding: 0; font-size: 0; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar nav a { justify-content: center; gap: 0; overflow: hidden; padding-inline: 0; font-size: 0; white-space: nowrap; }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar nav a { width: 48px; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar nav a i { flex: none; font-size: 16px; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar nav a span { gap: 0; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar nav .ml-4 { margin-left: 0; padding-left: 0; border-left: 0; }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div { position: relative; }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div > a > i:last-child { display: none; }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div:hover .admin-book-subnav,
+.admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div:focus-within .admin-book-subnav { position: absolute; top: 0; left: calc(100% + 28px); z-index: 60; display: block; width: 190px; margin: 0; padding: 8px; border: 1px solid #e2e5ee; border-left: 0; border-radius: 0 10px 10px 0; background: #fff; box-shadow: 0 12px 28px rgba(31,42,36,.14); }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div .admin-book-subnav { display: none; }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div:hover .admin-book-subnav,
+.admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div:focus-within .admin-book-subnav { display: block; }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div .admin-book-subnav a { width: 100%; justify-content: flex-start; overflow: visible; padding: 8px 10px; font-size: 14px; white-space: nowrap; }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div .admin-book-subnav a i { display: none; }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar-collapse { top: 18px; }
+.admin-shell header { position: static; top: auto; }
 .admin-form-actions {
   display: flex;
   justify-content: flex-end;
@@ -182,6 +261,17 @@ body[data-admin-module="/admin/news"] .admin-shell main section:first-of-type > 
 @media (max-width: 1023px) {
   .admin-sidebar-collapse { display: none; }
 }
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .admin-shell .admin-sidebar { position: fixed; transform: translateX(-100%); }
+  .admin-shell .admin-sidebar.is-open { transform: translateX(0); }
+  .admin-shell .admin-sidebar-collapse { display: none; }
+  .admin-sales-dashboard main > .grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-sales-dashboard main > .grid > aside { position: static; }
+  .admin-shell header button[aria-label='Mở menu quản trị'],
+  .admin-shell header button[aria-label='Open admin navigation'] { display: inline-flex; }
+  .admin-shell > button.fixed.inset-0 { display: block; }
+}
 @media (max-width: 1023px) {
   .admin-shell .admin-sidebar { width: 240px; }
   .admin-create-sidebar { position: fixed; transform: translateX(-100%); }
@@ -198,6 +288,10 @@ body[data-admin-module="/admin/news"] .admin-shell main section:first-of-type > 
 }
 @media (max-width: 639px) {
   .admin-shell main { padding: 10px 12px; }
+  .admin-news-type-tabs { width: 100%; }
+  .admin-news-type-tab { flex: 1 1 0; padding-inline: 10px; }
+  .admin-editorjs-surface { min-height: 360px; padding: 18px 14px 24px; }
+  .admin-ckeditor .ck.ck-editor__main > .ck-editor__editable { min-height: 240px; padding: 14px; }
 }
 body.menu-open { overflow: hidden; }
 body.welcome-open { overflow: hidden; }
