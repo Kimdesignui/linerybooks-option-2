@@ -549,7 +549,7 @@ main:has(.news-module) + .site-footer { margin-top: var(--section-gap); }
 .news-page-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px 18px; }
 .news-page-card button { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
 .news-page-image-wrap { width: 100%; aspect-ratio: 239 / 303; overflow: hidden; border-radius: 14px; background: #e8e5d9; }
-.news-page-image-wrap img { width: 100%; height: 100%; display: block; object-fit: cover; transition: transform 320ms cubic-bezier(.22,.61,.36,1); }
+.news-page-image-wrap img { width: 100%; height: 100%; display: block; object-fit: contain; background: #e8e5d9; transition: transform 320ms cubic-bezier(.22,.61,.36,1); }
 .news-page-card button:hover .news-page-image-wrap img, .news-page-card button:focus-visible .news-page-image-wrap img { transform: scale(1.035); }
 .news-page-card p { margin: 14px 0 6px; color: #999; font: italic 12px/1.3 var(--font-display); }
 .news-page-card h2 { min-height: 44px; margin: 0; font: 400 20px/1.15 var(--font-display); }
