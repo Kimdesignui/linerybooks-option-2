@@ -15,7 +15,7 @@ type Product = { id?: string; slug?: string; image: string; gallery?: string[]; 
 type CartItem = { product: Product; quantity: number }
 type PaymentMethod = 'vnpay' | 'bank' | 'momo' | 'apple' | 'zalopay'
 type FulfillmentMethod = 'pickup' | 'delivery'
-type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[] }
+type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[]; contentType?: 'news' | 'emagazine' }
 type View = 'home' | 'authors' | 'all-books' | 'collection' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete' | 'account' | 'admin'
 type AccountTab = 'profile' | 'orders' | 'orders-demo' | 'order-detail' | 'transactions' | 'transaction-detail' | 'security'
 type WriterDirectoryFilter = 'all' | 'authors' | 'translators'
@@ -258,6 +258,19 @@ const writeAdminBooks = (books: AdminBook[]) => {
 }
 
 const newsItems: NewsItem[] = [
+  {
+    image: '/assets/hero-children.png',
+    title: 'The sky, the sea, and the stories we inherit',
+    titleVi: 'Ông Trời, bà Trời trong tranh Lạc Long Quân - Âu Cơ',
+    date: 'eMagazine · Demo',
+    kicker: 'eMagazine',
+    slug: 'ong-troi-ba-troi-trong-tranh-lac-long-quan-au-co',
+    excerpt: 'Một bài longform mẫu về cách hình ảnh, khoảng trắng và nhịp đọc cùng kể lại một câu chuyện văn hóa.',
+    excerptVi: 'Bài longform mẫu lấy cảm hứng từ cấu trúc bài Znews: hero chuyển động, lời dẫn, các chương nội dung và nhịp cuộn trực quan.',
+    body: [],
+    bodyVi: [],
+    contentType: 'emagazine',
+  },
   {
     image: '/assets/news-instagram-01.jpg',
     title: 'Women read about women',
@@ -1008,6 +1021,7 @@ function NewsPage({ language, onOpen }: { language: 'en' | 'vi'; onOpen: (item: 
 }
 
 function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 'en' | 'vi'; onBack: () => void }) {
+  if (item.contentType === 'emagazine') return <EmagazineDemoPage item={item} language={language} onBack={onBack} />
   const title = language === 'vi' ? item.titleVi : item.title
   const excerpt = language === 'vi' ? item.excerptVi : item.excerpt
   const body = language === 'vi' ? item.bodyVi : item.body
@@ -1024,6 +1038,39 @@ function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 
         <a className="news-source-link" href="https://www.instagram.com/linery_bookstore/" target="_blank" rel="noreferrer">View the original post <i className="bi bi-arrow-up-right" aria-hidden="true" /></a>
       </div>
     </section>
+  </main>
+}
+
+function EmagazineDemoPage({ item, language, onBack }: { item: NewsItem; language: 'en' | 'vi'; onBack: () => void }) {
+  const title = language === 'vi' ? item.titleVi : item.title
+  const lead = language === 'vi' ? item.excerptVi : item.excerpt
+  return <main className="emagazine-page">
+    <article className="emagazine-story" aria-labelledby="emagazine-title">
+      <div className="emagazine-hero" aria-label="Hero eMagazine demo">
+        <img className="emagazine-hero-image emagazine-hero-image-base" src="/assets/hero-children.png" alt="Minh họa LineryBooks" />
+        <img className="emagazine-hero-image emagazine-hero-image-hover" src="/assets/hero-children-shop-hover.png" alt="" aria-hidden="true" />
+        <div className="emagazine-hero-shade" />
+        <div className="emagazine-hero-caption"><span>LineryBooks · eMagazine demo</span><strong>Những câu chuyện<br />được kể bằng hình ảnh</strong></div>
+      </div>
+      <div className="emagazine-intro">
+        <button className="emagazine-back" type="button" onClick={onBack}><i className="bi bi-arrow-left" aria-hidden="true" /> Quay lại tin tức</button>
+        <p className="news-detail-kicker">{item.kicker}</p>
+        <h1 id="emagazine-title">{title}</h1>
+        <p className="emagazine-lead">{lead}</p>
+        <p className="emagazine-meta">Demo layout · LineryBooks editorial studio</p>
+      </div>
+      <div className="emagazine-body">
+        <p className="emagazine-dropcap">Một bài eMagazine không chỉ là một bài viết dài. Đó là cách nội dung được chia thành từng nhịp để người đọc quan sát, dừng lại và tiếp tục khám phá.</p>
+        <p>Trong bản mẫu này, hero mở đầu tạo cảm giác chuyển động nhẹ, sau đó nội dung đi vào một đoạn dẫn ngắn trước khi mở ra các chương. Cấu trúc này có thể thay bằng ảnh, video, chú thích hoặc block tương tác từ Editor.js.</p>
+        <figure className="emagazine-figure"><img src="/assets/all-books-hero.png" alt="Minh họa không gian đọc và khám phá" /><figcaption>Khoảng trắng giúp hình ảnh có thời gian được nhìn thấy trước khi câu chuyện tiếp tục.</figcaption></figure>
+        <h2>Nhìn lại hình ảnh</h2>
+        <p>Ở mỗi chương, hình ảnh giữ vai trò dẫn đường. Văn bản không lặp lại điều mắt đã thấy mà bổ sung bối cảnh, chi tiết và những câu hỏi để người đọc tự quan sát.</p>
+        <div className="emagazine-pullquote">“Một trang đọc tốt luôn biết khi nào nên nói, khi nào nên để hình ảnh lên tiếng.”</div>
+        <figure className="emagazine-figure emagazine-figure-split"><img src="/assets/cover-art-lady-in-gold.jpg" alt="Bìa sách nghệ thuật" /><figcaption>Block ảnh có thể dùng cho tranh, bìa sách hoặc tư liệu lưu trữ.</figcaption></figure>
+        <h2>Phần kết</h2>
+        <p>Đây là dữ liệu demo để đội phát triển ghép tiếp quy trình lưu bài, xuất bản, chỉnh sửa và quản lý từng block longform từ màn quản trị eMagazine.</p>
+      </div>
+    </article>
   </main>
 }
 
