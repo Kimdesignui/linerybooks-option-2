@@ -2367,7 +2367,8 @@ function AdminBrand({ compact = false }: { compact?: boolean }) {
 }
 
 function AdminSidebarFooter() {
-  if (window.location.pathname === '/admin') return null
+  const pathname = window.location.pathname
+  if (pathname === '/admin/authors' || Object.prototype.hasOwnProperty.call(adminModuleConfigs, pathname)) return null
   return <div className="mt-auto border-t border-[#eeeae0] p-4"><a className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-body text-sm text-[#62655f] transition-colors hover:bg-[#f5f3ec] hover:text-[var(--color-ink)]" href="/#home"><i className="bi bi-arrow-left" aria-hidden="true" />Về cửa hàng</a></div>
 }
 
