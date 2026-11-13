@@ -142,7 +142,7 @@ body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:h
 }
 @media (min-width: 1024px) {
   .admin-shell > aside.admin-sidebar { position: sticky; top: 0; height: 100dvh; min-height: 100dvh; max-height: 100dvh; align-self: flex-start; overflow: hidden; }
-  .admin-shell > aside.admin-sidebar > .admin-sidebar-collapse { z-index: 100; }
+  .admin-shell > aside.admin-sidebar > .admin-sidebar-collapse { z-index: 9999; }
   .admin-shell > aside.admin-sidebar > nav { min-height: 0; height: auto; overflow-y: auto; }
 }
 .admin-shell .admin-sidebar > div:first-child > a.font-display::after { color: var(--color-ink); content: 'LineryBooks'; font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: .02em; }
@@ -221,7 +221,7 @@ body[data-admin-module="/admin/news"] .admin-shell main section:first-of-type > 
 @media (min-width: 1024px) {
   .admin-sidebar { position: relative; }
 }
-.admin-sidebar-collapse { position: absolute; top: 18px; right: -12px; z-index: 45; display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border: 1px solid #dedbd0; border-radius: 50%; background: #fff; color: var(--color-ink); box-shadow: 0 2px 8px rgba(31,42,36,.08); cursor: pointer; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
+.admin-sidebar-collapse { position: fixed; top: 18px; left: 228px; z-index: 9999; display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border: 1px solid #dedbd0; border-radius: 50%; background: #fff; color: var(--color-ink); box-shadow: 0 2px 8px rgba(31,42,36,.08); cursor: pointer; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
 .admin-sidebar-collapse:hover, .admin-sidebar-collapse:focus-visible { border-color: var(--color-olive); background: var(--color-olive); color: #fff; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar { width: 72px; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar > div:first-child { justify-content: center; padding-inline: 0; }
@@ -244,7 +244,7 @@ body[data-admin-module="/admin/news"] .admin-shell main section:first-of-type > 
 .admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div:focus-within .admin-book-subnav { display: block; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div .admin-book-subnav a { width: 100%; justify-content: flex-start; overflow: visible; padding: 8px 10px; font-size: 14px; white-space: nowrap; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar nav > div .admin-book-subnav a i { display: none; }
-.admin-shell.admin-sidebar-collapsed .admin-sidebar-collapse { top: 18px; }
+.admin-shell.admin-sidebar-collapsed .admin-sidebar-collapse { top: 18px; left: 60px; }
 .admin-shell header { position: static; top: auto; }
 .admin-form-actions {
   display: flex;
