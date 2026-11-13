@@ -17,6 +17,7 @@ export type PublicCatalogProduct = {
   gallery: string[]
   author: string
   translators: string[]
+  illustrators: string[]
   price: string
   categories: string[]
   publisher: string
@@ -75,29 +76,36 @@ const publicMediaUrl = (storagePath: string) => {
 const unique = (values: string[]) => [...new Set(values.filter(Boolean))]
 const asArray = <T,>(value: T | T[] | null | undefined): T[] => value == null ? [] : Array.isArray(value) ? value : [value]
 
+let publicCatalogPromise: Promise<PublicCatalogProduct[] | null> | null = null
+let publicCreatorsPromise: Promise<PublicCreatorProfile[] | null> | null = null
+let publicNewsPromise: Promise<PublicNewsPost[] | null> | null = null
+
 export async function loadPublicCatalogProducts(): Promise<PublicCatalogProduct[] | null> {
   if (!supabase) return null
-  const [books, images, creators, terms, modules] = await Promise.all([
+  if (publicCatalogPromise) return publicCatalogPromise
+  publicCatalogPromise = (async () => {
+    const [books, images, creators, terms, modules] = await Promise.all([
     supabase.from('books').select('id,isbn,title,slug,sale_price_vnd,publication_date,inventory_quantity,reserved_inventory_quantity,cover_storage_path').eq('status', 'active').eq('is_visible_website', true).order('created_at', { ascending: false }),
     supabase.from('book_images').select('book_id,storage_path,sort_order,is_primary').order('sort_order', { ascending: true }),
     supabase.from('book_creators').select('book_id,creator_id,role,sort_order,creators(display_name,slug)').order('sort_order', { ascending: true }),
     supabase.from('book_taxonomy_terms').select('book_id,term_id,taxonomy_terms(kind,name,slug)').order('term_id', { ascending: true }),
     supabase.from('book_homepage_modules').select('book_id,module_id,sort_order,homepage_modules(name,slug)').order('sort_order', { ascending: true }),
-  ])
-  const error = books.error ?? images.error ?? creators.error ?? terms.error ?? modules.error
-  if (error) throw error
+    ])
+    const error = books.error ?? images.error ?? creators.error ?? terms.error ?? modules.error
+    if (error) throw error
 
   const imageRows = (images.data ?? []) as Array<{ book_id: string; storage_path: string; sort_order: number; is_primary: boolean }>
   const creatorRows = (creators.data ?? []) as Array<{ book_id: string; role: 'author' | 'translator' | 'illustrator'; sort_order: number; creators: Array<{ display_name: string }> | null }>
   const termRows = (terms.data ?? []) as Array<{ book_id: string; taxonomy_terms: Array<{ kind: string; name: string; slug: string }> | null }>
   const moduleRows = (modules.data ?? []) as Array<{ book_id: string; homepage_modules: Array<{ name: string; slug: string }> | null }>
 
-  return ((books.data ?? []) as Array<Record<string, unknown>>).map((book) => {
+    return ((books.data ?? []) as Array<Record<string, unknown>>).map((book) => {
     const id = String(book.id)
     const bookImages = imageRows.filter((row) => row.book_id === id).sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order).map((row) => publicMediaUrl(row.storage_path))
     const bookCreators = creatorRows.filter((row) => row.book_id === id)
     const authors = bookCreators.filter((row) => row.role === 'author').flatMap((row) => asArray(row.creators).map((creator) => creator.display_name))
     const translators = bookCreators.filter((row) => row.role === 'translator').flatMap((row) => asArray(row.creators).map((creator) => creator.display_name))
+    const illustrators = bookCreators.filter((row) => row.role === 'illustrator').flatMap((row) => asArray(row.creators).map((creator) => creator.display_name))
     const bookTerms = termRows.filter((row) => row.book_id === id).flatMap((row) => asArray(row.taxonomy_terms))
     const categories = unique(bookTerms.filter((term) => ['category', 'genre', 'topic'].includes(term.kind)).map((term) => term.name))
     const publisher = bookTerms.find((term) => term.kind === 'publisher')?.name ?? 'Linery Books'
@@ -114,6 +122,7 @@ export async function loadPublicCatalogProducts(): Promise<PublicCatalogProduct[
       gallery: bookImages,
       author: authors[0] ?? translators[0] ?? 'Linery Books',
       translators: unique(translators),
+      illustrators: unique(illustrators),
       price,
       categories,
       publisher,
@@ -122,19 +131,24 @@ export async function loadPublicCatalogProducts(): Promise<PublicCatalogProduct[
       available: inventory > reserved,
       moduleSlugs: unique(moduleRows.filter((row) => row.book_id === id).flatMap((row) => asArray(row.homepage_modules).map((module) => module.slug))),
     } satisfies PublicCatalogProduct
-  }).filter((book) => book.title && book.image)
+    }).filter((book) => book.title && book.image)
+  })()
+  publicCatalogPromise.catch(() => { publicCatalogPromise = null })
+  return publicCatalogPromise
 }
 
 export async function loadPublicCreatorProfiles(): Promise<PublicCreatorProfile[] | null> {
   if (!supabase) return null
-  const [creators, images] = await Promise.all([
+  if (publicCreatorsPromise) return publicCreatorsPromise
+  publicCreatorsPromise = (async () => {
+    const [creators, images] = await Promise.all([
     supabase.from('creators').select('id,display_name,slug,bio_html,birth_year,death_year,awards').eq('is_active', true).order('sort_order', { ascending: true }),
     supabase.from('creator_images').select('creator_id,storage_path,sort_order,is_primary').order('sort_order', { ascending: true }),
-  ])
-  const error = creators.error ?? images.error
-  if (error) throw error
+    ])
+    const error = creators.error ?? images.error
+    if (error) throw error
   const imageRows = (images.data ?? []) as Array<{ creator_id: string; storage_path: string; sort_order: number; is_primary: boolean }>
-  return ((creators.data ?? []) as Array<Record<string, unknown>>).map((creator) => {
+    return ((creators.data ?? []) as Array<Record<string, unknown>>).map((creator) => {
     const id = String(creator.id)
     const creatorImages = imageRows
       .filter((row) => row.creator_id === id)
@@ -155,17 +169,22 @@ export async function loadPublicCreatorProfiles(): Promise<PublicCreatorProfile[
       academicTitle: '—',
       bio: String(creator.bio_html ?? '').trim(),
     }
-  }).filter((creator) => creator.name)
+    }).filter((creator) => creator.name)
+  })()
+  publicCreatorsPromise.catch(() => { publicCreatorsPromise = null })
+  return publicCreatorsPromise
 }
 
 export async function loadPublicNewsPosts(): Promise<PublicNewsPost[] | null> {
   if (!supabase) return null
-  const [{ data, error }, { data: blockData, error: blockError }] = await Promise.all([
+  if (publicNewsPromise) return publicNewsPromise
+  publicNewsPromise = (async () => {
+    const [{ data, error }, { data: blockData, error: blockError }] = await Promise.all([
     supabase.from('news_posts').select('id,slug,content_type,published_at,image_storage_path,title_en,title_vi,kicker_en,kicker_vi,excerpt_en,excerpt_vi,body_en,body_vi,byline').eq('status', 'active').order('published_at', { ascending: false, nullsFirst: false }),
     supabase.from('news_post_blocks').select('id,news_post_id,language,block_type,sort_order,content,image_storage_path,image_alt,caption,is_full_bleed,image_width,image_height').order('sort_order', { ascending: true }),
-  ])
-  if (error) throw error
-  if (blockError) throw blockError
+    ])
+    if (error) throw error
+    if (blockError) throw blockError
   const blocksByPost = new Map<string, { en: PublicNewsBlock[]; vi: PublicNewsBlock[] }>()
   for (const row of (blockData ?? []) as Array<Record<string, unknown>>) {
     const postId = String(row.news_post_id ?? '')
@@ -185,7 +204,7 @@ export async function loadPublicNewsPosts(): Promise<PublicNewsPost[] | null> {
     grouped[String(row.language) === 'vi' ? 'vi' : 'en'].push(block)
     blocksByPost.set(postId, grouped)
   }
-  return ((data ?? []) as Array<Record<string, unknown>>).map((post) => {
+    return ((data ?? []) as Array<Record<string, unknown>>).map((post) => {
     const grouped = blocksByPost.get(String(post.id)) ?? { en: [], vi: [] }
     return {
     image: publicMediaUrl(String(post.image_storage_path ?? '')),
@@ -203,7 +222,10 @@ export async function loadPublicNewsPosts(): Promise<PublicNewsPost[] | null> {
     blocks: grouped.en.length > 0 ? grouped.en : grouped.vi,
     blocksVi: grouped.vi.length > 0 ? grouped.vi : grouped.en,
   }
-  }).filter((post) => post.slug && post.title)
+    }).filter((post) => post.slug && post.title)
+  })()
+  publicNewsPromise.catch(() => { publicNewsPromise = null })
+  return publicNewsPromise
 }
 
 export async function loadSupabaseCatalogSnapshot(): Promise<SupabaseCatalogSnapshot | null> {
