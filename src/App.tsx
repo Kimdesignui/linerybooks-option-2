@@ -1259,6 +1259,26 @@ function Collection({ title, items, onCollection, quickViewOpen, language = 'en'
   </section>
 }
 
+function RelatedBooksPanel({ items, onOpenDetail }: { items: Product[]; onOpenDetail: (product: Product) => void }) {
+  return <aside className="book-related-sidebar book-related-sidebar-fixed" aria-labelledby="book-related-title">
+    <div className="book-related-sidebar-header">
+      <div>
+        <p className="book-detail-kicker">Related reading</p>
+        <h2 id="book-related-title">Books in this subject</h2>
+      </div>
+      <span>{items.length} titles</span>
+    </div>
+    <div className="book-related-sidebar-list">
+      {items.map((relatedProduct) => <article className="book-related-sidebar-item" key={relatedProduct.title}>
+        <button className="book-related-sidebar-cover" type="button" onClick={() => onOpenDetail(relatedProduct)} aria-label={`View ${relatedProduct.title}`}>
+          <img src={relatedProduct.image || '/assets/cover-edward.png'} alt={relatedProduct.title} loading="lazy" decoding="async" onError={(event) => { event.currentTarget.src = '/assets/cover-edward.png' }} />
+        </button>
+        <button className="book-related-sidebar-title" type="button" onClick={() => onOpenDetail(relatedProduct)}>{relatedProduct.title}</button>
+      </article>)}
+    </div>
+  </aside>
+}
+
 function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBuyNow, onPreview, onPreviewLeave, onSelectQuickView, quickViewOpen }: { product: Product; onBack: () => void; onAuthor: (author: string) => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onBuyNow: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }) {
   const galleryImages = [product.image]
   const normalizedCategories = product.categories.map(normalizeProductCategory)
@@ -1347,7 +1367,7 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
         </section>
       </div>
     </section>
-    {relatedProducts.length > 0 && <section className="book-detail-related-collection" aria-label="Books in this subject"><Collection title="Books in this subject" items={relatedProducts} onCollection={() => undefined} showViewAll={false} quickViewOpen={quickViewOpen} onOpenDetail={onOpenDetail} onAddToCart={onAddToCart} onPreview={onPreview} onPreviewLeave={onPreviewLeave} onSelectQuickView={onSelectQuickView} /></section>}
+    {relatedProducts.length > 0 && <RelatedBooksPanel items={relatedProducts} onOpenDetail={onOpenDetail} />}
     <section className="book-detail-section book-reviews" aria-labelledby="reviews-title">
       <div className="book-reviews-heading">
         <div>
@@ -3799,7 +3819,7 @@ export function App() {
   return <>
     <SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} />
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
-    <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'utility-panel-active' : ''}`}>
+    <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'utility-panel-active' : ''} ${view === 'detail' ? 'subject-panel-active' : ''}`}>
     {!isEmagazineView && <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} cartPulse={cartPulse} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => setHeroMotionOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} language={language} />}
     {!isEmagazineView && <><button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} /><MobileMenu isOpen={menuOpen} onShop={showHome} onCategory={showCategory} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} /></>}
      {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage heroMotionOpen={heroMotionOpen} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'collection' ? <AllBooksPage heroMotionOpen={heroMotionOpen} collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'search' ? <SearchResultsPage query={searchQuery} loading={catalogLoading} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} />) : <main>
