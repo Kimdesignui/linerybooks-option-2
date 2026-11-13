@@ -470,6 +470,30 @@ const translatedCollectionTitle = (title: string, language: Language) => {
   const translations: Record<string, string> = { 'New & Upcoming': uiText.vi.newUpcoming, 'Linery Press': uiText.vi.lineryPress, 'Linery Picks': uiText.vi.lineryPicks, 'Linery Art Books': uiText.vi.lineryArtBooks, 'Grab & Save': uiText.vi.grabSave }
   return translations[title] ?? title
 }
+const translatedShopLabel = (label: string, language: Language) => {
+  if (language === 'en') return label
+  const translations: Record<string, string> = {
+    Fiction: uiText.vi.fiction,
+    'Non-fiction': uiText.vi.nonFiction,
+    Novels: 'Tiểu thuyết',
+    'Short stories': 'Truyện ngắn',
+    'Poetry & Drama': 'Thơ ca & Kịch',
+    Essays: 'Bài luận',
+    'Research & Studies': 'Nghiên cứu & Khảo sát',
+    'Memoir & Biography': 'Hồi ký & Tiểu sử',
+  }
+  return translations[label] ?? label
+}
+const translatedWriterGroup = (label: string, language: Language) => {
+  if (language === 'en') return label
+  const translations: Record<string, string> = { Role: 'Vai trò', Gender: 'Giới tính', 'Cultural Region': 'Khu vực văn hóa', Era: 'Kỷ nguyên' }
+  return translations[label] ?? label
+}
+const translatedWriterLink = (label: string, language: Language) => {
+  if (language === 'en') return label
+  const translations: Record<string, string> = { Author: 'Tác giả', Translator: 'Dịch giả', Illustrator: 'Họa sĩ minh họa', Male: 'Nam', Female: 'Nữ', Other: 'Khác', Vietnamese: 'Việt Nam', 'East Asian': 'Đông Á', 'Western (US & Europe)': 'Phương Tây (Mỹ & châu Âu)', 'Middle Eastern': 'Trung Đông', 'Latin American': 'Mỹ Latinh', 'Ancient & Medieval': 'Cổ đại & Trung cổ', 'Renaissance & Enlightenment': 'Phục hưng & Khai sáng', '19th-Century Romanticism & Realism': 'Lãng mạn & Hiện thực thế kỷ 19', 'Post-modernism': 'Hậu hiện đại', 'Digital & Contemporary': 'Kỹ thuật số & đương đại' }
+  return translations[label] ?? label
+}
 const collectionSlug = (title: string) => title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const getCollectionTitleFromPath = (pathname: string) => {
   const slug = pathname.startsWith('/collections/') ? pathname.split('/').pop() ?? '' : ''
@@ -477,18 +501,6 @@ const getCollectionTitleFromPath = (pathname: string) => {
 }
 
 type MenuColumn = { eyebrow: string; links: string[] }
-type ShopCategory = { label: string; children?: ShopCategory[] }
-
-const shopCategories: ShopCategory[] = [
-  { label: 'Books', children: [
-    { label: 'Fiction', children: [{ label: 'Novels' }, { label: 'Short stories' }, { label: 'Poetry & Drama' }] },
-    { label: 'Non-fiction', children: [{ label: 'Essays' }, { label: 'Research & Studies' }, { label: 'Memoir & Biography' }] },
-  ] },
-  { label: 'Authors' },
-]
-const shopOnlyCategories = shopCategories
-  .flatMap((category) => category.label === 'Books' ? (category.children ?? []) : [category])
-  .filter((category) => category.label !== 'Authors')
 const desktopShopColumns: MenuColumn[] = [
   { eyebrow: '', links: ['All books', 'New & Upcoming', 'Linery Press', 'Linery Picks', 'Linery Art Books'] },
   { eyebrow: 'Fiction', links: ['Novels', 'Short stories', 'Poetry & Drama'] },
@@ -521,6 +533,12 @@ const writerMenuGroups: MenuColumn[] = [
   { eyebrow: 'Era', links: ['Ancient & Medieval', 'Renaissance & Enlightenment', '19th-Century Romanticism & Realism', 'Post-modernism', 'Digital & Contemporary'] },
 ]
 
+const writerMenuHref = (group: MenuColumn, link: string) => {
+  if (link === 'Author') return '/creators?type=authors'
+  if (link === 'Translator') return '/creators?type=translators'
+  return `/creators?${group.eyebrow.toLowerCase().replaceAll(' ', '-')}=${encodeURIComponent(link)}`
+}
+
 function MenuColumns({ columns }: { columns: MenuColumn[] }) {
   return <div className="menu-columns">{columns.map((column) => <div className="menu-column" key={column.eyebrow}><p className="menu-eyebrow">{column.eyebrow}</p>{column.links.map((link) => <a href={`/creators/${authorSlug(link)}`} key={link}>{link}</a>)}</div>)}</div>
 }
@@ -530,12 +548,12 @@ function ShopMenu({ isOpen, onAllBooks, onCollection, language }: { isOpen: bool
     <div className="shop-menu-inner menu-navigation-inner">
       <div className="shop-menu-columns menu-navigation-list">
         {desktopShopColumns.map((column, columnIndex) => <div className={`shop-menu-column menu-section menu-branch menu-level-${columnIndex === 0 ? 0 : 1}`} key={column.eyebrow || column.links[0]}>
-          {column.eyebrow && <p className="menu-eyebrow menu-section-title">{column.eyebrow}</p>}
+          {column.eyebrow && <p className="menu-eyebrow menu-section-title">{translatedShopLabel(column.eyebrow, language)}</p>}
           {column.links.map((link) => {
             const isCollection = collectionTitles.includes(link as typeof collectionTitles[number])
             const isAllBooks = link === 'All books'
             const categoryHref = `/all-books?category=${encodeURIComponent(link.toLowerCase().replaceAll(' ', '-'))}`
-            return <a className={`menu-item menu-item-link menu-item-text${isAllBooks ? ' shop-menu-view-all' : ''}`} href={isAllBooks ? '/all-books' : isCollection ? `/collections/${collectionSlug(link)}` : categoryHref} key={link} onClick={isAllBooks ? (event) => { event.preventDefault(); onAllBooks() } : isCollection ? (event) => { event.preventDefault(); onCollection(link) } : undefined}><span>{isAllBooks ? tx(language, 'viewAll') : translatedCollectionTitle(link, language)}</span>{isAllBooks && <span aria-hidden="true">→</span>}</a>
+            return <a className={`menu-item menu-item-link menu-item-text${isAllBooks ? ' shop-menu-view-all' : ''}`} href={isAllBooks ? '/all-books' : isCollection ? `/collections/${collectionSlug(link)}` : categoryHref} key={link} onClick={isAllBooks ? (event) => { event.preventDefault(); onAllBooks() } : isCollection ? (event) => { event.preventDefault(); onCollection(link) } : undefined}><span>{isAllBooks ? tx(language, 'viewAll') : isCollection ? translatedCollectionTitle(link, language) : translatedShopLabel(link, language)}</span>{isAllBooks && <span aria-hidden="true">→</span>}</a>
           })}
           </div>)}
       </div>
@@ -550,13 +568,13 @@ function WritersMenu({ isOpen, onAllWriters, onAuthors, onTranslators, language 
         <a className="writers-menu-view-all shop-menu-view-all menu-item menu-item-link menu-item-text" href="/creators" onClick={(event) => { event.preventDefault(); onAllWriters() }}><span>{tx(language, 'viewAll')}</span><span aria-hidden="true">→</span></a>
         <div className="writers-menu-grid">
           {writerMenuGroups.map((group) => <div className="writers-menu-group menu-section menu-branch" key={group.eyebrow}>
-            <p className="menu-eyebrow menu-section-title">{group.eyebrow}</p>
+            <p className="menu-eyebrow menu-section-title">{translatedWriterGroup(group.eyebrow, language)}</p>
             {group.links.map((link) => {
               const isAuthor = link === 'Author'
               const isTranslator = link === 'Translator'
-              const href = isAuthor ? '/creators?type=authors' : isTranslator ? '/creators?type=translators' : `/creators?${group.eyebrow.toLowerCase().replaceAll(' ', '-') }=${encodeURIComponent(link)}`
+              const href = writerMenuHref(group, link)
               const onClick = isAuthor ? (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onAuthors() } : isTranslator ? (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onTranslators() } : undefined
-              return <a className="menu-item menu-item-link menu-item-text" href={href} onClick={onClick} key={link}>{link}</a>
+              return <a className="menu-item menu-item-link menu-item-text" href={href} onClick={onClick} key={link}>{translatedWriterLink(link, language)}</a>
             })}
           </div>)}
         </div>
@@ -565,7 +583,7 @@ function WritersMenu({ isOpen, onAllWriters, onAuthors, onTranslators, language 
   </section>
 }
 
-function MobileMenu({ isOpen, onShop, onCategory, onAllBooks, onCollection, onAllWriters, onAuthors, onTranslators, onSearch, language, onSelectLanguage }: { isOpen: boolean; onShop: () => void; onCategory: (category: string) => void; onAllBooks: () => void; onCollection: (title: string) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void }) {
+function MobileMenu({ isOpen, onCategory, onAllBooks, onCollection, onAllWriters, onAuthors, onTranslators, onSearch, language, onSelectLanguage }: { isOpen: boolean; onCategory: (category: string) => void; onAllBooks: () => void; onCollection: (title: string) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void }) {
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Fiction: true, 'Non-fiction': true, 'Linery Press': true, Role: false, Gender: false, 'Cultural Region': false, Era: false })
   const [query, setQuery] = useState('')
   const toggleBranch = (label: string) => setOpenBranches((current) => ({ ...current, [label]: !current[label] }))
@@ -584,42 +602,47 @@ function MobileMenu({ isOpen, onShop, onCategory, onAllBooks, onCollection, onAl
     <div className="mobile-menu-tools">
       <form className="mobile-menu-search" onSubmit={(event) => { event.preventDefault(); onSearch(query) }}>
         <img src="/assets/icon-search.svg" alt="" aria-hidden="true" />
-        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search books" aria-label="Search books" />
+        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={tx(language, 'searchBooks')} aria-label={tx(language, 'searchBooks')} />
       </form>
     </div>
     <section className="mobile-menu-section menu-section" aria-labelledby="mobile-shop-heading">
       <h2 id="mobile-shop-heading" className="mobile-menu-section-title menu-section-title">{tx(language, 'books')}</h2>
-      <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAllBooks}><span className="mobile-menu-text menu-item-text">{tx(language, 'viewAll')}</span><span aria-hidden="true">→</span></button>
-      {['New & Upcoming', 'Linery Press', 'Linery Picks', 'Linery Art Books'].map((title) => <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" key={title} onClick={() => onCollection(title)}><span className="mobile-menu-text menu-item-text">{translatedCollectionTitle(title, language)}</span></button>)}
       <div className="mobile-menu-tree">
-        {shopOnlyCategories.map((category) => {
-          const categoryOpen = openBranches[category.label] ?? true
-          return <div className="mobile-menu-branch menu-branch" key={category.label}>
-            <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={() => category.children ? toggleBranch(category.label) : onShop()} aria-expanded={category.children ? categoryOpen : undefined}>
-              <span className="mobile-menu-text menu-item-text">{language === 'vi' && category.label === 'Fiction' ? tx(language, 'fiction') : language === 'vi' && category.label === 'Non-fiction' ? tx(language, 'nonFiction') : category.label}</span>{category.children && <span aria-hidden="true">{categoryOpen ? '−' : '+'}</span>}
+        {desktopShopColumns.map((column, columnIndex) => {
+          if (columnIndex === 0) {
+            return <div className="mobile-menu-column-group" key="shop-links">
+              {column.links.map((link) => {
+                const isAllBooks = link === 'All books'
+                return <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" key={link} onClick={() => isAllBooks ? onAllBooks() : onCollection(link)}><span className="mobile-menu-text menu-item-text">{isAllBooks ? tx(language, 'viewAll') : translatedCollectionTitle(link, language)}</span>{isAllBooks && <span aria-hidden="true">→</span>}</button>
+              })}
+            </div>
+          }
+          const categoryOpen = openBranches[column.eyebrow] ?? true
+          return <div className="mobile-menu-branch menu-branch" key={column.eyebrow}>
+            <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={() => toggleBranch(column.eyebrow)} aria-expanded={categoryOpen}>
+              <span className="mobile-menu-text menu-item-text">{translatedShopLabel(column.eyebrow, language)}</span><span aria-hidden="true">{categoryOpen ? '−' : '+'}</span>
             </button>
-            {category.children && categoryOpen && <div className="mobile-menu-children menu-children">{category.children.map((child) => {
-              const childOpen = openBranches[child.label] ?? true
-              return <div className="mobile-menu-branch menu-branch" key={child.label}>
-                <button className="mobile-menu-item mobile-menu-level-2 menu-item menu-level-2" onClick={() => child.children ? toggleBranch(child.label) : onCategory(child.label)} aria-expanded={child.children ? childOpen : undefined}>
-                  <span className="mobile-menu-text menu-item-text">{child.label}</span>{child.children && <span aria-hidden="true">{childOpen ? '−' : '+'}</span>}
-                </button>
-                {child.children && childOpen && <div className="mobile-menu-children menu-children">{child.children.map((leaf) => <button className="mobile-menu-item mobile-menu-level-3 menu-item menu-level-3" key={leaf.label} onClick={() => onCategory(leaf.label)}><span className="mobile-menu-text menu-item-text">{leaf.label}</span></button>)}</div>}
-              </div>
-            })}</div>}
+            {categoryOpen && <div className="mobile-menu-children menu-children">{column.links.map((link) => <button className="mobile-menu-item mobile-menu-level-2 menu-item menu-level-2" key={link} onClick={() => onCategory(link)}><span className="mobile-menu-text menu-item-text">{translatedShopLabel(link, language)}</span></button>)}</div>}
           </div>
         })}
       </div>
     </section>
     <section className="mobile-menu-section menu-section mobile-menu-authors" aria-labelledby="mobile-authors-heading">
-      <h2 id="mobile-authors-heading" className="mobile-menu-section-title menu-section-title">WRITERS</h2>
+      <h2 id="mobile-authors-heading" className="mobile-menu-section-title menu-section-title">{tx(language, 'writers')}</h2>
       <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAllWriters}><span className="mobile-menu-text menu-item-text">{tx(language, 'viewAll')}</span><span aria-hidden="true">→</span></button>
       {writerMenuGroups.map((group) => {
         const groupOpen = openBranches[group.eyebrow] ?? true
         return <div className="mobile-writer-group" key={group.eyebrow}>
-          <button className="mobile-writer-group-toggle" type="button" onClick={() => toggleBranch(group.eyebrow)} aria-expanded={groupOpen}><span>{group.eyebrow}</span><span aria-hidden="true">{groupOpen ? '−' : '+'}</span></button>
+          <button className="mobile-writer-group-toggle" type="button" onClick={() => toggleBranch(group.eyebrow)} aria-expanded={groupOpen}><span>{translatedWriterGroup(group.eyebrow, language)}</span><span aria-hidden="true">{groupOpen ? '−' : '+'}</span></button>
           {groupOpen && <div className="mobile-menu-children menu-children">
-            {group.links.map((link) => <button className="mobile-menu-item mobile-menu-level-2 menu-item menu-level-2" key={link} onClick={link === 'Author' ? onAuthors : link === 'Translator' ? onTranslators : onAllWriters}><span className="mobile-menu-text menu-item-text">{link}</span></button>)}
+            {group.links.map((link) => {
+              const onClick = link === 'Author'
+                ? (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onAuthors() }
+                : link === 'Translator'
+                  ? (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onTranslators() }
+                  : undefined
+              return <a className="mobile-menu-item mobile-menu-level-2 menu-item menu-level-2" href={writerMenuHref(group, link)} onClick={onClick} key={link}><span className="mobile-menu-text menu-item-text">{translatedWriterLink(link, language)}</span></a>
+            })}
           </div>}
         </div>
       })}
@@ -1513,13 +1536,13 @@ const localChatReply = (question: string) => {
   return 'Linbot có thể giúp tìm sách theo tên/tác giả, gợi ý sách trong catalog và hướng dẫn tra đơn. Bạn thử hỏi “tìm sách của Haruki Murakami” hoặc gửi mã đơn hàng nhé.'
 }
 
-function ChatbotWidget({ embedded = false }: { embedded?: boolean } = {}) {
+function ChatbotWidget({ embedded = false, adminMode = false }: { embedded?: boolean; adminMode?: boolean } = {}) {
   const [isOpen, setIsOpen] = useState(embedded)
   const [isExpanded, setIsExpanded] = useState(false)
   const [message, setMessage] = useState('')
   const [attachment, setAttachment] = useState<ChatAttachment | null>(null)
   const [isSending, setIsSending] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: 'Hi, I’m Linbot. I can help you find books, authors, and order information.' }])
+  const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: adminMode ? 'Xin chào, tôi là Linbot. Tôi có thể hỗ trợ tra cứu sách, tác giả, nội dung và các đầu việc quản trị.' : 'Hi, I’m Linbot. I can help you find books, authors, and order information.' }])
 
   const sendMessage = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -1540,7 +1563,7 @@ function ChatbotWidget({ embedded = false }: { embedded?: boolean } = {}) {
         ? await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-goog-api-key': directGeminiApiKey },
-          body: JSON.stringify({ contents: [{ parts: [{ text: `You are Linbot, a bookstore support agent. Answer in the user's language. If an image is provided, identify the book cover as accurately as possible. Do not invent a match. User request: ${userText}` }, ...(imageData ? [{ inline_data: { mime_type: sentAttachment.mimeType, data: imageData } }] : [])] }] }),
+          body: JSON.stringify({ contents: [{ parts: [{ text: `${adminMode ? 'You are Linbot, an internal bookstore administration assistant. Focus on catalog, creators, orders, content, media, and moderation. Answer in the user\'s language and clearly distinguish demo data from verified data.' : 'You are Linbot, a bookstore support agent. Answer in the user\'s language.'} If an image is provided, identify the book cover as accurately as possible. Do not invent a match. User request: ${userText}` }, ...(imageData ? [{ inline_data: { mime_type: sentAttachment.mimeType, data: imageData } }] : [])] }] }),
         })
         : await fetch('/api/chat', {
         method: 'POST',
@@ -1574,15 +1597,15 @@ function ChatbotWidget({ embedded = false }: { embedded?: boolean } = {}) {
   }
 
   return <>
-    {!embedded && !isOpen && <button className="chatbot-float-button" type="button" aria-label="Open Linery chatbot" onClick={() => setIsOpen(true)}><img src="/assets/chatbot.svg" alt="" aria-hidden="true" /></button>}
+    {!embedded && !isOpen && <button className="chatbot-float-button" type="button" aria-label={adminMode ? 'Mở trợ lý quản trị Linery' : 'Open Linery chatbot'} onClick={() => setIsOpen(true)}><img src="/assets/chatbot.svg" alt="" aria-hidden="true" /></button>}
     {isOpen && <section className={`chatbot-panel ${embedded ? 'chatbot-panel-embedded' : ''} ${isExpanded && !embedded ? 'is-expanded' : ''}`} role="dialog" aria-modal="false" aria-label="Linery chatbot">
       <header className="chatbot-header">
-        <div className="chatbot-heading"><span className="chatbot-avatar"><img src="/assets/chatbot.svg" alt="" aria-hidden="true" /></span><div><strong>Linbot</strong><span>Bookshop support</span></div></div>
+        <div className="chatbot-heading"><span className="chatbot-avatar"><img src="/assets/chatbot.svg" alt="" aria-hidden="true" /></span><div><strong>Linbot</strong><span>{adminMode ? 'Trợ lý quản trị' : 'Bookshop support'}</span></div></div>
         <div className="chatbot-header-actions">{!embedded && <button type="button" aria-label={isExpanded ? 'Use compact chat size' : 'Use full chat size'} onClick={() => setIsExpanded((current) => !current)}><i className={`bi ${isExpanded ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'}`} aria-hidden="true" /></button>}{!embedded && <button type="button" aria-label="Close chatbot" onClick={() => setIsOpen(false)}><i className="bi bi-x-lg" aria-hidden="true" /></button>}</div>
       </header>
       <div className="chatbot-messages" aria-live="polite">
         {messages.map((item, index) => <div className={`chatbot-message chatbot-message-${item.role}`} key={`${item.role}-${index}`}>{item.image && <img className="chatbot-message-image" src={item.image.src} alt={`Book cover: ${item.image.name}`} />}<p>{item.text}</p></div>)}
-        <div className="chatbot-prompts"><button type="button" onClick={() => askDemoQuestion('Find a book for me')}>Find a book</button><button type="button" onClick={() => askDemoQuestion('Track my order')}>Track an order</button></div>
+        <div className="chatbot-prompts">{adminMode ? <><button type="button" onClick={() => askDemoQuestion('Tìm sách đang thiếu ảnh bìa')}>Tìm sách thiếu ảnh</button><button type="button" onClick={() => askDemoQuestion('Kiểm tra dữ liệu tác giả')}>Kiểm tra tác giả</button></> : <><button type="button" onClick={() => askDemoQuestion('Find a book for me')}>Find a book</button><button type="button" onClick={() => askDemoQuestion('Track my order')}>Track an order</button></>}</div>
       </div>
       <form className="chatbot-composer" onSubmit={sendMessage}>
         {attachment && <div className="chatbot-attachment-preview"><img src={attachment.src} alt={`Selected ${attachment.name}`} /><span>{attachment.name}</span><button type="button" aria-label="Remove selected image" onClick={() => setAttachment(null)}><i className="bi bi-x-lg" aria-hidden="true" /></button></div>}
@@ -2367,9 +2390,7 @@ function AdminBrand({ compact = false }: { compact?: boolean }) {
 }
 
 function AdminSidebarFooter() {
-  const pathname = window.location.pathname
-  if (pathname === '/admin/authors' || Object.prototype.hasOwnProperty.call(adminModuleConfigs, pathname)) return null
-  return <div className="mt-auto border-t border-[#eeeae0] p-4"><a className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-body text-sm text-[#62655f] transition-colors hover:bg-[#f5f3ec] hover:text-[var(--color-ink)]" href="/#home"><i className="bi bi-arrow-left" aria-hidden="true" />Về cửa hàng</a></div>
+  return <div className="admin-sidebar-footer mt-auto shrink-0 border-t border-[#eeeae0] p-4"><a className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-body text-sm text-[#62655f] transition-colors hover:bg-[#f5f3ec] hover:text-[var(--color-ink)]" href="/#home"><i className="bi bi-arrow-left" aria-hidden="true" />Về cửa hàng</a></div>
 }
 
 function AdminSimpleCreateShell({ title, section, description: _description, backHref, tabs = [], headerActions, children }: { title: string; section: string; description: string; backHref: string; tabs?: Array<{ id: string; label: string }>; headerActions?: ReactNode; children: ReactNode }) {
@@ -3041,7 +3062,7 @@ function AdminBookCreatePageV2() {
   const setValue = (key: keyof typeof values, value: string | string[]) => setValues((current) => ({ ...current, [key]: value }))
   const defaultBookSlug = values.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
   const defaultBookPath = defaultBookSlug ? `/books/${defaultBookSlug}` : ''
-  const textFields: Array<[keyof typeof values, string, string]> = [['title', 'Tên sách', 'text'], ['isbn', 'ISBN', 'text'], ['slug', 'Đường dẫn (không nhập thì hệ thống hiện mặc định)', 'text'], ['coverPriceUsd', 'Giá bìa (USD)', 'number'], ['salePrice', 'Giá bán (VNĐ)', 'number'], ['comparePrice', 'Giá so sánh (VNĐ)', 'number'], ['pages', 'Số trang', 'number'], ['bookSize', 'Khổ sách', 'text'], ['publicationDate', 'Ngày xuất bản', 'date'], ['weight', 'Trọng lượng', 'text']]
+  const textFields: Array<[keyof typeof values, string, string]> = [['title', 'Tên sách', 'text'], ['isbn', 'ISBN', 'text'], ['slug', 'Đường dẫn', 'text'], ['coverPriceUsd', 'Giá bìa (USD)', 'number'], ['salePrice', 'Giá bán (VNĐ)', 'number'], ['comparePrice', 'Giá so sánh (VNĐ)', 'number'], ['pages', 'Số trang', 'number'], ['bookSize', 'Khổ sách', 'text'], ['publicationDate', 'Ngày xuất bản', 'date'], ['weight', 'Trọng lượng', 'text']]
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
@@ -3056,7 +3077,7 @@ function AdminBookCreatePageV2() {
     <form id="admin-book-create-form" className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" onSubmit={submit}>
       <div className="min-w-0 space-y-5">
         <AdminCreatePanel id="book-information" title="Thông tin sách">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{textFields.map(([key, label, type]) => <label className="block" key={key}><span className="mb-1.5 block font-body text-sm font-medium">{label}{['title', 'isbn'].includes(key) && <span className="ml-1 text-[var(--color-olive-dark)]">*</span>}</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type={type} min={type === 'number' ? '0' : undefined} inputMode={key === 'isbn' ? 'numeric' : undefined} pattern={key === 'isbn' ? '[0-9]{13}' : undefined} maxLength={key === 'isbn' ? 13 : undefined} title={key === 'isbn' ? 'ISBN phải gồm đúng 13 chữ số.' : undefined} required={['title', 'isbn'].includes(key)} value={key === 'slug' ? values.slug || defaultBookPath : values[key] as string} onChange={(event) => setValue(key, event.target.value)} /></label>)}<AdminSelect2 label="Imprint" value={values.imprint} options={adminSelectOptions.imprints} onChange={(value) => setValue('imprint', value as string)} placeholder="Tìm và chọn imprint" /><AdminSelect2 label="Ngôn ngữ" value={values.language} options={adminSelectOptions.languages} multiple onChange={(value) => setValue('language', value as string[])} placeholder="Tìm và chọn một hoặc nhiều ngôn ngữ" /></div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{textFields.map(([key, label, type]) => <label className="block" key={key}><span className="mb-1.5 flex items-center font-body text-sm font-medium">{label}{['title', 'isbn'].includes(key) && <span className="ml-1 text-[var(--color-olive-dark)]">*</span>}{key === 'slug' && <AdminInfoTooltip label="Thông tin đường dẫn sách" text="Nếu bỏ trống, hệ thống sẽ tự tạo đường dẫn từ tên sách." />}</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type={type} min={type === 'number' ? '0' : undefined} inputMode={key === 'isbn' ? 'numeric' : undefined} pattern={key === 'isbn' ? '[0-9]{13}' : undefined} maxLength={key === 'isbn' ? 13 : undefined} title={key === 'isbn' ? 'ISBN phải gồm đúng 13 chữ số.' : undefined} required={['title', 'isbn'].includes(key)} value={key === 'slug' ? values.slug || defaultBookPath : values[key] as string} onChange={(event) => setValue(key, event.target.value)} placeholder={key === 'slug' ? 'tu-dong-sinh-tu-ten-sach' : undefined} /></label>)}<AdminSelect2 label="Imprint" value={values.imprint} options={adminSelectOptions.imprints} onChange={(value) => setValue('imprint', value as string)} placeholder="Tìm và chọn imprint" /><AdminSelect2 label="Ngôn ngữ" value={values.language} options={adminSelectOptions.languages} multiple onChange={(value) => setValue('language', value as string[])} placeholder="Tìm và chọn một hoặc nhiều ngôn ngữ" /></div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"><AdminSelect2 label="Tác giả" value={values.author} options={adminSelectOptions.authors} multiple onChange={(value) => setValue('author', value as string[])} placeholder="Tìm và chọn một hoặc nhiều tác giả" /><AdminSelect2 label="Dịch giả" value={values.translator} options={adminSelectOptions.authors} multiple onChange={(value) => setValue('translator', value as string[])} placeholder="Tìm và chọn một hoặc nhiều dịch giả" /><AdminSelect2 label="Họa sĩ minh họa" value={values.illustrator} options={adminSelectOptions.authors} multiple onChange={(value) => setValue('illustrator', value as string[])} placeholder="Tìm và chọn một hoặc nhiều họa sĩ" /><AdminSelect2 label="Thể thức" value={values.format} options={adminSelectOptions.formats} onChange={(value) => setValue('format', value as string)} placeholder="Tìm và chọn thể thức" /><AdminSelect2 label="Dòng sách" value={values.line} options={adminSelectOptions.lines} onChange={(value) => setValue('line', value as string)} placeholder="Tìm và chọn dòng sách" /><AdminSelect2 label="Danh mục" value={values.category} options={adminCategoryRecords.filter((item) => (item.kind ?? 'Danh mục') === 'Danh mục').map((item) => item.name)} multiple onChange={(value) => setValue('category', value as string[])} placeholder="Tìm và chọn một hoặc nhiều danh mục" /><AdminSelect2 label="Thể loại" value={values.genre} options={adminSelectOptions.categories} multiple onChange={(value) => setValue('genre', value as string[])} placeholder="Tìm và chọn một hoặc nhiều thể loại" /><AdminSelect2 label="Chủ đề" value={values.topic} options={adminSelectOptions.topics} multiple onChange={(value) => setValue('topic', value as string[])} placeholder="Tìm và chọn một hoặc nhiều chủ đề" /><AdminSelect2 label="Publisher" value={values.publisher} options={adminSelectOptions.publishers} onChange={(value) => setValue('publisher', value as string)} placeholder="Tìm và chọn publisher" /></div>
         </AdminCreatePanel>
         <div id="book-description" className="scroll-mt-24"><AdminCreatePanel title="Mô tả sách"><AdminRichTextEditor label="Nội dung mô tả" value={values.description} onChange={(value) => setValue('description', value)} placeholder="Nhập mô tả, nội dung giới thiệu và ghi chú biên tập cho sách..." /></AdminCreatePanel></div>
@@ -3183,6 +3204,8 @@ function AdminBooksPageV2({ managementView }: { managementView: BookManagementVi
   const [authorFilter, setAuthorFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [publisherFilter, setPublisherFilter] = useState('all')
+  const [bookPage, setBookPage] = useState(1)
+  const [bookPageSize, setBookPageSize] = useState(10)
   useEffect(() => {
     let cancelled = false
     loadPublicCatalogProducts().then((products) => {
@@ -3210,7 +3233,6 @@ function AdminBooksPageV2({ managementView }: { managementView: BookManagementVi
     return () => { cancelled = true }
   }, [])
   useEffect(() => { writeAdminBooks(books) }, [books])
-  if (managementView === 'categories') return <AdminCategoriesPageV4 />
   const authorHref = (authorName: string) => {
     const author = adminAuthorRecords.find((item) => item.name.toLowerCase() === authorName.toLowerCase())
     return author ? `/admin/authors?author=${encodeURIComponent(author.id)}` : '/admin/authors'
@@ -3228,7 +3250,16 @@ function AdminBooksPageV2({ managementView }: { managementView: BookManagementVi
     const matchesPublisher = publisherFilter === 'all' || book.line === publisherFilter
     return matchesQuery && matchesStatus && matchesAuthor && matchesCategory && matchesPublisher
   })
-  return <AdminListShell title="Quản lý sách" section="SÁCH" description="Danh sách sách là màn riêng. Bấm Thêm sách để mở màn tạo mới; các trường quan hệ sẽ chọn từ dữ liệu chuẩn đã tạo." createHref="/admin/books/new" createLabel="Thêm sách"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="flex items-center justify-between gap-4 border-b border-[#eeeae0] p-5"><div><h3 className="font-display text-lg font-semibold">Danh sách sách</h3><p className="mt-1 font-body text-sm text-[#74776f]">{filteredBooks.length} / {books.length} bản ghi {catalogLoaded ? 'từ database' : 'đang chờ database hoặc dữ liệu cục bộ'}.</p></div><span className="inline-flex min-h-9 items-center rounded-lg bg-[#f6f5ed] px-3 font-body text-xs text-[#62655f]">{catalogLoaded ? 'Supabase catalog' : 'Dữ liệu catalog'}</span></div><AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tên sách, ISBN hoặc tác giả" filters={[{ label: 'Tất cả trạng thái', value: statusFilter, onChange: setStatusFilter, options: [{ label: 'Còn hàng', value: 'in-stock' }, { label: 'Hết hàng', value: 'out-of-stock' }] }, { label: 'Tất cả danh mục / chủ đề', value: categoryFilter, onChange: setCategoryFilter, options: categoryOptions.map((category) => ({ label: category, value: category })) }, { label: 'Tất cả tác giả', value: authorFilter, onChange: setAuthorFilter, options: authorOptions.map((author) => ({ label: author, value: author })) }, { label: 'Tất cả nhà xuất bản', value: publisherFilter, onChange: setPublisherFilter, options: publisherOptions.map((publisher) => ({ label: publisher, value: publisher })) }]} onClear={() => { setQuery(''); setStatusFilter('all'); setCategoryFilter('all'); setAuthorFilter('all'); setPublisherFilter('all') }} /><div className="overflow-x-auto"><table className="min-w-[860px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['STT', 'Ảnh bìa', 'ISBN', 'Tên sách', 'Tác giả', 'Số lượng', 'Giá bán', 'Trạng thái'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}<th className="px-4 py-3 text-right font-body text-sm font-semibold">Thao tác</th></tr></thead><tbody>{filteredBooks.map((book, index) => <tr className="border-t border-[#eeeae0]" key={`${book.isbn}-${book.title}`}><td className="px-4 py-3 font-body text-sm text-[#74776f]">{index + 1}</td><td className="px-4 py-3"><img className="h-16 w-11 object-cover" src={book.cover || '/assets/cover-edward.png'} alt={`Bìa ${book.title}`} onError={(event) => { event.currentTarget.src = '/assets/cover-edward.png' }} /></td><td className="px-4 py-3 font-body text-sm">{book.isbn || '—'}</td><td className="max-w-[280px] px-4 py-3 font-body text-sm font-medium"><a className="admin-data-link" href={reportHref(book)}>{book.title}</a></td><td className="px-4 py-3 font-body text-sm">{book.author ? <a className="text-[var(--color-olive-dark)] underline-offset-2 hover:underline" href={authorHref(book.author)}>{book.author}</a> : '—'}</td><td className="px-4 py-3 font-body text-sm">{book.quantity}</td><td className="px-4 py-3 font-body text-sm">{book.salePrice.toLocaleString('vi-VN')}₫</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${book.quantity > 0 ? 'bg-[#eaf7ef] text-[#39733e]' : 'bg-[#fff0ed] text-[#a33d32]'}`}>{book.quantity > 0 ? 'Còn hàng' : 'Hết hàng'}</span></td><td className="px-4 py-3 text-right"><div className="flex justify-end gap-1"><a className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#f5f3ec]" href={reportHref(book)} aria-label={`Xem ${book.title}`} title="Xem"><i className="bi bi-eye" aria-hidden="true" /></a><a className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#f5f3ec]" href={reportHref(book)} aria-label={`Sửa ${book.title}`} title="Sửa"><i className="bi bi-pencil" aria-hidden="true" /></a><button className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#fff0ed] hover:text-[#a33d32]" type="button" aria-label={`Xóa ${book.title}`} title="Xóa" onClick={() => setBooks((current) => current.filter((item) => item !== book))}><i className="bi bi-trash3" aria-hidden="true" /></button></div></td></tr>)}</tbody></table></div><div className="flex items-center justify-between border-t border-[#eeeae0] px-5 py-4 font-body text-sm text-[#74776f]"><span>Hiển thị 1–{filteredBooks.length} / {books.length} bản ghi</span><a className="font-medium text-[var(--color-olive-dark)]" href="/admin/books/new">+ Thêm sách</a></div></section></AdminListShell>
+  const totalBookPages = Math.max(1, Math.ceil(filteredBooks.length / bookPageSize))
+  const pagedBooks = filteredBooks.slice((bookPage - 1) * bookPageSize, bookPage * bookPageSize)
+  useEffect(() => {
+    setBookPage(1)
+  }, [query, statusFilter, authorFilter, categoryFilter, publisherFilter, bookPageSize])
+  useEffect(() => {
+    setBookPage((current) => Math.min(current, totalBookPages))
+  }, [totalBookPages])
+  if (managementView === 'categories') return <AdminCategoriesPageV4 />
+  return <AdminListShell title="Quản lý sách" section="SÁCH" description="Danh sách sách là màn riêng. Bấm Thêm sách để mở màn tạo mới; các trường quan hệ sẽ chọn từ dữ liệu chuẩn đã tạo." createHref="/admin/books/new" createLabel="Thêm sách"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="flex items-center justify-between gap-4 border-b border-[#eeeae0] p-5"><div><h3 className="font-display text-lg font-semibold">Danh sách sách</h3><p className="mt-1 font-body text-sm text-[#74776f]">{filteredBooks.length} / {books.length} bản ghi {catalogLoaded ? 'từ database' : 'đang chờ database hoặc dữ liệu cục bộ'}.</p></div><span className="inline-flex min-h-9 items-center rounded-lg bg-[#f6f5ed] px-3 font-body text-xs text-[#62655f]">{catalogLoaded ? 'Supabase catalog' : 'Dữ liệu catalog'}</span></div><AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tên sách, ISBN hoặc tác giả" filters={[{ label: 'Tất cả trạng thái', value: statusFilter, onChange: setStatusFilter, options: [{ label: 'Còn hàng', value: 'in-stock' }, { label: 'Hết hàng', value: 'out-of-stock' }] }, { label: 'Tất cả danh mục / chủ đề', value: categoryFilter, onChange: setCategoryFilter, options: categoryOptions.map((category) => ({ label: category, value: category })) }, { label: 'Tất cả tác giả', value: authorFilter, onChange: setAuthorFilter, options: authorOptions.map((author) => ({ label: author, value: author })) }, { label: 'Tất cả nhà xuất bản', value: publisherFilter, onChange: setPublisherFilter, options: publisherOptions.map((publisher) => ({ label: publisher, value: publisher })) }]} onClear={() => { setQuery(''); setStatusFilter('all'); setCategoryFilter('all'); setAuthorFilter('all'); setPublisherFilter('all') }} /><div className="overflow-x-auto"><table className="min-w-[860px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['STT', 'Ảnh bìa', 'ISBN', 'Tên sách', 'Tác giả', 'Số lượng', 'Giá bán', 'Trạng thái'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}<th className="px-4 py-3 text-right font-body text-sm font-semibold">Thao tác</th></tr></thead><tbody>{pagedBooks.map((book, index) => <tr className="border-t border-[#eeeae0]" key={`${book.isbn}-${book.title}`}><td className="px-4 py-3 font-body text-sm text-[#74776f]">{(bookPage - 1) * bookPageSize + index + 1}</td><td className="px-4 py-3"><img className="h-16 w-11 object-cover" src={book.cover || '/assets/cover-edward.png'} alt={`Bìa ${book.title}`} onError={(event) => { event.currentTarget.src = '/assets/cover-edward.png' }} /></td><td className="px-4 py-3 font-body text-sm">{book.isbn || '—'}</td><td className="max-w-[280px] px-4 py-3 font-body text-sm font-medium"><a className="admin-data-link" href={reportHref(book)}>{book.title}</a></td><td className="px-4 py-3 font-body text-sm">{book.author ? <a className="text-[var(--color-olive-dark)] underline-offset-2 hover:underline" href={authorHref(book.author)}>{book.author}</a> : '—'}</td><td className="px-4 py-3 font-body text-sm">{book.quantity}</td><td className="px-4 py-3 font-body text-sm">{book.salePrice.toLocaleString('vi-VN')}₫</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${book.quantity > 0 ? 'bg-[#eaf7ef] text-[#39733e]' : 'bg-[#fff0ed] text-[#a33d32]'}`}>{book.quantity > 0 ? 'Còn hàng' : 'Hết hàng'}</span></td><td className="px-4 py-3 text-right"><div className="flex justify-end gap-1"><a className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#f5f3ec]" href={reportHref(book)} aria-label={`Xem ${book.title}`} title="Xem"><i className="bi bi-eye" aria-hidden="true" /></a><a className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#f5f3ec]" href={reportHref(book)} aria-label={`Sửa ${book.title}`} title="Sửa"><i className="bi bi-pencil" aria-hidden="true" /></a><button className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#fff0ed] hover:text-[#a33d32]" type="button" aria-label={`Xóa ${book.title}`} title="Xóa" onClick={() => setBooks((current) => current.filter((item) => item !== book))}><i className="bi bi-trash3" aria-hidden="true" /></button></div></td></tr>)}</tbody></table></div><AdminTableFooter total={filteredBooks.length} pageSize={bookPageSize} onPageSizeChange={setBookPageSize} page={bookPage} onPageChange={setBookPage} /></section></AdminListShell>
 }
 
 function AdminNewsPageV2() {
@@ -3531,7 +3562,7 @@ export function App() {
     return () => { cancelled = true }
   }, [])
 
-  if (view === 'admin') return <><SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} />{window.location.pathname === '/admin' ? <AdminSalesDashboard /> : <AdminDashboard />}</>
+  if (view === 'admin') return <><SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} />{window.location.pathname === '/admin' ? <AdminSalesDashboard /> : <AdminDashboard />}{window.location.pathname !== '/admin/chatbot' && <ChatbotWidget adminMode />}</>
 
   useEffect(() => {
     const syncRoute = () => {
@@ -3852,7 +3883,7 @@ export function App() {
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
     <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'utility-panel-active' : ''} ${view === 'detail' ? 'subject-panel-active' : ''}`}>
     {!isEmagazineView && <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} cartPulse={cartPulse} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => setHeroMotionOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} language={language} />}
-    {!isEmagazineView && <><button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} /><MobileMenu isOpen={menuOpen} onShop={showHome} onCategory={showCategory} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} /></>}
+    {!isEmagazineView && <><button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} /><MobileMenu isOpen={menuOpen} onCategory={showCategory} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} /></>}
      {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage heroMotionOpen={heroMotionOpen} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'collection' ? <AllBooksPage heroMotionOpen={heroMotionOpen} collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'search' ? <SearchResultsPage query={searchQuery} loading={catalogLoading} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} />) : <main>
      <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration"><HeroBanner motionOpen={heroMotionOpen} /></section>
       <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} language={language} onCollection={showCollection} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} />)}</div>

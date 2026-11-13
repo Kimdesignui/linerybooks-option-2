@@ -34,8 +34,13 @@ body { margin: 0; min-width: 320px; background: var(--color-olive); }
 .admin-shell .admin-status-badge.is-danger { background: #fff0ee; color: #b52f2f; }
 .admin-shell .admin-status-badge.is-info { background: #eef6ff; color: #1467bd; }
 .admin-shell [class~="text-[10px]"], .admin-shell [class~="text-[11px]"], .admin-shell [class~="text-xs"] { font-size: 12px; line-height: 1.4; }
-.admin-shell .admin-sidebar { width: 240px; height: 100dvh; max-height: 100dvh; overflow: visible; }
-.admin-shell .admin-sidebar > nav { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.admin-shell .admin-sidebar { width: 240px; height: 100dvh; min-height: 100dvh; max-height: 100dvh; align-self: flex-start; overflow: hidden; }
+.admin-shell .admin-sidebar > nav { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: auto; scrollbar-width: thin; }
+.admin-shell .admin-sidebar > nav { scrollbar-color: rgba(155,148,47,.68) rgba(31,42,36,.06); }
+.admin-shell .admin-sidebar > nav::-webkit-scrollbar { width: 2px; }
+.admin-shell .admin-sidebar > nav::-webkit-scrollbar-track { background: rgba(31,42,36,.06); }
+.admin-shell .admin-sidebar > nav::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(155,148,47,.68); }
+.admin-shell .admin-sidebar > .admin-sidebar-footer { flex: 0 0 auto; }
 .admin-shell .admin-sidebar nav > p:first-child { display: none; }
 .admin-sales-dashboard {
   --dashboard-blue: #1477df;
@@ -136,9 +141,9 @@ body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:h
   body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 @media (min-width: 1024px) {
-  .admin-shell > aside.admin-sidebar { height: 100dvh; min-height: 100dvh; max-height: 100dvh; align-self: flex-start; overflow: visible; }
+  .admin-shell > aside.admin-sidebar { position: sticky; top: 0; height: 100dvh; min-height: 100dvh; max-height: 100dvh; align-self: flex-start; overflow: hidden; }
   .admin-shell > aside.admin-sidebar > .admin-sidebar-collapse { z-index: 100; }
-  .admin-shell > aside.admin-sidebar > nav { min-height: 0; height: calc(100dvh - 60px); overflow-y: auto; }
+  .admin-shell > aside.admin-sidebar > nav { min-height: 0; height: auto; overflow-y: auto; }
 }
 .admin-shell .admin-sidebar > div:first-child > a.font-display::after { color: var(--color-ink); content: 'LineryBooks'; font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: .02em; }
 .admin-shell .admin-sidebar > div:first-child > a.font-display > span { display: none; }
