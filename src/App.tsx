@@ -8,14 +8,15 @@ import List from '@editorjs/list'
 import Quote from '@editorjs/quote'
 import Delimiter from '@editorjs/delimiter'
 import Table from '@editorjs/table'
-import { loadPublicCatalogProducts, loadPublicCreatorProfiles, type PublicCatalogProduct, type PublicCreatorProfile } from './lib/supabase-data'
+import { loadPublicCatalogProducts, loadPublicCreatorProfiles, loadPublicNewsPosts, type PublicCatalogProduct, type PublicCreatorProfile, type PublicNewsPost, type PublicNewsBlock } from './lib/supabase-data'
 import { supabase } from './lib/supabase'
+import hueEmagazine from './data/emagazine-hue.json'
 
 type Product = { id?: string; slug?: string; image: string; gallery?: string[]; title: string; author: string; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean; limited?: boolean; moduleSlugs?: string[] }
 type CartItem = { product: Product; quantity: number }
 type PaymentMethod = 'vnpay' | 'bank' | 'momo' | 'apple' | 'zalopay'
 type FulfillmentMethod = 'pickup' | 'delivery'
-type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[]; contentType?: 'news' | 'emagazine' }
+type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[]; byline?: string; blocks?: PublicNewsBlock[]; blocksVi?: PublicNewsBlock[]; contentType?: 'news' | 'emagazine' }
 type View = 'home' | 'authors' | 'all-books' | 'collection' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete' | 'account' | 'admin'
 type AccountTab = 'profile' | 'orders' | 'orders-demo' | 'order-detail' | 'transactions' | 'transaction-detail' | 'security'
 type WriterDirectoryFilter = 'all' | 'authors' | 'translators'
@@ -259,16 +260,19 @@ const writeAdminBooks = (books: AdminBook[]) => {
 
 const newsItems: NewsItem[] = [
   {
-    image: '/assets/hero-children.png',
-    title: 'The sky, the sea, and the stories we inherit',
-    titleVi: 'Ông Trời, bà Trời trong tranh Lạc Long Quân - Âu Cơ',
-    date: 'eMagazine · Demo',
-    kicker: 'eMagazine',
-    slug: 'ong-troi-ba-troi-trong-tranh-lac-long-quan-au-co',
-    excerpt: 'Một bài longform mẫu về cách hình ảnh, khoảng trắng và nhịp đọc cùng kể lại một câu chuyện văn hóa.',
-    excerptVi: 'Bài longform mẫu lấy cảm hứng từ cấu trúc bài Znews: hero chuyển động, lời dẫn, các chương nội dung và nhịp cuộn trực quan.',
+    image: '/assets/emagazine/hue-heritage/01a13979-fa87-7422-8515-5d06644dd521.png',
+    title: hueEmagazine.title,
+    titleVi: hueEmagazine.titleVi,
+    date: hueEmagazine.date,
+    kicker: hueEmagazine.kicker,
+    slug: 'di-san-hue-doi-dien-nhieu-thach-thuc',
+    excerpt: hueEmagazine.excerpt,
+    excerptVi: hueEmagazine.excerpt,
     body: [],
     bodyVi: [],
+    byline: hueEmagazine.byline,
+    blocks: hueEmagazine.blocks as PublicNewsBlock[],
+    blocksVi: hueEmagazine.blocks as PublicNewsBlock[],
     contentType: 'emagazine',
   },
   {
@@ -332,7 +336,18 @@ const newsItems: NewsItem[] = [
     image: '/assets/news-instagram-04.jpg', title: 'Điều khoản sử dụng', titleVi: 'Điều khoản sử dụng', date: 'Policies', kicker: 'Policies', slug: 'dieu-khoan', excerpt: 'Điều khoản sử dụng website và các dịch vụ của LineryBooks.', excerptVi: 'Điều khoản sử dụng website và các dịch vụ của LineryBooks.', body: ['Nội dung điều khoản sẽ được cập nhật từ khu vực quản trị và hiển thị thống nhất trên website.'], bodyVi: ['Nội dung điều khoản sẽ được cập nhật từ khu vực quản trị và hiển thị thống nhất trên website.'],
   },
 ]
-const getNewsFromPath = (pathname: string) => newsItems.find((item) => item.slug === pathname.split('/').pop()) ?? null
+let runtimeNewsItems: NewsItem[] = newsItems
+const getNewsFromPath = (pathname: string) => {
+  const slug = pathname.split('/').pop() ?? ''
+  const legacySlug = slug === 'ong-troi-ba-troi-trong-tranh-lac-long-quan-au-co'
+    ? 'di-san-hue-doi-dien-nhieu-thach-thuc'
+    : slug
+
+  return runtimeNewsItems.find((item) => item.slug === legacySlug) ?? null
+}
+const applyPublicNews = (records: PublicNewsPost[]) => {
+  runtimeNewsItems = records.map((record) => ({ ...record }))
+}
 
 const authorProfiles: Record<string, { image: string; images?: string[]; born: string; died: string; bornPlace: string; diedPlace: string; awards: number; academicTitle: string; bio: string }> = {
   'Edward W. Said': {
@@ -355,7 +370,7 @@ const getProductFromPath = (pathname: string) => {
   return catalogProducts.find((product) => productSlug(product.title) === slug) ?? null
 }
 const getAuthorFromPath = (pathname: string) => {
-  const slug = pathname.startsWith('/authors/') ? pathname.split('/').pop() ?? '' : ''
+  const slug = pathname.startsWith('/authors/') || pathname.startsWith('/creators/') ? pathname.split('/').pop() ?? '' : ''
   if (!slug) return ''
   const knownAuthor = catalogProducts.find((product) => authorSlug(product.author) === slug)?.author ?? Object.keys(authorProfiles).find((author) => authorSlug(author) === slug)
   if (knownAuthor) return knownAuthor
@@ -370,7 +385,7 @@ const getViewFromPath = (pathname: string, hash: string): View => {
   if (hash === '#reset-password') return 'reset-password'
   if (hash === '#password-reset-complete') return 'password-reset-complete'
   if (hash === '#account') return 'account'
-  if (pathname === '/authors') return 'authors'
+  if (pathname === '/authors' || pathname === '/creators') return 'authors'
   if (pathname === '/all-books') return 'all-books'
   if (pathname.startsWith('/collections/') && getCollectionTitleFromPath(pathname)) return 'collection'
   if (pathname === '/search') return 'search'
@@ -378,7 +393,7 @@ const getViewFromPath = (pathname: string, hash: string): View => {
   if (pathname === '/checkout') return 'checkout'
   if (pathname === '/news') return 'news'
   if (pathname.startsWith('/news/') && getNewsFromPath(pathname)) return 'news-detail'
-  if (pathname.startsWith('/authors/') && getAuthorFromPath(pathname)) return 'author'
+  if ((pathname.startsWith('/authors/') || pathname.startsWith('/creators/')) && getAuthorFromPath(pathname)) return 'author'
   if (pathname.startsWith('/books/') && getProductFromPath(pathname)) return 'detail'
   return 'home'
 }
@@ -425,7 +440,7 @@ const homepageModules = ['New & Upcoming', 'Linery Press', 'Linery Picks', 'Grab
 const collectionTitles = ['New & Upcoming', 'Linery Press', 'Linery Picks', 'Linery Art Books', 'Grab & Save'] as const
 const uiText = {
   en: {
-    books: 'Books', writers: 'Writers', viewAll: 'View All', newUpcoming: 'New & Upcoming', lineryPress: 'Linery Press', lineryPicks: 'Linery Picks', lineryArtBooks: 'Linery Art Books', allBooks: 'All Books', grabSave: 'Grab & Save', fiction: 'Fiction', nonFiction: 'Non-fiction', searchBooks: 'Search books', filterSort: 'Filter & sort', publishers: 'Publishers', sortBy: 'Sort by', clear: 'Clear', applyFilter: 'Apply filter', default: 'Default', noBooks: 'No books match these filters.'
+    books: 'Books', writers: 'Creators', viewAll: 'View All', newUpcoming: 'New & Upcoming', lineryPress: 'Linery Press', lineryPicks: 'Linery Picks', lineryArtBooks: 'Linery Art Books', allBooks: 'All Books', grabSave: 'Grab & Save', fiction: 'Fiction', nonFiction: 'Non-fiction', searchBooks: 'Search books', filterSort: 'Filter & sort', publishers: 'Publishers', sortBy: 'Sort by', clear: 'Clear', applyFilter: 'Apply filter', default: 'Default', noBooks: 'No books match these filters.'
   },
   vi: {
     books: 'Sách', writers: 'Đội ngũ sáng tạo', viewAll: 'Xem tất cả', newUpcoming: 'Sách mới & sắp ra mắt', lineryPress: 'Linery Press', lineryPicks: 'Linery Picks', lineryArtBooks: 'Sách nghệ thuật Linery', allBooks: 'Tất cả sách', grabSave: 'Ưu đãi giới hạn', fiction: 'Văn học hư cấu', nonFiction: 'Phi hư cấu', searchBooks: 'Tìm sách', filterSort: 'Lọc & sắp xếp', publishers: 'Nhà xuất bản', sortBy: 'Sắp xếp theo', clear: 'Xóa', applyFilter: 'Áp dụng bộ lọc', default: 'Mặc định', noBooks: 'Không tìm thấy sách phù hợp.'
@@ -490,7 +505,7 @@ const writerMenuGroups: MenuColumn[] = [
 ]
 
 function MenuColumns({ columns }: { columns: MenuColumn[] }) {
-  return <div className="menu-columns">{columns.map((column) => <div className="menu-column" key={column.eyebrow}><p className="menu-eyebrow">{column.eyebrow}</p>{column.links.map((link) => <a href={`/authors/${authorSlug(link)}`} key={link}>{link}</a>)}</div>)}</div>
+  return <div className="menu-columns">{columns.map((column) => <div className="menu-column" key={column.eyebrow}><p className="menu-eyebrow">{column.eyebrow}</p>{column.links.map((link) => <a href={`/creators/${authorSlug(link)}`} key={link}>{link}</a>)}</div>)}</div>
 }
 
 function ShopMenu({ isOpen, onAllBooks, onCollection, language }: { isOpen: boolean; onAllBooks: () => void; onCollection: (title: string) => void; language: Language }) {
@@ -502,7 +517,8 @@ function ShopMenu({ isOpen, onAllBooks, onCollection, language }: { isOpen: bool
           {column.links.map((link) => {
             const isCollection = collectionTitles.includes(link as typeof collectionTitles[number])
             const isAllBooks = link === 'All books'
-            return <a className={`menu-item menu-item-link menu-item-text${isAllBooks ? ' shop-menu-view-all' : ''}`} href={isAllBooks ? '/all-books' : isCollection ? `/collections/${collectionSlug(link)}` : `#${link.toLowerCase().replaceAll(' ', '-')}`} key={link} onClick={isAllBooks ? (event) => { event.preventDefault(); onAllBooks() } : isCollection ? (event) => { event.preventDefault(); onCollection(link) } : undefined}><span>{isAllBooks ? tx(language, 'viewAll') : translatedCollectionTitle(link, language)}</span>{isAllBooks && <span aria-hidden="true">→</span>}</a>
+            const categoryHref = `/all-books?category=${encodeURIComponent(link.toLowerCase().replaceAll(' ', '-'))}`
+            return <a className={`menu-item menu-item-link menu-item-text${isAllBooks ? ' shop-menu-view-all' : ''}`} href={isAllBooks ? '/all-books' : isCollection ? `/collections/${collectionSlug(link)}` : categoryHref} key={link} onClick={isAllBooks ? (event) => { event.preventDefault(); onAllBooks() } : isCollection ? (event) => { event.preventDefault(); onCollection(link) } : undefined}><span>{isAllBooks ? tx(language, 'viewAll') : translatedCollectionTitle(link, language)}</span>{isAllBooks && <span aria-hidden="true">→</span>}</a>
           })}
           </div>)}
       </div>
@@ -514,14 +530,14 @@ function WritersMenu({ isOpen, onAllWriters, onAuthors, onTranslators, language 
   return <section className={`writers-menu menu-navigation ${isOpen ? 'is-open' : ''}`} aria-label="Writers categories" aria-hidden={!isOpen}>
     <div className="writers-menu-inner menu-navigation-inner">
       <div className="writers-menu-list">
-        <a className="writers-menu-view-all menu-item menu-item-link menu-item-text" href="/authors" onClick={(event) => { event.preventDefault(); onAllWriters() }}>{tx(language, 'viewAll')}</a>
+        <a className="writers-menu-view-all shop-menu-view-all menu-item menu-item-link menu-item-text" href="/creators" onClick={(event) => { event.preventDefault(); onAllWriters() }}><span>{tx(language, 'viewAll')}</span><span aria-hidden="true">→</span></a>
         <div className="writers-menu-grid">
           {writerMenuGroups.map((group) => <div className="writers-menu-group menu-section menu-branch" key={group.eyebrow}>
             <p className="menu-eyebrow menu-section-title">{group.eyebrow}</p>
             {group.links.map((link) => {
               const isAuthor = link === 'Author'
               const isTranslator = link === 'Translator'
-              const href = isAuthor ? '/authors?type=authors' : isTranslator ? '/authors?type=translators' : `#writers-${link.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`
+              const href = isAuthor ? '/creators?type=authors' : isTranslator ? '/creators?type=translators' : `/creators?${group.eyebrow.toLowerCase().replaceAll(' ', '-') }=${encodeURIComponent(link)}`
               const onClick = isAuthor ? (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onAuthors() } : isTranslator ? (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onTranslators() } : undefined
               return <a className="menu-item menu-item-link menu-item-text" href={href} onClick={onClick} key={link}>{link}</a>
             })}
@@ -532,7 +548,7 @@ function WritersMenu({ isOpen, onAllWriters, onAuthors, onTranslators, language 
   </section>
 }
 
-function MobileMenu({ isOpen, onShop, onAllBooks, onCollection, onAllWriters, onAuthors, onTranslators, onSearch, language, onSelectLanguage }: { isOpen: boolean; onShop: () => void; onAllBooks: () => void; onCollection: (title: string) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void }) {
+function MobileMenu({ isOpen, onShop, onCategory, onAllBooks, onCollection, onAllWriters, onAuthors, onTranslators, onSearch, language, onSelectLanguage }: { isOpen: boolean; onShop: () => void; onCategory: (category: string) => void; onAllBooks: () => void; onCollection: (title: string) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onSearch: (query: string) => void; language: 'en' | 'vi'; onSelectLanguage: (language: 'en' | 'vi') => void }) {
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ Fiction: true, 'Non-fiction': true, 'Linery Press': true, Role: false, Gender: false, 'Cultural Region': false, Era: false })
   const [query, setQuery] = useState('')
   const toggleBranch = (label: string) => setOpenBranches((current) => ({ ...current, [label]: !current[label] }))
@@ -568,10 +584,10 @@ function MobileMenu({ isOpen, onShop, onAllBooks, onCollection, onAllWriters, on
             {category.children && categoryOpen && <div className="mobile-menu-children menu-children">{category.children.map((child) => {
               const childOpen = openBranches[child.label] ?? true
               return <div className="mobile-menu-branch menu-branch" key={child.label}>
-                <button className="mobile-menu-item mobile-menu-level-2 menu-item menu-level-2" onClick={() => child.children ? toggleBranch(child.label) : onShop()} aria-expanded={child.children ? childOpen : undefined}>
+                <button className="mobile-menu-item mobile-menu-level-2 menu-item menu-level-2" onClick={() => child.children ? toggleBranch(child.label) : onCategory(child.label)} aria-expanded={child.children ? childOpen : undefined}>
                   <span className="mobile-menu-text menu-item-text">{child.label}</span>{child.children && <span aria-hidden="true">{childOpen ? '−' : '+'}</span>}
                 </button>
-                {child.children && childOpen && <div className="mobile-menu-children menu-children">{child.children.map((leaf) => <button className="mobile-menu-item mobile-menu-level-3 menu-item menu-level-3" key={leaf.label} onClick={onShop}><span className="mobile-menu-text menu-item-text">{leaf.label}</span></button>)}</div>}
+                {child.children && childOpen && <div className="mobile-menu-children menu-children">{child.children.map((leaf) => <button className="mobile-menu-item mobile-menu-level-3 menu-item menu-level-3" key={leaf.label} onClick={() => onCategory(leaf.label)}><span className="mobile-menu-text menu-item-text">{leaf.label}</span></button>)}</div>}
               </div>
             })}</div>}
           </div>
@@ -782,13 +798,14 @@ function FilterTextInput({ label, value, onChange, placeholder }: { label: strin
   </label>
 }
 
-function HeroBanner() {
-  return <div className="hero-banner">
-    <img className="hero-banner-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách" width="1342" height="495" fetchPriority="high" decoding="async" />
+function HeroBanner({ motionOpen = false, className = '' }: { motionOpen?: boolean; className?: string }) {
+  return <div className={`all-books-hero ${motionOpen ? 'is-hovered' : ''} ${className}`.trim()}>
+    <img className="all-books-hero-base" src="/assets/hero-children.png" alt="Các em nhỏ cùng đọc sách" width="1342" height="495" fetchPriority="high" decoding="async" />
+    <img className="all-books-hero-hover" src="/assets/hero-children-shop-hover.png" alt="" aria-hidden="true" width="1342" height="495" decoding="async" />
   </div>
 }
 
-function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => void; collectionTitle?: string } & ProductCardActions) {
+function AllBooksPage({ onHome, collectionTitle, heroMotionOpen, ...actions }: { onHome: () => void; collectionTitle?: string; heroMotionOpen: boolean } & ProductCardActions) {
   const pageTitle = collectionTitle ?? 'ALL BOOKS'
   const normalizedCollectionTitle = collectionTitle?.toLowerCase()
   const sourceProducts = normalizedCollectionTitle === 'linery art books' ? artbookProducts : normalizedCollectionTitle === 'grab & save' ? limitedProducts : products
@@ -848,7 +865,7 @@ function AllBooksPage({ onHome, collectionTitle, ...actions }: { onHome: () => v
 
   return <main className="all-books-page">
     <div className="all-books-content">
-      <HeroBanner />
+      <HeroBanner motionOpen={heroMotionOpen} />
       <div className="all-books-heading-row">
         <nav className="all-books-breadcrumb" aria-label="Breadcrumb"><a href="/#home" onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><span aria-hidden="true">/</span><span>{pageTitle}</span></nav>
         <button className={`all-books-filter-toggle ${filterOpen ? 'is-open' : ''}`} type="button" aria-expanded={filterOpen} onClick={() => setFilterOpen((open) => !open)}><i className="bi bi-sliders2" aria-hidden="true" /> Filter &amp; sort</button>
@@ -989,7 +1006,7 @@ function LineryNewsSection({ language, onOpen, onSeeMore }: { language: 'en' | '
     return () => mediaQuery.removeEventListener('change', handleChange)
   }, [])
   const pageSize = mobile ? 3 : 4
-  const visibleItems = newsItems.slice(0, pageSize)
+  const visibleItems = runtimeNewsItems.slice(0, pageSize)
   return <section className="news-module" aria-labelledby="linery-news-title">
     <RibbonTitle title="LINERY NEWS" id="linery-news-title" heading />
     <div className="news-grid">{visibleItems.map((item) => <NewsCard key={item.slug} item={item} language={language} onOpen={onOpen} />)}</div>
@@ -997,20 +1014,20 @@ function LineryNewsSection({ language, onOpen, onSeeMore }: { language: 'en' | '
   </section>
 }
 
-function NewsPage({ language, onOpen }: { language: 'en' | 'vi'; onOpen: (item: NewsItem) => void }) {
+function NewsPage({ language, onOpen, heroMotionOpen }: { language: 'en' | 'vi'; onOpen: (item: NewsItem) => void; heroMotionOpen: boolean }) {
   const pageTitle = language === 'vi' ? 'Tin tức & Sự kiện' : 'News & Events'
   return <main className="news-page">
     <div className="news-page-content">
-      <HeroBanner />
+      <HeroBanner motionOpen={heroMotionOpen} className="news-page-hero" />
       <nav className="news-breadcrumb news-page-breadcrumb" aria-label="Breadcrumb"><a href="/#home">Home</a><span aria-hidden="true">/</span><span>{pageTitle}</span></nav>
       <section className="news-page-panel" aria-labelledby="all-news-title">
         <RibbonTitle title={pageTitle.toUpperCase()} id="all-news-title" heading />
-        <div className="news-page-grid">{newsItems.map((item) => {
+        <div className="news-page-grid">{runtimeNewsItems.map((item) => {
           const title = language === 'vi' ? item.titleVi : item.title
           const excerpt = language === 'vi' ? item.excerptVi : item.excerpt
           return <article className="news-page-card" key={item.slug}>
             <button type="button" onClick={() => onOpen(item)}>
-              <div className="news-page-image-wrap"><img src={item.image} alt={title} loading={item.slug === newsItems[0].slug ? 'eager' : 'lazy'} decoding="async" /></div>
+              <div className="news-page-image-wrap"><img src={item.image} alt={title} loading={item.slug === runtimeNewsItems[0]?.slug ? 'eager' : 'lazy'} decoding="async" /></div>
               <p>{item.kicker}</p><h2>{title}</h2><span>{excerpt}</span>
             </button>
           </article>
@@ -1021,7 +1038,7 @@ function NewsPage({ language, onOpen }: { language: 'en' | 'vi'; onOpen: (item: 
 }
 
 function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 'en' | 'vi'; onBack: () => void }) {
-  if (item.contentType === 'emagazine') return <EmagazineDemoPage item={item} language={language} onBack={onBack} />
+  if (item.contentType === 'emagazine') return <EmagazinePage item={item} language={language} onBack={onBack} />
   const title = language === 'vi' ? item.titleVi : item.title
   const excerpt = language === 'vi' ? item.excerptVi : item.excerpt
   const body = language === 'vi' ? item.bodyVi : item.body
@@ -1041,40 +1058,29 @@ function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 
   </main>
 }
 
-function EmagazineDemoPage({ item, language, onBack }: { item: NewsItem; language: 'en' | 'vi'; onBack: () => void }) {
+function EmagazinePage({ item, language, onBack }: { item: NewsItem; language: 'en' | 'vi'; onBack: () => void }) {
   const title = language === 'vi' ? item.titleVi : item.title
   const lead = language === 'vi' ? item.excerptVi : item.excerpt
+  const blocks = (language === 'vi' ? item.blocksVi : item.blocks) ?? []
+  const fallbackBlocks: PublicNewsBlock[] = (language === 'vi' ? item.bodyVi : item.body).map((content, index) => ({ id: `fallback-${index}`, type: 'paragraph', content, image: '', alt: '', caption: '', fullBleed: false }))
+  const articleBlocks = blocks.length > 0 ? blocks : fallbackBlocks
   return <main className="emagazine-page">
     <article className="emagazine-story" aria-labelledby="emagazine-title">
-      <div className="emagazine-hero" aria-label="Hero eMagazine demo">
-        <img className="emagazine-hero-image emagazine-hero-image-base" src="/assets/cover-art-thief.jpg" alt="Bìa sách nghệ thuật" />
-        <img className="emagazine-hero-image emagazine-hero-image-hover" src="/assets/cover-art-artist.jpg" alt="" aria-hidden="true" />
-        <div className="emagazine-hero-shade" />
-        <div className="emagazine-hero-caption"><span>LineryBooks · eMagazine demo</span><strong>Những câu chuyện<br />được kể bằng hình ảnh</strong></div>
-      </div>
+      <div className="emagazine-topbar"><button type="button" aria-label="Quay lại" onClick={onBack}><i className="bi bi-arrow-left" aria-hidden="true" /></button><span>eMagazine</span><button type="button" aria-label="Chia sẻ"><i className="bi bi-share" aria-hidden="true" /></button></div>
       <div className="emagazine-intro">
-        <button className="emagazine-back" type="button" onClick={onBack}><i className="bi bi-arrow-left" aria-hidden="true" /> Quay lại tin tức</button>
         <p className="news-detail-kicker">{item.kicker}</p>
         <h1 id="emagazine-title">{title}</h1>
         <p className="emagazine-lead">{lead}</p>
-        <p className="emagazine-meta">Demo layout · LineryBooks editorial studio</p>
+        <p className="emagazine-meta">{item.byline || item.date}</p>
       </div>
       <div className="emagazine-body">
-        <p className="emagazine-dropcap">Một bài eMagazine không chỉ là một bài viết dài. Đó là cách nội dung được chia thành từng nhịp để người đọc quan sát, dừng lại và tiếp tục khám phá.</p>
-        <p>Trong bản mẫu này, hero mở đầu tạo cảm giác chuyển động nhẹ, sau đó nội dung đi vào một đoạn dẫn ngắn trước khi mở ra các chương. Cấu trúc này có thể thay bằng ảnh, video, chú thích hoặc block tương tác từ Editor.js.</p>
-        <figure className="emagazine-figure"><img src="/assets/cover-art-futures.jpg" alt="Bìa sách nghệ thuật về tương lai" /><figcaption>Khoảng trắng giúp hình ảnh có thời gian được nhìn thấy trước khi câu chuyện tiếp tục.</figcaption></figure>
-        <h2>Nhìn lại hình ảnh</h2>
-        <p>Ở mỗi chương, hình ảnh giữ vai trò dẫn đường. Văn bản không lặp lại điều mắt đã thấy mà bổ sung bối cảnh, chi tiết và những câu hỏi để người đọc tự quan sát.</p>
-        <div className="emagazine-pullquote">“Một trang đọc tốt luôn biết khi nào nên nói, khi nào nên để hình ảnh lên tiếng.”</div>
-        <figure className="emagazine-figure emagazine-figure-split"><img src="/assets/cover-art-lady-in-gold.jpg" alt="Bìa sách nghệ thuật" /><figcaption>Block ảnh có thể dùng cho tranh, bìa sách hoặc tư liệu lưu trữ.</figcaption></figure>
-        <h2>Phần kết</h2>
-        <p>Đây là dữ liệu demo để đội phát triển ghép tiếp quy trình lưu bài, xuất bản, chỉnh sửa và quản lý từng block longform từ màn quản trị eMagazine.</p>
+        {articleBlocks.map((block, index) => block.type === 'image' ? <figure className={`emagazine-figure ${block.fullBleed ? 'is-full-bleed' : ''}`} key={block.id || index}><img src={block.image} alt={block.alt || title} width={block.width} height={block.height} loading={index === 0 ? 'eager' : 'lazy'} /><figcaption>{block.caption}</figcaption></figure> : block.type === 'heading' ? <h2 key={block.id || index}>{block.content}</h2> : block.type === 'quote' ? <blockquote className="emagazine-pullquote" key={block.id || index}>{block.content}</blockquote> : <p className={index === 0 ? 'emagazine-dropcap' : ''} key={block.id || index}>{block.content}</p>)}
       </div>
     </article>
   </main>
 }
 
-function Header({ cartCount, cartPulse, menuOpen, onMenu, onHome, onLogin, onLogout, onShop, onShopHover, onAllWriters, onAuthors, onTranslators, onAllBooks, onCollection, onSearch, onQuickView, onCart, quickViewOpen, quickViewAvailable, activeView, shopOpen, writersOpen, onWritersHover, accountMenuOpen, onAccountMenuToggle, accountTab, onAccountTabChange, accountMenuEnabled, language }: { cartCount: number; cartPulse: boolean; menuOpen: boolean; onMenu: () => void; onHome: () => void; onLogin: () => void; onLogout: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onAllBooks: () => void; onCollection: (title: string) => void; onSearch: (query: string) => void; onQuickView: () => void; onCart: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean; writersOpen: boolean; onWritersHover: (open: boolean) => void; accountMenuOpen: boolean; onAccountMenuToggle: () => void; accountTab: AccountTab; onAccountTabChange: (tab: AccountTab) => void; accountMenuEnabled: boolean; language: Language }) {
+function Header({ cartCount, cartPulse, menuOpen, onMenu, onHome, onLogin, onLogout, onShop, onShopHover, onAllWriters, onAuthors, onTranslators, onAllBooks, onCollection, onSearch, onQuickView, onCart, quickViewOpen, quickViewAvailable, activeView, shopOpen, writersOpen, onWritersHover, onDesktopMenuHover, accountMenuOpen, onAccountMenuToggle, accountTab, onAccountTabChange, accountMenuEnabled, language }: { cartCount: number; cartPulse: boolean; menuOpen: boolean; onMenu: () => void; onHome: () => void; onLogin: () => void; onLogout: () => void; onShop: () => void; onShopHover: (open: boolean) => void; onAllWriters: () => void; onAuthors: () => void; onTranslators: () => void; onAllBooks: () => void; onCollection: (title: string) => void; onSearch: (query: string) => void; onQuickView: () => void; onCart: () => void; quickViewOpen: boolean; quickViewAvailable: boolean; activeView: View; shopOpen: boolean; writersOpen: boolean; onWritersHover: (open: boolean) => void; onDesktopMenuHover: (open: boolean) => void; accountMenuOpen: boolean; onAccountMenuToggle: () => void; accountTab: AccountTab; onAccountTabChange: (tab: AccountTab) => void; accountMenuEnabled: boolean; language: Language }) {
   const headerRef = useRef<HTMLElement | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -1096,10 +1102,10 @@ function Header({ cartCount, cartPulse, menuOpen, onMenu, onHome, onLogin, onLog
     setSearchOpen(false)
   }
 
-  return <header ref={headerRef} className={`site-header ${menuOpen ? 'is-menu-open' : ''} ${activeView === 'account' ? 'is-account-view' : ''}`} onMouseLeave={() => { onShopHover(false); onWritersHover(false) }}>
+  return <header ref={headerRef} className={`site-header ${menuOpen ? 'is-menu-open' : ''} ${activeView === 'account' ? 'is-account-view' : ''}`} onMouseLeave={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(false) }}>
     <div className="header-inner">
       <button className="menu-button" aria-label="Mở menu" onClick={onMenu}><HamburgerIcon /></button>
-      <nav className="desktop-nav" aria-label="Điều hướng chính"><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false) }} onFocus={() => { onShopHover(false); onWritersHover(false) }} onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onShop} onMouseEnter={() => { onShopHover(true); onWritersHover(false) }} onFocus={() => { onShopHover(true); onWritersHover(false) }} aria-expanded={shopOpen}>Books<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true) }} onClick={(event) => { event.preventDefault(); onWritersHover(!writersOpen); onShopHover(false) }} aria-expanded={writersOpen}>Writers<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
+      <nav className="desktop-nav" aria-label="Điều hướng chính"><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(false) }} onFocus={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(false) }} onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onShop} onMouseEnter={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} aria-expanded={shopOpen}>Books<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onClick={(event) => { event.preventDefault(); onWritersHover(!writersOpen); onShopHover(false); onDesktopMenuHover(!writersOpen) }} aria-expanded={writersOpen}>{tx(language, 'writers')}<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
       <a className="brand" href="/" aria-label="Linery Bookstore home">LINERY BOOKSTORE</a>
       <div className="header-actions">
         <form className={`search-control desktop-search-control ${searchOpen ? 'is-open' : ''}`} onSubmit={submitSearch}>
@@ -1121,7 +1127,7 @@ function Header({ cartCount, cartPulse, menuOpen, onMenu, onHome, onLogin, onLog
 function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewLeave, onSelectQuickView, quickViewOpen }: ProductCardActions & { product: Product }) {
   const coverContent = <div className="product-cover-wrap">
     <img src={product.image} alt={product.title} className="product-cover" loading="lazy" decoding="async" />
-    {product.limited && <span className="product-limited-badge" aria-label="Limited edition">Limited</span>}
+    {product.limited && <span className="product-limited-badge" aria-label="20% discount">20%</span>}
   </div>
   const infoContent = <div className="product-info">
     <h3 title={product.title}>{product.title}</h3>
@@ -1374,7 +1380,7 @@ function BookPreview({ product, onClose, onOpenDetail }: { product: Product | nu
   </aside>
 }
 
-function UtilityPanel({ product, onClose, onOpenDetail, onAddToCart, onBuyNow, onToggleWishlist, isWishlisted }: { product: Product | null; onClose: () => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onBuyNow: (product: Product) => void; onToggleWishlist: (product: Product) => void; isWishlisted: (product: Product) => boolean }) {
+function UtilityPanel({ product, onClose, onOpenDetail, onAuthor, onAddToCart, onBuyNow, onToggleWishlist, isWishlisted }: { product: Product | null; onClose: () => void; onOpenDetail: (product: Product) => void; onAuthor: (author: string) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onBuyNow: (product: Product) => void; onToggleWishlist: (product: Product) => void; isWishlisted: (product: Product) => boolean }) {
   const publisher = product?.publisher ?? 'Linery Books'
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
@@ -1392,7 +1398,7 @@ function UtilityPanel({ product, onClose, onOpenDetail, onAddToCart, onBuyNow, o
         <div ref={scrollRef} className="utility-panel-scroll">
           <div className="utility-panel-product-transition" key={product.title}>
           <img className="book-preview-cover" src={product.image} alt={product.title} loading="lazy" decoding="async" />
-          <div className="book-preview-copy"><h2>{product.title}</h2><p className="book-preview-author">{product.author}</p><p className="book-preview-price">{product.price}</p></div>
+          <div className="book-preview-copy"><h2>{product.title}</h2><p className="book-preview-author"><a className="book-preview-author-link" href={`/creators/${authorSlug(product.author)}`} onClick={(event) => { event.preventDefault(); onAuthor(product.author) }}>{product.author}</a></p><p className="book-preview-price">{product.price}</p></div>
           <div className="book-preview-section-divider" aria-hidden="true" />
           <dl className="book-preview-details"><div><dt>Publisher</dt><dd>{publisher}</dd></div><div><dt>ISBN</dt><dd>978-0-00-000000-0</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div></dl>
           <a className="book-preview-link" href="#a" onClick={(event) => { event.preventDefault(); onOpenDetail(product) }}>View full details <span aria-hidden="true">→</span></a>
@@ -1424,7 +1430,9 @@ function Footer() {
         <a href="https://www.threads.com/@linery.bookstore?igshid=NTc4MTIwNjQ2YQ%3D%3D&utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0CMTEAcGRvZgJzcnRjBmFwcF9pZA85MzY2MTk3NDMzOTI0NTkAAadkPgo6TPdGsI8YcRqX6zvx2mf3KyzJLuV1KVQ3CXH-ISflzJSqbMSo8gkpKQ_aem_aGuV0mbR-u7qcscBboQEzQ" aria-label="Threads" target="_blank" rel="noreferrer"><i className="bi bi-threads" aria-hidden="true" /></a>
       </div>
     </div>
-    {footerColumns.map((column) => <nav className="footer-link-column" aria-label={column.title} key={column.title}><h3>{column.title}</h3>{column.links.map(([label, href]) => <a href={href} key={href}>{label}</a>)}</nav>)}
+    <div className="footer-links">
+      {footerColumns.map((column) => <nav className="footer-link-column" aria-label={column.title} key={column.title}><h3>{column.title}</h3>{column.links.map(([label, href]) => <a href={href} key={href}>{label}</a>)}</nav>)}
+    </div>
   </footer>
 }
 
@@ -2168,6 +2176,7 @@ const adminModuleConfigs: Record<string, AdminModuleConfig> = {
   '/admin/import-history': { section: 'SÁCH', title: 'Lịch sử nhập Excel', description: 'Xem lại các batch nhập sách, người thực hiện, kết quả và tải báo cáo lỗi.', addLabel: 'Nhập Excel', columns: ['Tên file', 'Người nhập', 'Tổng dòng', 'Hợp lệ', 'Lỗi', 'Trạng thái'], rows: [], empty: 'Chưa có lịch sử nhập.' },
   '/admin/publishers': { section: 'NỘI DUNG', title: 'Quản lý nhà xuất bản', description: 'Quản lý danh sách nhà xuất bản và liên kết với các đầu sách.', addLabel: 'Thêm nhà xuất bản', columns: ['Nhà xuất bản', 'Đường dẫn', 'Số sách', 'Trạng thái'], rows: [], empty: 'Chưa có nhà xuất bản.' },
   '/admin/website': { section: 'HỆ THỐNG', title: 'Cấu hình website', description: 'Quản lý logo, favicon, banner desktop/mobile, nội dung footer và bản xem trước trước khi xuất bản.', addLabel: 'Thêm content block', columns: ['Nhóm nội dung', 'Khóa', 'Ngôn ngữ', 'Trạng thái'], rows: [['Header', 'header_logo', 'Chung', 'Đã cấu hình'], ['Footer', 'footer_content', 'Tiếng Việt', 'Đã cấu hình'], ['Banner', 'home_banner_01', 'Chung', 'Bản nháp']], empty: 'Chưa có content block.' },
+  '/admin/menus': { section: 'HỆ THỐNG', title: 'Quản lý Menu', description: 'Quản lý danh sách menu ngang trên header và menu chân trang. Thứ tự, nhãn, đường dẫn và trạng thái được lưu theo từng menu.', addLabel: 'Thêm mục menu', columns: ['Menu', 'Nhãn hiển thị', 'Đường dẫn', 'Thứ tự', 'Trạng thái'], rows: [['Menu ngang', 'Books', '/all-books', '1', 'Đang hoạt động'], ['Menu ngang', 'Creators', '/creators', '2', 'Đang hoạt động'], ['Menu chân trang', 'About us', '/news/gioi-thieu', '1', 'Đang hoạt động']], empty: 'Chưa có mục menu.' },
 }
 
 const getStorefrontAdminRows = (pathname: string, fallback: string[][]) => {
@@ -2200,7 +2209,7 @@ function AdminManagementSidebarBase({ pathname }: { pathname: string }) {
     if (href !== '/admin/website') return link
     return <>{link}<a className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-body text-sm text-[#62655f] transition-colors hover:bg-[#f5f3ec] hover:text-[var(--color-ink)]" href="/admin/website?tab=banners"><i className="bi bi-images" aria-hidden="true" />Quản trị banner</a></>
   }
-  return <nav className="flex-1 space-y-1 overflow-y-auto p-4" aria-label="Điều hướng quản trị"><p className="px-3 pb-2 pt-3 font-body text-xs font-semibold uppercase tracking-[.14em] text-[#98968c]">Khu vực quản trị</p>{item('/admin', 'Tổng quan', 'bi-grid-1x2-fill')}{item('/admin/books/new', 'Thêm sách', 'bi-plus-square')}<div><a className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 font-body text-sm font-semibold text-[var(--color-ink)]" href="/admin/books"><span className="flex items-center gap-3"><i className="bi bi-book" aria-hidden="true" />Quản lý sách</span><i className="bi bi-chevron-down text-xs" aria-hidden="true" /></a><AdminBookSubnav pathname={pathname} />{item('/admin/import-history', 'Lịch sử nhập Excel', 'bi-clock-history')}{item('/admin/collections', 'Mô đun sách trang chủ', 'bi-collection')}</div><p className="px-3 pb-2 pt-7 font-body text-xs font-semibold uppercase tracking-[.14em] text-[#98968c]">Bán hàng</p>{item('/admin/orders', 'Đơn hàng', 'bi-bag')}{item('/admin/reports', 'Báo cáo & thống kê', 'bi-bar-chart-line')}{item('/admin/customers', 'Khách hàng', 'bi-person-lines-fill')}{item('/admin/stores', 'Điểm bán và kho', 'bi-shop')}{item('/admin/inventory', 'Quản lý kho', 'bi-box-seam')}{item('/admin/promotions', 'Chương trình khuyến mãi', 'bi-ticket-perforated')}<p className="px-3 pb-2 pt-7 font-body text-xs font-semibold uppercase tracking-[.14em] text-[#98968c]">Nội dung</p>{item('/admin/authors', 'Nhà sáng tạo nội dung', 'bi-people')}{item('/admin/publishers', 'Nhà xuất bản', 'bi-building')}{item('/admin/news', 'Tin tức', 'bi-newspaper')}{item('/admin/media', 'Media', 'bi-images')}<p className="px-3 pb-2 pt-7 font-body text-xs font-semibold uppercase tracking-[.14em] text-[#98968c]">Hệ thống</p>{item('/admin/website', 'Website & footer', 'bi-window')}{item('/admin/locations', 'Địa điểm', 'bi-geo-alt')}{item('/admin/payments', 'Thanh toán', 'bi-credit-card')}{item('/admin/chatbot', 'Gemini chatbot', 'bi-chat-dots')}{item('/admin/settings', 'Cài đặt', 'bi-sliders')}</nav>
+  return <nav className="flex-1 space-y-1 overflow-y-auto p-4" aria-label="Điều hướng quản trị"><p className="px-3 pb-2 pt-3 font-body text-xs font-semibold uppercase tracking-[.14em] text-[#98968c]">Khu vực quản trị</p>{item('/admin', 'Tổng quan', 'bi-grid-1x2-fill')}{item('/admin/books/new', 'Thêm sách', 'bi-plus-square')}<div><a className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 font-body text-sm font-semibold text-[var(--color-ink)]" href="/admin/books"><span className="flex items-center gap-3"><i className="bi bi-book" aria-hidden="true" />Quản lý sách</span><i className="bi bi-chevron-down text-xs" aria-hidden="true" /></a><AdminBookSubnav pathname={pathname} />{item('/admin/import-history', 'Lịch sử nhập Excel', 'bi-clock-history')}{item('/admin/collections', 'Mô đun sách trang chủ', 'bi-collection')}</div><p className="px-3 pb-2 pt-7 font-body text-xs font-semibold uppercase tracking-[.14em] text-[#98968c]">Bán hàng</p>{item('/admin/orders', 'Đơn hàng', 'bi-bag')}{item('/admin/reports', 'Báo cáo & thống kê', 'bi-bar-chart-line')}{item('/admin/customers', 'Khách hàng', 'bi-person-lines-fill')}{item('/admin/stores', 'Điểm bán và kho', 'bi-shop')}{item('/admin/inventory', 'Quản lý kho', 'bi-box-seam')}{item('/admin/promotions', 'Chương trình khuyến mãi', 'bi-ticket-perforated')}<p className="px-3 pb-2 pt-7 font-body text-xs font-semibold uppercase tracking-[.14em] text-[#98968c]">Nội dung</p>{item('/admin/authors', 'Nhà sáng tạo nội dung', 'bi-people')}{item('/admin/publishers', 'Nhà xuất bản', 'bi-building')}{item('/admin/news', 'Tin tức', 'bi-newspaper')}{item('/admin/media', 'Media', 'bi-images')}<p className="px-3 pb-2 pt-7 font-body text-xs font-semibold uppercase tracking-[.14em] text-[#98968c]">Hệ thống</p>{item('/admin/menus', 'Quản lý Menu', 'bi-list-nested')}{item('/admin/website', 'Website & footer', 'bi-window')}{item('/admin/locations', 'Địa điểm', 'bi-geo-alt')}{item('/admin/payments', 'Thanh toán', 'bi-credit-card')}{item('/admin/chatbot', 'Gemini chatbot', 'bi-chat-dots')}{item('/admin/settings', 'Cài đặt', 'bi-sliders')}</nav>
 }
 
 function AdminManagementSidebar({ pathname }: { pathname: string }) {
@@ -3104,7 +3113,8 @@ function AdminBooksPageV2({ managementView }: { managementView: BookManagementVi
 }
 
 function AdminNewsPageV2() {
-  return <AdminListShell title="Quản lý tin tức" section="NỘI DUNG" description="Danh sách tin tức là màn riêng; nội dung chi tiết được nhập bằng trình soạn thảo ở màn tạo mới." createHref="/admin/news/new" createLabel="Tạo bài viết"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#eeeae0] p-5"><h3 className="font-display text-lg font-semibold">Danh sách bài viết</h3><p className="mt-1 font-body text-sm text-[#74776f]">2 bản nháp mẫu</p></div><div className="overflow-x-auto"><table className="min-w-[760px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['Tiêu đề', 'Đường dẫn', 'Ngày xuất bản', 'Trạng thái', 'Thao tác'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{[['Toni Morrison: memory and the past', 'toni-morrison-memory-and-the-past', '—', 'Bản nháp'], ['Books about Women', 'books-about-women', '—', 'Bản nháp']].map((row) => <tr className="border-t border-[#eeeae0]" key={row[1]}>{row.map((value) => <td className="px-4 py-3 font-body text-sm" key={value}>{value}</td>)}<td className="px-4 py-3 text-right"><a className="font-body text-sm text-[var(--color-olive-dark)]" href="/admin/news/new">Xem / sửa</a></td></tr>)}</tbody></table></div></section></AdminListShell>
+  const rows = runtimeNewsItems.map((item) => [item.titleVi || item.title, item.slug, item.date || '—', item.contentType === 'emagazine' ? 'Đã xuất bản · eMagazine' : 'Đã xuất bản'])
+  return <AdminListShell title="Quản lý tin tức" section="NỘI DUNG" description="Danh sách tin tức và eMagazine đã xuất bản; nội dung chi tiết được nhập bằng trình soạn thảo ở màn tạo mới." createHref="/admin/news/new" createLabel="Tạo bài viết"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#eeeae0] p-5"><h3 className="font-display text-lg font-semibold">Danh sách bài viết</h3><p className="mt-1 font-body text-sm text-[#74776f]">{rows.length} bài đang hiển thị</p></div><div className="overflow-x-auto"><table className="min-w-[760px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['Tiêu đề', 'Đường dẫn', 'Ngày xuất bản', 'Trạng thái', 'Thao tác'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{rows.map((row) => <tr className="border-t border-[#eeeae0]" key={row[1]}>{row.map((value) => <td className="px-4 py-3 font-body text-sm" key={value}>{value}</td>)}<td className="px-4 py-3 text-right"><a className="font-body text-sm text-[var(--color-olive-dark)]" href={`/news/${row[1]}`}>Xem / sửa</a></td></tr>)}</tbody></table></div></section></AdminListShell>
 }
 
 function AdminNewsCreatePageV2() {
@@ -3300,6 +3310,7 @@ export function App() {
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(() => getNewsFromPath(window.location.pathname))
   const [shopOpen, setShopOpen] = useState(false)
   const [writersOpen, setWritersOpen] = useState(false)
+  const [heroMotionOpen, setHeroMotionOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => getProductFromPath(window.location.pathname))
   const [selectedCollection, setSelectedCollection] = useState<string | null>(() => getCollectionTitleFromPath(window.location.pathname))
   const [cartItems, setCartItems] = useState<CartItem[]>([])
@@ -3317,12 +3328,14 @@ export function App() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([loadPublicCatalogProducts(), loadPublicCreatorProfiles()]).then(([records, profiles]) => {
+    Promise.all([loadPublicCatalogProducts(), loadPublicCreatorProfiles(), loadPublicNewsPosts().catch(() => null)]).then(([records, profiles, news]) => {
       if (cancelled) return
       if (profiles?.length) runtimeAuthorProfiles = Object.fromEntries(profiles.map((profile) => [profile.name, profile]))
       if (records?.length) applyPublicCatalog(records)
+      if (news?.length) applyPublicNews(news)
       setSelectedProduct(getProductFromPath(window.location.pathname))
       setSelectedAuthor(getAuthorFromPath(window.location.pathname))
+      setSelectedNews(getNewsFromPath(window.location.pathname))
       setView(getViewFromPath(window.location.pathname, window.location.hash))
       refreshPublicCatalog((value) => value + 1)
     }).catch((error) => {
@@ -3413,6 +3426,7 @@ export function App() {
     setView('home')
     setShopOpen(true)
     setWritersOpen(false)
+    setHeroMotionOpen(true)
     setMenuOpen(false)
   }
 
@@ -3421,6 +3435,7 @@ export function App() {
     setView('home')
     setShopOpen(false)
     setWritersOpen(false)
+    setHeroMotionOpen(false)
     setMenuOpen(false)
   }
 
@@ -3480,7 +3495,7 @@ export function App() {
   }
 
   const showAuthors = (filter: WriterDirectoryFilter = 'all') => {
-    navigateTo(filter === 'all' ? '/authors' : `/authors?type=${filter}`)
+    navigateTo(filter === 'all' ? '/creators' : `/creators?type=${filter}`)
     setWriterFilter(filter)
     setView('authors')
     setShopOpen(false)
@@ -3493,6 +3508,14 @@ export function App() {
     setView('all-books')
     setShopOpen(false)
     setMenuOpen(false)
+  }
+
+  const showCategory = (category: string) => {
+    navigateTo(`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`)
+    setView('all-books')
+    setShopOpen(false)
+    setMenuOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const showCart = () => {
@@ -3540,7 +3563,7 @@ export function App() {
   }
 
   const showAuthor = (author: string) => {
-    navigateTo(`/authors/${authorSlug(author)}`)
+    navigateTo(`/creators/${authorSlug(author)}`)
     setSelectedAuthor(author)
     setView('author')
     setShopOpen(false)
@@ -3635,28 +3658,29 @@ export function App() {
     setQuickViewOpen(false)
   }
 
+  const isEmagazineView = view === 'news-detail' && selectedNews?.contentType === 'emagazine'
+
   return <>
     <SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} />
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
     <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'utility-panel-active' : ''}`}>
-    <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} cartPulse={cartPulse} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} language={language} />
-    <button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />
-    <MobileMenu isOpen={menuOpen} onShop={showHome} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} />
-     {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'collection' ? <AllBooksPage collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} onBuyNow={buyNow} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} />) : <main>
-     <section className="hero scroll-section" aria-label="Linery bookstore illustration"><HeroBanner /></section>
+    {!isEmagazineView && <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} cartPulse={cartPulse} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => setHeroMotionOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} language={language} />}
+    {!isEmagazineView && <><button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} /><MobileMenu isOpen={menuOpen} onShop={showHome} onCategory={showCategory} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} /></>}
+     {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage heroMotionOpen={heroMotionOpen} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'collection' ? <AllBooksPage heroMotionOpen={heroMotionOpen} collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'search' ? <SearchResultsPage query={searchQuery} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onAddToCart={addToCart} onBuyNow={buyNow} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} />) : <main>
+     <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration"><HeroBanner motionOpen={heroMotionOpen} /></section>
       <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} language={language} onCollection={showCollection} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} />)}</div>
     <LineryNewsSection language={language} onOpen={showNewsDetail} onSeeMore={showNews} />
     </main>}
-    <Footer />
-    <ChatbotWidget />
-    <button className={`scroll-to-top ${showScrollTop ? 'is-visible' : ''}`} type="button" aria-label="Scroll to top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} tabIndex={showScrollTop ? 0 : -1}>
+    {!isEmagazineView && <Footer />}
+    {!isEmagazineView && <ChatbotWidget />}
+    {!isEmagazineView && <button className={`scroll-to-top ${showScrollTop ? 'is-visible' : ''}`} type="button" aria-label="Scroll to top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} tabIndex={showScrollTop ? 0 : -1}>
       <i className="bi bi-arrow-up" aria-hidden="true" />
-    </button>
+    </button>}
     </div>
     {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} onForgotPassword={showForgotPassword} onLoginSuccess={completeLogin} />}
     {view === 'register' && <RegisterPage onHome={showHome} onLogin={showLogin} language={language} />}
     {(view === 'forgot-password' || view === 'password-reset-sent' || view === 'reset-password' || view === 'password-reset-complete') && <PasswordRecoveryPage mode={view} onHome={showHome} onLogin={showLogin} onEmailSent={showPasswordResetSent} onResetPassword={showResetPassword} onComplete={showPasswordResetComplete} />}
-    {quickViewAvailable && quickViewOpen && <UtilityPanel product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} onToggleWishlist={toggleWishlist} isWishlisted={isWishlisted} />}
+    {quickViewAvailable && quickViewOpen && <UtilityPanel product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} onAuthor={showAuthor} onAddToCart={addToCart} onBuyNow={buyNow} onToggleWishlist={toggleWishlist} isWishlisted={isWishlisted} />}
   </>
 }
 

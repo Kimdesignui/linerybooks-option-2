@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import creatorImageMap from '../data/creator-image-map.json'
 
 export type SupabaseCatalogSnapshot = {
   books: number
@@ -34,6 +35,35 @@ export type PublicCreatorProfile = {
   awards: number
   academicTitle: string
   bio: string
+}
+
+export type PublicNewsPost = {
+  image: string
+  title: string
+  titleVi: string
+  date: string
+  kicker: string
+  slug: string
+  excerpt: string
+  excerptVi: string
+  body: string[]
+  bodyVi: string[]
+  contentType: 'news' | 'emagazine'
+  byline: string
+  blocks: PublicNewsBlock[]
+  blocksVi: PublicNewsBlock[]
+}
+
+export type PublicNewsBlock = {
+  id: string
+  type: 'paragraph' | 'heading' | 'image' | 'quote'
+  content: string
+  image: string
+  alt: string
+  caption: string
+  fullBleed: boolean
+  width?: number
+  height?: number
 }
 
 const publicMediaUrl = (storagePath: string) => {
@@ -110,6 +140,7 @@ export async function loadPublicCreatorProfiles(): Promise<PublicCreatorProfile[
       .filter((row) => row.creator_id === id)
       .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order)
       .map((row) => publicMediaUrl(row.storage_path))
+    const localCreatorImage = (creatorImageMap as Record<string, string>)[String(creator.slug ?? '')]
     const birthYear = creator.birth_year == null ? '' : String(creator.birth_year)
     const deathYear = creator.death_year == null ? '' : String(creator.death_year)
     const awardsText = String(creator.awards ?? '').trim()
@@ -117,7 +148,7 @@ export async function loadPublicCreatorProfiles(): Promise<PublicCreatorProfile[
     return {
       name: String(creator.display_name ?? ''),
       slug: String(creator.slug ?? ''),
-      images: unique(creatorImages),
+      images: unique([localCreatorImage ?? '', ...creatorImages]),
       born: birthYear,
       died: deathYear,
       awards: awardCount,
@@ -125,6 +156,54 @@ export async function loadPublicCreatorProfiles(): Promise<PublicCreatorProfile[
       bio: String(creator.bio_html ?? '').trim(),
     }
   }).filter((creator) => creator.name)
+}
+
+export async function loadPublicNewsPosts(): Promise<PublicNewsPost[] | null> {
+  if (!supabase) return null
+  const [{ data, error }, { data: blockData, error: blockError }] = await Promise.all([
+    supabase.from('news_posts').select('id,slug,content_type,published_at,image_storage_path,title_en,title_vi,kicker_en,kicker_vi,excerpt_en,excerpt_vi,body_en,body_vi,byline').eq('status', 'active').order('published_at', { ascending: false, nullsFirst: false }),
+    supabase.from('news_post_blocks').select('id,news_post_id,language,block_type,sort_order,content,image_storage_path,image_alt,caption,is_full_bleed,image_width,image_height').order('sort_order', { ascending: true }),
+  ])
+  if (error) throw error
+  if (blockError) throw blockError
+  const blocksByPost = new Map<string, { en: PublicNewsBlock[]; vi: PublicNewsBlock[] }>()
+  for (const row of (blockData ?? []) as Array<Record<string, unknown>>) {
+    const postId = String(row.news_post_id ?? '')
+    if (!postId) continue
+    const grouped = blocksByPost.get(postId) ?? { en: [], vi: [] }
+    const block: PublicNewsBlock = {
+      id: String(row.id ?? `${postId}-${row.sort_order}`),
+      type: (['paragraph', 'heading', 'image', 'quote'].includes(String(row.block_type)) ? String(row.block_type) : 'paragraph') as PublicNewsBlock['type'],
+      content: String(row.content ?? ''),
+      image: publicMediaUrl(String(row.image_storage_path ?? '')),
+      alt: String(row.image_alt ?? ''),
+      caption: String(row.caption ?? ''),
+      fullBleed: Boolean(row.is_full_bleed),
+      width: row.image_width == null ? undefined : Number(row.image_width),
+      height: row.image_height == null ? undefined : Number(row.image_height),
+    }
+    grouped[String(row.language) === 'vi' ? 'vi' : 'en'].push(block)
+    blocksByPost.set(postId, grouped)
+  }
+  return ((data ?? []) as Array<Record<string, unknown>>).map((post) => {
+    const grouped = blocksByPost.get(String(post.id)) ?? { en: [], vi: [] }
+    return {
+    image: publicMediaUrl(String(post.image_storage_path ?? '')),
+    title: String(post.title_en ?? ''),
+    titleVi: String(post.title_vi ?? ''),
+    date: post.published_at ? new Date(String(post.published_at)).toLocaleDateString('en-GB') : '',
+    kicker: String(post.kicker_en ?? ''),
+    slug: String(post.slug ?? ''),
+    excerpt: String(post.excerpt_en ?? ''),
+    excerptVi: String(post.excerpt_vi ?? ''),
+    body: asArray(post.body_en).map(String),
+    bodyVi: asArray(post.body_vi).map(String),
+    contentType: (post.content_type === 'emagazine' ? 'emagazine' : 'news') as PublicNewsPost['contentType'],
+    byline: String(post.byline ?? ''),
+    blocks: grouped.en.length > 0 ? grouped.en : grouped.vi,
+    blocksVi: grouped.vi.length > 0 ? grouped.vi : grouped.en,
+  }
+  }).filter((post) => post.slug && post.title)
 }
 
 export async function loadSupabaseCatalogSnapshot(): Promise<SupabaseCatalogSnapshot | null> {
