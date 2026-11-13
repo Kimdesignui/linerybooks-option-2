@@ -2286,7 +2286,18 @@ function AdminManagementSidebarBase({ pathname }: { pathname: string }) {
 }
 
 function AdminManagementSidebar({ pathname }: { pathname: string }) {
-  return <AdminManagementSidebarBase pathname={pathname} />
+  useEffect(() => {
+    const handleBrandClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      const brandLink = target.closest<HTMLAnchorElement>('.admin-sidebar > div:first-child a[href="/#home"]')
+      if (!brandLink) return
+      event.preventDefault()
+      window.location.assign('/admin')
+    }
+    document.addEventListener('click', handleBrandClick)
+    return () => document.removeEventListener('click', handleBrandClick)
+  }, [])
+  return <><AdminManagementSidebarBase pathname={pathname} /><AdminSidebarFooter /></>
 }
 
 type AdminAuthorRecord = { id: string; name: string; slug: string; role: string; books: number; email: string; status: 'Đang hoạt động' | 'Tạm ẩn'; image?: string; bio: string }
@@ -2353,6 +2364,11 @@ function AdminCreateHeaderActions({ formId, cancelHref, draftLabel = 'Lưu nháp
 
 function AdminBrand({ compact = false }: { compact?: boolean }) {
   return <span className={`admin-brand ${compact ? 'admin-brand-compact' : ''}`}><img src="/assets/linerybooks-logo-pixel-bg.svg" alt="LineryBooks" /><span>LineryBooks</span></span>
+}
+
+function AdminSidebarFooter() {
+  if (window.location.pathname === '/admin') return null
+  return <div className="mt-auto border-t border-[#eeeae0] p-4"><a className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-body text-sm text-[#62655f] transition-colors hover:bg-[#f5f3ec] hover:text-[var(--color-ink)]" href="/#home"><i className="bi bi-arrow-left" aria-hidden="true" />Về cửa hàng</a></div>
 }
 
 function AdminSimpleCreateShell({ title, section, description: _description, backHref, tabs = [], headerActions, children }: { title: string; section: string; description: string; backHref: string; tabs?: Array<{ id: string; label: string }>; headerActions?: ReactNode; children: ReactNode }) {
