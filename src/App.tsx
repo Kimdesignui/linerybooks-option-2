@@ -1,18 +1,10 @@
-import { useEffect, useRef, useState, type ElementType, type FormEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ElementType, type FormEvent, type ReactNode, type SyntheticEvent } from 'react'
 import 'bootstrap-icons/font/bootstrap-icons.css'
-import { CKEditor } from '@ckeditor/ckeditor5-react'
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic'
-import EditorJS from '@editorjs/editorjs'
-import EditorJsHeader from '@editorjs/header'
-import List from '@editorjs/list'
-import Quote from '@editorjs/quote'
-import Delimiter from '@editorjs/delimiter'
-import Table from '@editorjs/table'
-import { loadPublicCatalogProducts, loadPublicCreatorProfiles, loadPublicNewsPosts, type PublicCatalogProduct, type PublicCreatorProfile, type PublicNewsPost, type PublicNewsBlock } from './lib/supabase-data'
+import { getCachedPublicCatalogProducts, loadPublicBookSample, loadPublicCatalogProducts, loadPublicCreatorProfiles, loadPublicNewsPosts, upsertNewsPost, type PublicCatalogProduct, type PublicCreatorProfile, type PublicNewsPost, type PublicNewsBlock } from './lib/supabase-data'
 import { supabase } from './lib/supabase'
 import hueEmagazine from './data/emagazine-hue.json'
 
-type Product = { id?: string; slug?: string; isbn?: string; image: string; gallery?: string[]; title: string; author: string; translators?: string[]; illustrators?: string[]; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean; limited?: boolean; moduleSlugs?: string[] }
+type Product = { id?: string; slug?: string; isbn?: string; image: string; gallery?: string[]; title: string; author: string; translators?: string[]; illustrators?: string[]; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean; limited?: boolean; moduleSlugs?: string[]; samplePdfUrl?: string; samplePdfPageCount?: number }
 type CartItem = { product: Product; quantity: number }
 type PaymentMethod = 'vnpay' | 'bank' | 'momo' | 'apple' | 'zalopay'
 type FulfillmentMethod = 'pickup' | 'delivery'
@@ -21,6 +13,13 @@ type View = 'home' | 'authors' | 'all-books' | 'collection' | 'search' | 'author
 type AccountTab = 'profile' | 'orders' | 'orders-demo' | 'order-detail' | 'transactions' | 'transaction-detail' | 'security'
 type WriterDirectoryFilter = 'all' | 'authors' | 'translators'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
+const BOOK_COVER_FALLBACK = '/assets/book-cover-placeholder.svg'
+const handleBookCoverError = (event: SyntheticEvent<HTMLImageElement>) => {
+  const image = event.currentTarget
+  if (image.dataset.fallbackApplied === 'true') return
+  image.dataset.fallbackApplied = 'true'
+  image.src = BOOK_COVER_FALLBACK
+}
 type AdminBook = { id?: string; isbn: string; title: string; author: string; quantity: number; unitPrice: number | null; salePrice: number; link: string; format: string; line: string; category: string; cover?: string; coverImages?: string[] }
 type AdminBookKey = keyof Omit<AdminBook, 'id' | 'cover' | 'coverImages'>
 type AdminCatalogBook = { id: string; isbn: string; title: string; author: string; cover: string; coverImages?: string[]; quantity: number; unitPrice: number | null; salePrice: number; comparePrice?: number | null; series: string; format: string; line: string; category: string; link: string; goodreads: string; description: string; status: string; visible?: boolean; homeModules?: string[]; slug?: string; pages?: number | null; bookSize?: string; publisher?: string; imprint?: string; publicationDate?: string; weight?: string; language?: string; authors?: string[]; translators?: string[]; illustrators?: string[]; categories?: string[]; topics?: string[]; languages?: string[] }
@@ -53,6 +52,14 @@ const adminAuthorFormFields: AdminCatalogFormField[] = [
 const siteName = 'Linery Bookstore'
 const siteDescription = 'Linery — hiệu sách tuyển chọn và independent press được xây dựng tại Hà Nội.'
 const publicSeoViews: View[] = ['home', 'authors', 'author', 'all-books', 'collection', 'detail', 'news', 'news-detail']
+
+const LazyCkEditor = lazy(async () => {
+  const [{ CKEditor }, { default: ClassicEditor }] = await Promise.all([
+    import('@ckeditor/ckeditor5-react'),
+    import('@ckeditor/ckeditor5-build-classic'),
+  ])
+  return { default: (props: Record<string, unknown>) => <CKEditor {...props} editor={ClassicEditor as any} /> }
+})
 
 function SeoHead({ view, product, news, author, language }: { view: View; product: Product | null; news: NewsItem | null; author: string; language: Language }) {
   useEffect(() => {
@@ -159,26 +166,12 @@ function RibbonTitle({ title, id, heading = false }: { title: string; id?: strin
     <img className="ribbon ribbon-right" src="/assets/ribbon-right.svg" alt="" aria-hidden="true" />
   </div>
 }
-let products: Product[] = [
-  { image: '/assets/cover-edward.png', title: 'Power, Politics, and Culture: Interviews with Edward W. Said', author: 'Edward W. Said', price: '460.000₫', categories: ['Non-fiction', 'Essays'], publisher: 'Penguin Random House', writerType: 'Authors', year: 2004 },
-  { image: '/assets/cover-ethics.png', title: 'Ethics: A Very Short Introduction', author: 'Simon Blackburn', price: '460.000₫', categories: ['Non-fiction', 'Research & Studies'], publisher: 'Oxford University Press', writerType: 'Authors', year: 2001, available: false },
-  { image: '/assets/cover-existentialism.png', title: 'Existentialism: A Very Short Introduction', author: 'Thomas R. Flynn', price: '460.000₫', categories: ['Non-fiction', 'Research & Studies'], publisher: 'Oxford University Press', writerType: 'Authors', year: 2006 },
-  { image: '/assets/cover-jung.png', title: 'Jung: A Very Short Introduction', author: 'Anthony Stevens', price: '460.000₫', categories: ['Non-fiction', 'Memoir & Biography'], publisher: 'HarperCollins', writerType: 'Authors', year: 1999 },
-  { image: '/assets/cover-derrida.png', title: 'Derrida: A Very Short Introduction', author: 'Simon Glendinning', price: '280.000₫', categories: ['Non-fiction', 'Research & Studies'], publisher: 'Simon & Schuster', writerType: 'Authors', year: 2011 },
-  { image: '/assets/cover-black-folk.png', title: 'The Souls of Black Folk', author: 'W. E. B. Du Bois', price: '310.000₫', categories: ['Non-fiction', 'Essays'], publisher: 'Macmillan Publishers', writerType: 'Authors', year: 1903 },
-]
-
-let artbookProducts: Product[] = [
-  { image: '/assets/cover-art-thief.jpg', title: 'The Art Thief', author: 'Michael Finkel', price: '520.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'Vintage', writerType: 'Authors', year: 2024 },
-  { image: '/assets/cover-art-artist.jpg', title: 'How to Be an Artist', author: 'Jerry Saltz', price: '460.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'Riverhead Books', writerType: 'Authors', year: 2020 },
-  { image: '/assets/cover-art-futures.jpg', title: 'Futures in the Making', author: 'Theo Reeves-Evison', price: '780.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'The MIT Press', writerType: 'Authors', year: 2026 },
-  { image: '/assets/cover-art-lady-in-gold.jpg', title: 'The Lady in Gold', author: "Anne-Marie O'Connor", price: '580.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'Vintage', writerType: 'Authors', year: 2015 },
-  { image: '/assets/cover-art-chasers.jpg', title: 'Chasers of the Light', author: 'Tyler Knott Gregson', price: '390.000₫', categories: ['Non-fiction', 'Poetry & Drama'], publisher: 'Tarcher', writerType: 'Authors', year: 2014 },
-  { image: '/assets/cover-art-white-papers.jpg', title: 'White Papers on Dissent', author: 'Barbara Cueto', price: '820.000₫', categories: ['Non-fiction', 'Art & Design'], publisher: 'The MIT Press', writerType: 'Authors', year: 2026 },
-]
-
-let limitedProducts: Product[] = products.slice(0, 6).map((product) => ({ ...product, limited: true }))
-let catalogProducts: Product[] = [...products, ...artbookProducts]
+// Storefront data is loaded from Supabase. Keep these empty until the backend
+// responds so removed demo covers cannot flash or silently become the catalog.
+let products: Product[] = []
+let artbookProducts: Product[] = []
+let limitedProducts: Product[] = []
+let catalogProducts: Product[] = []
 
 const adminBooksStorageKey = 'linery-admin-books-v2'
 const verifiedIsbnByTitle: Record<string, string> = {
@@ -336,7 +329,7 @@ const newsItems: NewsItem[] = [
     image: '/assets/news-instagram-04.jpg', title: 'Điều khoản sử dụng', titleVi: 'Điều khoản sử dụng', date: 'Policies', kicker: 'Policies', slug: 'dieu-khoan', excerpt: 'Điều khoản sử dụng website và các dịch vụ của LineryBooks.', excerptVi: 'Điều khoản sử dụng website và các dịch vụ của LineryBooks.', body: ['Nội dung điều khoản sẽ được cập nhật từ khu vực quản trị và hiển thị thống nhất trên website.'], bodyVi: ['Nội dung điều khoản sẽ được cập nhật từ khu vực quản trị và hiển thị thống nhất trên website.'],
   },
 ]
-let runtimeNewsItems: NewsItem[] = newsItems
+let runtimeNewsItems: NewsItem[] = []
 const adminNewsOverridesStorageKey = 'linery-admin-news-overrides'
 const readAdminNewsOverrides = (): NewsItem[] => {
   try {
@@ -378,6 +371,7 @@ const authorProfiles: Record<string, { image: string; images?: string[]; born: s
     bio: 'Edward W. Said was a Palestinian-American literary critic, cultural theorist and public intellectual. He earned an AB from Princeton and an AM and PhD from Harvard, then taught at Columbia University, where he became the Parr Professor of English and Comparative Literature. His books Orientalism and Culture and Imperialism reshaped literary and cultural studies, while his writing and public work advocated for Palestinian national rights.',
   },
 }
+const PUBLIC_AUTHOR_AVATAR_FALLBACK = '/assets/author-avatar-placeholder.png'
 let runtimeAuthorProfiles: Record<string, PublicCreatorProfile> = {}
 const authorSlug = (author: string) => author.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const productSlug = (title: string) => title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
@@ -453,6 +447,12 @@ const applyPublicCatalog = (records: PublicCatalogProduct[]) => {
     { title: 'GRAB & SAVE', items: limitedProducts.length > 0 ? limitedProducts : byModule('grab-save').map((product) => ({ ...product, limited: true })) },
   ]
 }
+
+// Hydrate the storefront synchronously from the last verified catalog snapshot.
+// The network refresh below still replaces it with current Supabase data.
+const initialCachedCatalog = getCachedPublicCatalogProducts()
+if (initialCachedCatalog?.length) applyPublicCatalog(initialCachedCatalog)
+
 const homepageModules = ['New & Upcoming', 'Linery Press', 'Linery Picks', 'Grab & Save']
 const collectionTitles = ['New & Upcoming', 'Linery Press', 'Linery Picks', 'Linery Art Books', 'Grab & Save'] as const
 const uiText = {
@@ -523,8 +523,8 @@ const translatorColumns: MenuColumn[] = [
   { eyebrow: 'V', links: ['Saskia Vogel', 'Francesca Wade', 'Adrian Nathan West', 'Shaun Whiteside', 'Natasha Wimmer', 'Frank Wynne'] },
 ]
 
-let runtimeAuthorColumns = authorColumns
-let runtimeTranslatorColumns = translatorColumns
+let runtimeAuthorColumns: MenuColumn[] = []
+let runtimeTranslatorColumns: MenuColumn[] = []
 
 const writerMenuGroups: MenuColumn[] = [
   { eyebrow: 'Role', links: ['Author', 'Translator', 'Illustrator'] },
@@ -673,7 +673,7 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
   const authorLightboxTrackRef = useRef<HTMLDivElement>(null)
   const liveProfile = runtimeAuthorProfiles[author]
   const profile = liveProfile ? {
-    image: liveProfile.images[0] ?? '',
+    image: liveProfile.images[0] ?? PUBLIC_AUTHOR_AVATAR_FALLBACK,
     images: liveProfile.images,
     born: liveProfile.born || '—',
     died: liveProfile.died || '—',
@@ -682,17 +682,17 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
     awards: liveProfile.awards,
     academicTitle: liveProfile.academicTitle,
     bio: liveProfile.bio || `${author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.`,
-  } : authorProfiles[author] ?? {
-    image: '',
+  } : {
+    image: PUBLIC_AUTHOR_AVATAR_FALLBACK,
     born: '—',
     died: '—',
     bornPlace: 'Linery catalogue',
     diedPlace: 'Linery catalogue',
     awards: 0,
     academicTitle: '—',
-    bio: `${author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.`,
+    bio: '',
   }
-  const authorImages = profile.images ?? [profile.image]
+  const authorImages = profile.images?.length ? profile.images : [profile.image || PUBLIC_AUTHOR_AVATAR_FALLBACK]
   const hasBirthDate = Boolean(profile.born && profile.born !== '—')
   const hasDeathDate = Boolean(profile.died && profile.died !== '—')
 
@@ -1168,8 +1168,9 @@ function Header({ cartCount, cartPulse, menuOpen, onMenu, onHome, onLogin, onLog
 }
 
 function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewLeave, onSelectQuickView, quickViewOpen }: ProductCardActions & { product: Product }) {
+  if (!product) return null
   const coverContent = <div className="product-cover-wrap">
-    <img src={product.image} alt={product.title} className="product-cover" loading="lazy" decoding="async" />
+    <img src={product.image || BOOK_COVER_FALLBACK} alt={product.title} className="product-cover" loading="lazy" decoding="async" onError={handleBookCoverError} />
     {product.limited && <span className="product-limited-badge" aria-label="20% discount">20%</span>}
   </div>
   const infoContent = <div className="product-info">
@@ -1192,6 +1193,7 @@ function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewL
 }
 
 function Collection({ title, items, onCollection, quickViewOpen, language = 'en', showViewAll = true, ...actions }: { title: string; items: Product[]; onCollection: (title: string) => void; language?: Language; showViewAll?: boolean } & ProductCardActions) {
+  if (items.length === 0) return null
   const carouselRef = useRef<HTMLDivElement | null>(null)
   const [trackPosition, setTrackPosition] = useState(1)
   const [isJumping, setIsJumping] = useState(false)
@@ -1283,23 +1285,31 @@ function Collection({ title, items, onCollection, quickViewOpen, language = 'en'
 }
 
 function RelatedBooksPanel({ items, onOpenDetail }: { items: Product[]; onOpenDetail: (product: Product) => void }) {
-  return <aside className="book-related-sidebar book-related-sidebar-fixed" aria-labelledby="book-related-title">
-    <div className="book-related-sidebar-header">
+  return <section className="book-related-inline" aria-labelledby="book-related-title">
+    <div className="book-related-inline-header">
       <div>
         <p className="book-detail-kicker">Related reading</p>
         <h2 id="book-related-title">Books in this subject</h2>
       </div>
       <span>{items.length} titles</span>
     </div>
-    <div className="book-related-sidebar-list">
-      {items.map((relatedProduct) => <article className="book-related-sidebar-item" key={relatedProduct.title}>
-        <button className="book-related-sidebar-cover" type="button" onClick={() => onOpenDetail(relatedProduct)} aria-label={`View ${relatedProduct.title}`}>
-          <img src={relatedProduct.image || '/assets/cover-edward.png'} alt={relatedProduct.title} loading="lazy" decoding="async" onError={(event) => { event.currentTarget.src = '/assets/cover-edward.png' }} />
-        </button>
-        <button className="book-related-sidebar-title" type="button" onClick={() => onOpenDetail(relatedProduct)}>{relatedProduct.title}</button>
-      </article>)}
+    <div className="book-related-inline-list">
+      {items.map((relatedProduct) => <button className="book-related-inline-card" type="button" key={relatedProduct.title} onClick={() => onOpenDetail(relatedProduct)} aria-label={`View ${relatedProduct.title}`}>
+        <span className="book-related-inline-cover"><img src={relatedProduct.image || BOOK_COVER_FALLBACK} alt="" loading="lazy" decoding="async" onError={handleBookCoverError} /></span>
+        <span className="book-related-inline-title">{relatedProduct.title}</span>
+      </button>)}
     </div>
-  </aside>
+  </section>
+}
+
+function BookLookInsideNotice({ pdfUrl, pageCount, onClose }: { pdfUrl?: string; pageCount?: number; onClose: () => void }) {
+  return <div className="book-excerpt-overlay" role="presentation">
+    <button className="book-excerpt-backdrop" type="button" aria-label="Close Look inside" onClick={onClose} />
+    <aside className="book-excerpt-drawer book-look-inside-drawer" role="dialog" aria-modal="true" aria-labelledby="book-look-inside-title">
+      <div className="book-excerpt-header"><div><p className="book-detail-kicker">Look inside</p><h2 id="book-look-inside-title">Book preview</h2><p className="book-excerpt-byline">{pdfUrl ? `${pageCount ? `${pageCount} pages` : 'PDF reading sample'} · Open the sample in the reader below.` : 'The PDF reading sample will appear here when it is connected to this title.'}</p></div><button className="book-excerpt-close" type="button" onClick={onClose}><i className="bi bi-x-lg" aria-hidden="true" /> Close</button></div>
+      {pdfUrl ? <iframe className="book-look-inside-frame" title="Book reading sample" src={pdfUrl} /> : <div className="book-look-inside-empty"><i className="bi bi-file-earmark-pdf" aria-hidden="true" /><h3>Reading sample not available yet</h3><p>Upload or connect the sample PDF in the book record to enable page-turning preview and free browser text-to-speech.</p></div>}
+    </aside>
+  </div>
 }
 
 function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBuyNow, onPreview, onPreviewLeave, onSelectQuickView, quickViewOpen }: { product: Product; onBack: () => void; onAuthor: (author: string) => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onBuyNow: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }) {
@@ -1319,13 +1329,31 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
   const [activeImage, setActiveImage] = useState(0)
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const [readExcerptOpen, setReadExcerptOpen] = useState(false)
+  const [lookInsideOpen, setLookInsideOpen] = useState(false)
+  const [bookSample, setBookSample] = useState<{ url?: string; pageCount?: number } | null>(null)
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const unitPrice = Number(product.price.replace(/[^0-9]/g, ''))
   const totalPrice = `${(unitPrice * quantity).toLocaleString('vi-VN')}₫`
   const isAvailable = product.available !== false
-  const hasReadExcerpt = /a manual for cleaning women/i.test(product.title)
+  const hasReadExcerpt = Boolean(product.samplePdfUrl) || /a manual for cleaning women/i.test(product.title)
+  const samplePdfUrl = bookSample?.url ?? product.samplePdfUrl
+  const samplePdfPageCount = bookSample?.pageCount ?? product.samplePdfPageCount
+
+  useEffect(() => {
+    setBookSample(null)
+    setLookInsideOpen(false)
+  }, [product.id, product.title])
+
+  useEffect(() => {
+    if (!lookInsideOpen || !product.id || bookSample?.url) return undefined
+    let cancelled = false
+    loadPublicBookSample(product.id).then((sample) => {
+      if (!cancelled && sample) setBookSample(sample)
+    }).catch(() => undefined)
+    return () => { cancelled = true }
+  }, [lookInsideOpen, product.id, bookSample?.url])
 
   useEffect(() => {
     if (!lightboxOpen) return undefined
@@ -1344,10 +1372,10 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
       <div className="book-detail-gallery">
         <button className="book-detail-cover-wrap" type="button" aria-label={`Open gallery for ${product.title}`} onClick={() => setLightboxOpen(true)}>
           <span className="detail-mobile-back" role="button" aria-label="Back to books" tabIndex={0} onClick={(event) => { event.stopPropagation(); onBack() }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onBack() } }}><i className="bi bi-arrow-left" aria-hidden="true" /></span>
-          <img className="book-detail-cover" src={galleryImages[activeImage]} alt={product.title} />
+          <img className="book-detail-cover" src={galleryImages[activeImage] || BOOK_COVER_FALLBACK} alt={product.title} onError={handleBookCoverError} />
           <span className="book-detail-zoom"><i className="bi bi-arrows-fullscreen" aria-hidden="true" /> View full image</span>
         </button>
-        {hasReadExcerpt && <div className="book-excerpt-cta"><button className="book-excerpt-button" type="button" aria-pressed={readExcerptOpen} onClick={() => setReadExcerptOpen((open) => !open)}><i className="bi bi-book-half" aria-hidden="true" /> {readExcerptOpen ? 'Close excerpt' : 'Read Excerpt'}</button></div>}
+        {hasReadExcerpt && <div className="book-excerpt-cta"><button className="book-excerpt-button" type="button" aria-pressed={readExcerptOpen} onClick={() => setReadExcerptOpen((open) => !open)}><i className="bi bi-book-half" aria-hidden="true" /> {readExcerptOpen ? 'Close excerpt' : 'Read Excerpt'}</button><button className="book-excerpt-button book-look-inside-button" type="button" aria-pressed={lookInsideOpen} onClick={() => setLookInsideOpen(true)}><i className="bi bi-file-earmark-pdf" aria-hidden="true" /> Look inside</button></div>}
       </div>
       <div className="book-detail-copy">
         <h1>{product.title}</h1>
@@ -1388,9 +1416,9 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
           <h2 id="details-title">Details</h2>
           <dl><div><dt>Publisher</dt><dd>{product.publisher}</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Format</dt><dd>Paperback</dd></div></dl>
         </section>
+        {relatedProducts.length > 0 && <RelatedBooksPanel items={relatedProducts} onOpenDetail={onOpenDetail} />}
       </div>
     </section>
-    {relatedProducts.length > 0 && <RelatedBooksPanel items={relatedProducts} onOpenDetail={onOpenDetail} />}
     <section className="book-detail-section book-reviews" aria-labelledby="reviews-title">
       <div className="book-reviews-heading">
         <div>
@@ -1425,11 +1453,12 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
         <article className="book-excerpt-content"><h3>Angel&apos;s Laundromat</h3><p>A short story set around a laundromat in Albuquerque, where chance encounters, memory and loneliness gather in the everyday rhythm of washing clothes.</p><p className="book-excerpt-quote">“A tall old Indian in faded Levi&apos;s and a fine Zuni belt.”</p><p>Berlin&apos;s story moves through observation and recollection, bringing its characters into focus through small gestures, vivid details and an unexpected intimacy.</p></article>
       </aside>
     </div>}
+    {lookInsideOpen && hasReadExcerpt && <BookLookInsideNotice pdfUrl={samplePdfUrl} pageCount={samplePdfPageCount} onClose={() => setLookInsideOpen(false)} />}
     {lightboxOpen && <div className="book-lightbox" role="dialog" aria-modal="true" aria-label={`Image gallery for ${product.title}`} onClick={() => setLightboxOpen(false)}>
       <div className="book-lightbox-frame" onClick={(event) => event.stopPropagation()}>
-        <img className="book-lightbox-image" src={galleryImages[activeImage]} alt={product.title} />
+        <img className="book-lightbox-image" src={galleryImages[activeImage] || BOOK_COVER_FALLBACK} alt={product.title} onError={handleBookCoverError} />
         <div className="book-lightbox-thumbnails" aria-label="Book images">
-          {galleryImages.map((image, index) => <button key={`${image}-${index}`} className={`book-lightbox-thumbnail ${index === activeImage ? 'is-active' : ''}`} type="button" aria-label={`View image ${index + 1}`} onClick={() => setActiveImage(index)}><img src={image} alt="" loading="lazy" decoding="async" /></button>)}
+          {galleryImages.map((image, index) => <button key={`${image}-${index}`} className={`book-lightbox-thumbnail ${index === activeImage ? 'is-active' : ''}`} type="button" aria-label={`View image ${index + 1}`} onClick={() => setActiveImage(index)}><img src={image || BOOK_COVER_FALLBACK} alt="" loading="lazy" decoding="async" onError={handleBookCoverError} /></button>)}
         </div>
         <button className="book-lightbox-close" type="button" aria-label="Close gallery" onClick={() => setLightboxOpen(false)}><i className="bi bi-x-lg" aria-hidden="true" /></button>
         {galleryImages.length > 1 && <><button className="book-lightbox-nav book-lightbox-prev" type="button" aria-label="Previous image" onClick={() => setActiveImage((current) => (current - 1 + galleryImages.length) % galleryImages.length)}><i className="bi bi-chevron-left" aria-hidden="true" /></button><button className="book-lightbox-nav book-lightbox-next" type="button" aria-label="Next image" onClick={() => setActiveImage((current) => (current + 1) % galleryImages.length)}><i className="bi bi-chevron-right" aria-hidden="true" /></button></>}
@@ -1443,7 +1472,7 @@ function BookPreview({ product, onClose, onOpenDetail }: { product: Product | nu
   return <aside className={`book-preview ${product ? '' : 'is-empty'}`} aria-label="Quick view">
     <div className="book-preview-header"><p>Quick view</p><button type="button" aria-label="Close quick view" onClick={onClose}>×</button></div>
     {product ? <>
-      <img className="book-preview-cover" src={product.image} alt={product.title} loading="lazy" decoding="async" />
+      <img className="book-preview-cover" src={product.image || BOOK_COVER_FALLBACK} alt={product.title} loading="lazy" decoding="async" onError={handleBookCoverError} />
       <div className="book-preview-copy">
         <h2>{product.title}</h2>
         <p className="book-preview-author">{product.author}</p>
@@ -1482,7 +1511,7 @@ function UtilityPanel({ product, onClose, onOpenDetail, onAuthor, onAddToCart, o
       {product ? <>
         <div ref={scrollRef} className="utility-panel-scroll">
           <div className="utility-panel-product-transition" key={product.title}>
-          <img className="book-preview-cover" src={product.image} alt={product.title} loading="lazy" decoding="async" />
+          <img className="book-preview-cover" src={product.image || BOOK_COVER_FALLBACK} alt={product.title} loading="lazy" decoding="async" onError={handleBookCoverError} />
           <div className="book-preview-copy"><h2>{product.title}</h2><p className="book-preview-author"><a className="book-preview-author-link" href={`/creators/${authorSlug(product.author)}`} onClick={(event) => { event.preventDefault(); onAuthor(product.author) }}>{product.author}</a></p><p className="book-preview-price">{product.price}</p></div>
           <div className="book-preview-section-divider" aria-hidden="true" />
           <dl className="book-preview-details"><div><dt>Publisher</dt><dd>{publisher}</dd></div><div><dt>ISBN</dt><dd>978-0-00-000000-0</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div></dl>
@@ -1704,7 +1733,7 @@ const addStorefrontOrder = (input: { name: string; email: string; phone: string;
 
 function CartItemRow({ item, onRemove, onChangeQuantity }: { item: CartItem; onRemove: () => void; onChangeQuantity: (delta: number) => void }) {
   return <article className="cart-item-row">
-    <img className="cart-item-image" src={item.product.image} alt={`Bìa sách ${item.product.title}`} loading="lazy" decoding="async" />
+    <img className="cart-item-image" src={item.product.image || BOOK_COVER_FALLBACK} alt={`Bìa sách ${item.product.title}`} loading="lazy" decoding="async" onError={handleBookCoverError} />
     <div className="cart-item-copy">
       <h2>{item.product.title}</h2>
       <p>{item.product.author}</p>
@@ -1806,7 +1835,7 @@ function CheckoutPage({ items, onHome, onBackToCart }: { items: CartItem[]; onHo
           <fieldset><legend>Receiving method</legend><div className="checkout-method-tabs" role="tablist" aria-label="Receiving method"><button className={fulfillmentMethod === 'pickup' ? 'is-active' : ''} type="button" role="tab" aria-selected={fulfillmentMethod === 'pickup'} onClick={() => setFulfillmentMethod('pickup')}><i className={`bi ${fulfillmentMethod === 'pickup' ? 'bi-check-circle-fill' : 'bi-circle'}`} aria-hidden="true" />Pickup at counter</button><button className={fulfillmentMethod === 'delivery' ? 'is-active' : ''} type="button" role="tab" aria-selected={fulfillmentMethod === 'delivery'} onClick={() => setFulfillmentMethod('delivery')}><i className={`bi ${fulfillmentMethod === 'delivery' ? 'bi-check-circle-fill' : 'bi-circle'}`} aria-hidden="true" />Delivery</button></div>{fulfillmentMethod === 'pickup' ? <div className="checkout-tab-panel" role="tabpanel"><label className="checkout-select-field">Choose a store<select name="pickupStore" defaultValue="" required><option value="" disabled>Select a store</option><option value="store-1">Store 1: Hanoi Book Street, Cua Nam Ward, Hanoi</option><option value="store-2">Comming soon</option></select></label></div> : <div className="checkout-tab-panel checkout-delivery-fields" role="tabpanel"><label>Delivery address<input name="address" type="text" placeholder="House number and street" autoComplete="street-address" required /></label><div className="checkout-field-grid"><label>City<input name="city" type="text" placeholder="City" autoComplete="address-level2" required /></label><label>Postal code<input name="postalCode" type="text" placeholder="Postal code" autoComplete="postal-code" /></label></div><label>Delivery notes<textarea name="deliveryNotes" placeholder="Add instructions for delivery" rows={3} /></label></div>}</fieldset>
         </form>
       </section>
-      <aside className="checkout-summary" aria-labelledby="checkout-summary-title"><p className="checkout-kicker">Your order</p><h2 id="checkout-summary-title">Order summary</h2><div className="checkout-summary-items">{items.map((item) => <div className="checkout-summary-item" key={item.product.title}><img src={item.product.image} alt={`Bìa sách ${item.product.title}`} loading="lazy" decoding="async" /><div><strong>{item.product.title}</strong><span>Qty {item.quantity}</span></div><b>{formatPrice(getPriceValue(item.product.price) * item.quantity)}</b></div>)}</div><form className="checkout-voucher" onSubmit={(event) => event.preventDefault()}><label htmlFor="voucher-code">Voucher / discount code</label><div className="checkout-voucher-row"><div className="checkout-voucher-input"><i className="bi bi-ticket-perforated" aria-hidden="true" /><input id="voucher-code" name="voucherCode" type="text" value={voucherCode} onChange={(event) => setVoucherCode(event.target.value)} placeholder="Enter your code" autoComplete="off" /></div><button type="submit">Apply</button></div></form><div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div><div className="cart-summary-line"><span>Delivery fee</span><strong>Free</strong></div><div className="cart-summary-total"><span>Total</span><strong>{formatPrice(subtotal)}</strong></div><button className="checkout-submit checkout-summary-submit" type="submit" form="checkout-form">CONTINUE TO PAYMENT</button></aside>
+      <aside className="checkout-summary" aria-labelledby="checkout-summary-title"><p className="checkout-kicker">Your order</p><h2 id="checkout-summary-title">Order summary</h2><div className="checkout-summary-items">{items.map((item) => <div className="checkout-summary-item" key={item.product.title}><img src={item.product.image || BOOK_COVER_FALLBACK} alt={`Bìa sách ${item.product.title}`} loading="lazy" decoding="async" onError={handleBookCoverError} /><div><strong>{item.product.title}</strong><span>Qty {item.quantity}</span></div><b>{formatPrice(getPriceValue(item.product.price) * item.quantity)}</b></div>)}</div><form className="checkout-voucher" onSubmit={(event) => event.preventDefault()}><label htmlFor="voucher-code">Voucher / discount code</label><div className="checkout-voucher-row"><div className="checkout-voucher-input"><i className="bi bi-ticket-perforated" aria-hidden="true" /><input id="voucher-code" name="voucherCode" type="text" value={voucherCode} onChange={(event) => setVoucherCode(event.target.value)} placeholder="Enter your code" autoComplete="off" /></div><button type="submit">Apply</button></div></form><div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div><div className="cart-summary-line"><span>Delivery fee</span><strong>Free</strong></div><div className="cart-summary-total"><span>Total</span><strong>{formatPrice(subtotal)}</strong></div><button className="checkout-submit checkout-summary-submit" type="submit" form="checkout-form">CONTINUE TO PAYMENT</button></aside>
     </div>
   </main>
 }
@@ -2309,17 +2338,6 @@ function AdminManagementSidebarBase({ pathname }: { pathname: string }) {
 }
 
 function AdminManagementSidebar({ pathname }: { pathname: string }) {
-  useEffect(() => {
-    const handleBrandClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement
-      const brandLink = target.closest<HTMLAnchorElement>('.admin-sidebar > div:first-child a[href="/#home"]')
-      if (!brandLink) return
-      event.preventDefault()
-      window.location.assign('/admin')
-    }
-    document.addEventListener('click', handleBrandClick)
-    return () => document.removeEventListener('click', handleBrandClick)
-  }, [])
   return <><AdminManagementSidebarBase pathname={pathname} /><AdminSidebarFooter /></>
 }
 
@@ -2393,30 +2411,15 @@ function AdminSidebarFooter() {
   return <div className="admin-sidebar-footer mt-auto shrink-0 border-t border-[#eeeae0] p-4"><a className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-body text-sm text-[#62655f] transition-colors hover:bg-[#f5f3ec] hover:text-[var(--color-ink)]" href="/#home"><i className="bi bi-arrow-left" aria-hidden="true" />Về cửa hàng</a></div>
 }
 
-function AdminSimpleCreateShell({ title, section, description: _description, backHref, tabs = [], headerActions, children }: { title: string; section: string; description: string; backHref: string; tabs?: Array<{ id: string; label: string }>; headerActions?: ReactNode; children: ReactNode }) {
+function AdminShell({ title, section, children, headerActions, tabs = [] }: { title: string; section: string; children: ReactNode; headerActions?: ReactNode; tabs?: Array<{ id: string; label: string }> }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  useEffect(() => {
-    document.body.dataset.adminCreate = 'true'
-    return () => { delete document.body.dataset.adminCreate }
-  }, [])
-  useEffect(() => {
-    const sidebar = document.querySelector<HTMLElement>('.admin-create-sidebar')
-    const shell = sidebar?.closest<HTMLElement>('.admin-shell')
-    if (!sidebar || !shell || sidebar.querySelector('.admin-sidebar-collapse')) return
-    const button = document.createElement('button')
-    button.className = 'admin-sidebar-collapse'
-    button.type = 'button'
-    button.setAttribute('aria-label', 'Thu gọn menu quản trị')
-    const icon = document.createElement('i')
-    icon.className = 'bi bi-chevron-left'
-    icon.setAttribute('aria-hidden', 'true')
-    button.append(icon)
-    const toggle = () => { const collapsed = shell.classList.toggle('admin-sidebar-collapsed'); icon.className = `bi ${collapsed ? 'bi-chevron-right' : 'bi-chevron-left'}`; button.setAttribute('aria-label', collapsed ? 'Mở rộng menu quản trị' : 'Thu gọn menu quản trị') }
-    button.addEventListener('click', toggle)
-    sidebar.append(button)
-    return () => { button.removeEventListener('click', toggle); button.remove() }
-  }, [])
-  return <div className="admin-shell flex min-h-screen bg-[#f7f7f2] text-[var(--color-ink)]"><aside className={`admin-sidebar admin-create-sidebar fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r border-[#e5e2d7] bg-white transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? 'is-open translate-x-0' : ''}`}><div className="flex h-16 items-center justify-between border-b border-[#eeeae0] px-5"><a className="admin-brand-link" href="/#home" aria-label="LineryBooks"><AdminBrand /></a><button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] text-[var(--color-ink)] lg:hidden" type="button" aria-label="Đóng menu quản trị" onClick={() => setSidebarOpen(false)}><i className="bi bi-x-lg" aria-hidden="true" /></button></div><AdminManagementSidebar pathname={window.location.pathname} /></aside>{sidebarOpen && <button className="fixed inset-0 z-30 bg-[rgba(31,42,36,.32)] lg:hidden" type="button" aria-label="Đóng menu quản trị" onClick={() => setSidebarOpen(false)} />}<div className="min-w-0 flex-1"><header className="admin-create-header sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-[#e5e2d7] bg-white/95 px-4 backdrop-blur sm:px-5 lg:px-6"><div className="flex min-w-0 items-center gap-2"><button className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#dedbd0] text-[var(--color-ink)] lg:hidden" type="button" aria-label="Mở menu quản trị" onClick={() => setSidebarOpen(true)}><i className="bi bi-list" aria-hidden="true" /></button><h1 className="truncate font-body text-lg font-semibold tracking-tight">{title}</h1></div>{headerActions}</header>{tabs.length > 0 && <AdminCreateTabs tabs={tabs} />}<main className="w-full p-3 sm:p-4 lg:p-5"><div className="admin-breadcrumb mb-4 flex items-center gap-2 font-body text-sm text-[#8b8d86]"><a className="hover:text-[var(--color-olive-dark)]" href="/admin">Quản trị</a><i className="bi bi-chevron-right text-xs" aria-hidden="true" /><span>{section}</span><i className="bi bi-chevron-right text-xs" aria-hidden="true" /><span className="font-medium text-[var(--color-ink)]">{title}</span></div><section className="rounded-2xl border border-[#e6e2d7] bg-white p-3 shadow-[0_8px_24px_rgba(31,42,36,.035)] sm:p-4">{children}</section></main></div></div>
+  const [collapsed, setCollapsed] = useState(false)
+  const pathname = window.location.pathname
+  return <div className={`admin-shell ${collapsed ? 'admin-sidebar-collapsed' : ''} flex min-h-screen bg-[#f7f7f2] text-[var(--color-ink)]`}><aside className={`admin-sidebar fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r border-[#e5e2d7] bg-white transition-[transform,width] duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? 'is-open translate-x-0' : ''}`}><div className="flex h-16 shrink-0 items-center justify-between border-b border-[#eeeae0] px-5"><a className="admin-brand-link" href="/admin" aria-label="LineryBooks - trang quản trị"><AdminBrand /></a><button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] text-[var(--color-ink)] lg:hidden" type="button" aria-label="Đóng menu quản trị" onClick={() => setSidebarOpen(false)}><i className="bi bi-x-lg" aria-hidden="true" /></button></div><AdminManagementSidebar pathname={pathname} /></aside><button className="admin-sidebar-collapse" type="button" aria-label={collapsed ? 'Mở rộng menu quản trị' : 'Thu gọn menu quản trị'} onClick={() => setCollapsed((value) => !value)}><i className={`bi ${collapsed ? 'bi-chevron-right' : 'bi-chevron-left'}`} aria-hidden="true" /></button>{sidebarOpen && <button className="fixed inset-0 z-30 bg-[rgba(31,42,36,.32)] lg:hidden" type="button" aria-label="Đóng menu quản trị" onClick={() => setSidebarOpen(false)} />}<div className="min-w-0 flex-1"><header className="admin-header flex min-h-16 items-center justify-between gap-3 border-b border-[#e5e2d7] bg-white px-4 sm:px-5 lg:px-6"><div className="flex min-w-0 items-center gap-2"><button className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#dedbd0] text-[var(--color-ink)] lg:hidden" type="button" aria-label="Mở menu quản trị" onClick={() => setSidebarOpen(true)}><i className="bi bi-list" aria-hidden="true" /></button><div className="min-w-0"><p className="admin-header-kicker font-body text-xs text-[#8b8d86]">Quản trị</p><h1 className="truncate font-body text-lg font-semibold tracking-tight">{title}</h1></div></div><div className="flex items-center gap-2">{headerActions}<button className="admin-user-avatar inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-olive)] font-body text-sm font-semibold text-white" type="button" aria-label="Thông tin quản trị viên">K</button></div></header>{tabs.length > 0 && <AdminCreateTabs tabs={tabs} />}<main className="w-full p-3 sm:p-4 lg:p-5"><div className="admin-breadcrumb mb-4 flex items-center gap-2 font-body text-sm text-[#8b8d86]"><a className="hover:text-[var(--color-olive-dark)]" href="/admin">Quản trị</a><i className="bi bi-chevron-right text-xs" aria-hidden="true" /><span>{section}</span><i className="bi bi-chevron-right text-xs" aria-hidden="true" /><span className="font-medium text-[var(--color-ink)]">{title}</span></div>{children}</main></div></div>
+}
+
+function AdminSimpleCreateShell({ title, section, description: _description, backHref: _backHref, tabs = [], headerActions, children }: { title: string; section: string; description: string; backHref: string; tabs?: Array<{ id: string; label: string }>; headerActions?: ReactNode; children: ReactNode }) {
+  return <AdminShell title={title} section={section} tabs={tabs} headerActions={headerActions}><section className="rounded-2xl border border-[#e6e2d7] bg-white p-3 shadow-[0_8px_24px_rgba(31,42,36,.035)] sm:p-4">{children}</section></AdminShell>
 }
 
 function AdminRichTextEditor({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
@@ -2430,7 +2433,7 @@ function AdminRichTextEditor({ label, value, onChange, placeholder }: { label: s
 }
 
 function AdminCkEditor({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
-  return <div className="admin-ckeditor sm:col-span-2 lg:col-span-3"><span className="mb-1.5 block font-body text-sm font-medium">{label}</span><div className="overflow-hidden rounded-xl border border-[#dedbd0] bg-white focus-within:border-[var(--color-olive)] focus-within:ring-2 focus-within:ring-[rgba(155,148,47,.14)]"><CKEditor editor={ClassicEditor as any} data={value} config={{ placeholder, toolbar: ['undo', 'redo', '|', 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable'] }} onChange={(_, editor: any) => onChange(editor.getData())} /></div><span className="mt-1 block font-body text-xs text-[#8b8d86]">CKEditor miễn phí với heading, định dạng chữ, liên kết, danh sách, trích dẫn và bảng.</span></div>
+  return <div className="admin-ckeditor sm:col-span-2 lg:col-span-3"><span className="mb-1.5 block font-body text-sm font-medium">{label}</span><div className="overflow-hidden rounded-xl border border-[#dedbd0] bg-white focus-within:border-[var(--color-olive)] focus-within:ring-2 focus-within:ring-[rgba(155,148,47,.14)]"><Suspense fallback={<div className="min-h-[280px] p-4 font-body text-sm text-[#8b8d86]">Đang tải trình soạn thảo…</div>}><LazyCkEditor data={value} config={{ placeholder, toolbar: ['undo', 'redo', '|', 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable'] }} onChange={(_event: unknown, editor: any) => onChange(editor.getData())} /></Suspense></div><span className="mt-1 block font-body text-xs text-[#8b8d86]">CKEditor miễn phí với heading, định dạng chữ, liên kết, danh sách, trích dẫn và bảng.</span></div>
 }
 
 function readEditorJsData(value: string) {
@@ -2448,29 +2451,46 @@ function AdminEditorJs({ label, value, onChange, placeholder }: { label: string;
   const editorRef = useRef<any>(null)
   useEffect(() => {
     let disposed = false
-    const editor = new (EditorJS as any)({
-      holder: holderRef.current ?? holderId,
-      autofocus: false,
-      placeholder,
-      data: readEditorJsData(value) as any,
-      tools: {
-        header: { class: EditorJsHeader as any, inlineToolbar: true, config: { levels: [2, 3, 4], defaultLevel: 2 } },
-        list: { class: List, inlineToolbar: true, config: { defaultStyle: 'unordered' } },
-        quote: { class: Quote, inlineToolbar: true },
-        delimiter: Delimiter,
-        table: { class: Table as any, inlineToolbar: true, config: { rows: 3, cols: 3 } },
-      },
-      onChange: async () => {
-        if (disposed) return
-        const saved = await editor.save()
-        if (!disposed) onChange(JSON.stringify(saved))
-      },
+    let editor: any
+    Promise.all([
+      import('@editorjs/editorjs'),
+      import('@editorjs/header'),
+      import('@editorjs/list'),
+      import('@editorjs/quote'),
+      import('@editorjs/delimiter'),
+      import('@editorjs/table'),
+    ]).then(([editorModule, headerModule, listModule, quoteModule, delimiterModule, tableModule]) => {
+      if (disposed) return
+      const EditorJS = editorModule.default
+      const EditorJsHeader = headerModule.default
+      const List = listModule.default
+      const Quote = quoteModule.default
+      const Delimiter = delimiterModule.default
+      const Table = tableModule.default
+      editor = new (EditorJS as any)({
+        holder: holderRef.current ?? holderId,
+        autofocus: false,
+        placeholder,
+        data: readEditorJsData(value) as any,
+        tools: {
+          header: { class: EditorJsHeader as any, inlineToolbar: true, config: { levels: [2, 3, 4], defaultLevel: 2 } },
+          list: { class: List, inlineToolbar: true, config: { defaultStyle: 'unordered' } },
+          quote: { class: Quote, inlineToolbar: true },
+          delimiter: Delimiter,
+          table: { class: Table as any, inlineToolbar: true, config: { rows: 3, cols: 3 } },
+        },
+        onChange: async () => {
+          if (disposed) return
+          const saved = await editor.save()
+          if (!disposed) onChange(JSON.stringify(saved))
+        },
+      })
+      editorRef.current = editor
     })
-    editorRef.current = editor
     return () => {
       disposed = true
       editorRef.current = null
-      if (typeof editor.destroy === 'function') void editor.destroy()
+      if (editor && typeof editor.destroy === 'function') void editor.destroy()
     }
   }, [holderId, placeholder])
   return <div className="admin-editorjs sm:col-span-2 lg:col-span-3"><span className="mb-1.5 block font-body text-sm font-medium">{label}</span><div id={holderId} ref={holderRef} className="admin-editorjs-surface rounded-xl border border-[#dedbd0] bg-white" /><span className="mt-1 block font-body text-xs text-[#8b8d86]">Editor.js lưu nội dung theo block để tạo bài eMagazine longform trực quan.</span></div>
@@ -2608,7 +2628,7 @@ function AdminAuthorsRestoredPage({ pathname }: { pathname: string }) {
           </section>
             {view === 'cards' && <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{authors.map((author) => <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white" key={author.id}><div className="flex items-center justify-between border-b border-[#eeeae0] px-3 py-2.5"><span className="font-body text-xs text-[#8b8d86]">{author.role}</span><div className="flex gap-1"><button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] text-[#74776f] hover:bg-[#f5f3ec]" type="button" aria-label={`Sửa ${author.name}`} onClick={() => openDetail(author.id)}><i className="bi bi-pencil" aria-hidden="true" /></button><button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] text-[#74776f] hover:bg-[#f5f3ec]" type="button" aria-label={`Tạm ẩn ${author.name}`}><i className="bi bi-eye-slash" aria-hidden="true" /></button></div></div><img className="aspect-[2/3] w-full object-cover object-top" src={author.image} alt={author.name} onError={(event) => { event.currentTarget.src = '/assets/author-avatar-placeholder.png' }} /><div className="flex flex-1 flex-col space-y-3 p-4"><button className="text-left font-display text-xl font-bold hover:text-[var(--color-olive-dark)]" type="button" onClick={() => openDetail(author.id)}>{author.name}</button><dl className="space-y-2 font-body text-sm"><div className="flex justify-between gap-3"><dt className="font-semibold">Số sách</dt><dd className="text-[#74776f]">{bookCount(author.name)}</dd></div><div className="flex justify-between gap-3"><dt className="font-semibold">Trạng thái</dt><dd className="font-semibold text-[#39733e]">{author.status}</dd></div></dl><button className="mt-auto inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[var(--color-olive)] px-3 font-body text-sm font-medium text-white hover:bg-[var(--color-olive-dark)]" type="button" onClick={() => openDetail(author.id)}>Xem hồ sơ</button></div></article>)}</section>}
             {view === 'table' && <section className="mt-6 overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="overflow-x-auto"><table className="min-w-[820px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr><th className="px-4 py-3 font-body text-sm font-semibold">STT</th><th className="px-4 py-3 font-body text-sm font-semibold">Tên nhà sáng tạo</th><th className="px-4 py-3 font-body text-sm font-semibold">Đường dẫn</th><th className="px-4 py-3 font-body text-sm font-semibold">Phân loại</th><th className="px-4 py-3 font-body text-sm font-semibold">Số sách</th><th className="px-4 py-3 font-body text-sm font-semibold">Trạng thái</th><th className="px-4 py-3 text-right font-body text-sm font-semibold">Thao tác</th></tr></thead><tbody>{authors.slice(0, pageSize).map((author, index) => <tr className="border-t border-[#eeeae0]" key={author.id}><td className="px-4 py-3 font-body text-sm text-[#74776f]">{index + 1}</td><td className="px-4 py-3 font-body text-sm font-medium"><button type="button" onClick={() => openDetail(author.id)}>{author.name}</button></td><td className="px-4 py-3 font-body text-sm text-[#74776f]">{author.slug}</td><td className="px-4 py-3 font-body text-sm">{author.role}</td><td className="px-4 py-3 font-body text-sm">{author.books}</td><td className="px-4 py-3 font-body text-sm"><span className="rounded-full bg-[#edf7ef] px-2.5 py-1 text-xs font-semibold text-[#39733e]">{author.status}</span></td><td className="px-4 py-3 text-right"><button className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] text-[#74776f] hover:bg-[#f5f3ec]" type="button" aria-label={`Sửa ${author.name}`} onClick={() => openDetail(author.id)}><i className="bi bi-pencil" aria-hidden="true" /></button><button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] text-[#74776f] hover:bg-[#f5f3ec]" type="button" aria-label={`Tạm ẩn ${author.name}`}><i className="bi bi-eye-slash" aria-hidden="true" /></button></td></tr>)}</tbody></table></div><AdminTableFooter total={authors.length} pageSize={pageSize} onPageSizeChange={setPageSize} /></section>}
-            {view === 'detail' && <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(420px,.9fr)]"><article className="rounded-2xl border border-[#e6e2d7] bg-white p-5 sm:p-6"><div className="flex items-center justify-between border-b border-[#eeeae0] pb-4"><div><p className="font-body text-sm text-[#8b8d86]">Hồ sơ nhà sáng tạo</p><h3 className="mt-1 font-display text-2xl font-semibold">{selected.name}</h3></div><div className="flex gap-2"><button className="inline-flex min-h-10 rounded-xl bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" type="button">Lưu</button><button className="inline-flex min-h-10 rounded-xl border border-[#dedbd0] px-4 font-body text-sm" type="button" onClick={() => setView('cards')}>Hủy</button></div></div><div className="mt-5 grid gap-5 sm:grid-cols-[180px_minmax(0,1fr)]"><img className="h-56 w-full rounded-xl object-cover object-top" src={selected.image} alt={selected.name} onError={(event) => { event.currentTarget.src = '/assets/author-avatar-placeholder.png' }} /><div className="space-y-4"><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Tên hiển thị</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" defaultValue={selected.name} /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Đường dẫn</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" defaultValue={selected.slug} /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Phân loại</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" defaultValue={selected.role}><option>Tác giả</option><option>Dịch giả</option><option>Họa sĩ minh họa</option></select></label></div></div><label className="mt-5 block"><span className="mb-1.5 block font-body text-sm font-medium">Tiểu sử</span><textarea className="min-h-32 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] p-3.5 font-body text-sm" defaultValue={selected.bio} /></label></article><aside className="rounded-2xl border border-[#e6e2d7] bg-white p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#eeeae0] pb-4"><div><h3 className="font-display text-xl font-semibold">Tác phẩm liên quan</h3><p className="mt-1 font-body text-sm text-[#74776f]">{selectedBooks.length} cuốn sách được liên kết với tác giả này.</p></div><div className="flex gap-2" role="group" aria-label="Kiểu hiển thị sách"><button className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border px-3 font-body text-xs ${bookView === 'list' ? 'border-[var(--color-olive)] bg-[rgba(155,148,47,.12)] font-semibold text-[var(--color-olive-dark)]' : 'border-[#dedbd0] text-[#62655f]'}`} type="button" aria-pressed={bookView === 'list'} onClick={() => setBookView('list')}><i className="bi bi-list-ul" aria-hidden="true" />Danh sách</button><button className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border px-3 font-body text-xs ${bookView === 'grid' ? 'border-[var(--color-olive)] bg-[rgba(155,148,47,.12)] font-semibold text-[var(--color-olive-dark)]' : 'border-[#dedbd0] text-[#62655f]'}`} type="button" aria-pressed={bookView === 'grid'} onClick={() => setBookView('grid')}><i className="bi bi-grid-3x3-gap" aria-hidden="true" />Lưới</button></div></div>{selectedBooks.length === 0 ? <p className="mt-5 rounded-xl border border-dashed border-[#d9d6c8] bg-[#fcfbf7] p-5 font-body text-sm leading-6 text-[#74776f]">Chưa có sách được liên kết. Khi tạo sách và chọn tác giả này, sách sẽ xuất hiện tại đây.</p> : bookView === 'list' ? <div className="mt-5 space-y-3">{selectedBooks.map((book, index) => <a className="flex items-center gap-3 rounded-xl border border-[#e6e2d7] bg-[#fcfbf7] p-3 transition hover:border-[var(--color-olive)]" href={`/admin/books/report/${book.id}`} key={book.id}><span className="w-7 shrink-0 font-body text-sm font-semibold text-[var(--color-olive-dark)]">{index + 1}</span><img className="h-16 w-11 shrink-0 rounded-md object-cover" src={book.cover} alt="" onError={(event) => { event.currentTarget.src = '/assets/cover-edward.png' }} /><span className="min-w-0 flex-1 font-body text-sm font-semibold text-[var(--color-ink)]">{book.title}</span><i className="bi bi-arrow-up-right shrink-0 text-[#8b8d86]" aria-hidden="true" /></a>)}</div> : <div className="mt-5 grid grid-cols-2 gap-3">{selectedBooks.map((book, index) => <a className="rounded-xl border border-[#e6e2d7] bg-[#fcfbf7] p-3 transition hover:border-[var(--color-olive)]" href={`/admin/books/report/${book.id}`} key={book.id}><div className="relative"><img className="aspect-[2/3] w-full rounded-lg object-cover" src={book.cover} alt="" onError={(event) => { event.currentTarget.src = '/assets/cover-edward.png' }} /><span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 font-body text-xs font-semibold text-[var(--color-olive-dark)]">{index + 1}</span></div><span className="mt-2 block font-body text-sm font-semibold leading-5 text-[var(--color-ink)]">{book.title}</span></a>)}</div>}</aside></section>}
+            {view === 'detail' && <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(420px,.9fr)]"><article className="rounded-2xl border border-[#e6e2d7] bg-white p-5 sm:p-6"><div className="flex items-center justify-between border-b border-[#eeeae0] pb-4"><div><p className="font-body text-sm text-[#8b8d86]">Hồ sơ nhà sáng tạo</p><h3 className="mt-1 font-display text-2xl font-semibold">{selected.name}</h3></div><div className="flex gap-2"><button className="inline-flex min-h-10 rounded-xl bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" type="button">Lưu</button><button className="inline-flex min-h-10 rounded-xl border border-[#dedbd0] px-4 font-body text-sm" type="button" onClick={() => setView('cards')}>Hủy</button></div></div><div className="mt-5 grid gap-5 sm:grid-cols-[180px_minmax(0,1fr)]"><img className="h-56 w-full rounded-xl object-cover object-top" src={selected.image} alt={selected.name} onError={(event) => { event.currentTarget.src = '/assets/author-avatar-placeholder.png' }} /><div className="space-y-4"><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Tên hiển thị</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" defaultValue={selected.name} /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Đường dẫn</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" defaultValue={selected.slug} /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Phân loại</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" defaultValue={selected.role}><option>Tác giả</option><option>Dịch giả</option><option>Họa sĩ minh họa</option></select></label></div></div><label className="mt-5 block"><span className="mb-1.5 block font-body text-sm font-medium">Tiểu sử</span><textarea className="min-h-32 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] p-3.5 font-body text-sm" defaultValue={selected.bio} /></label></article><aside className="rounded-2xl border border-[#e6e2d7] bg-white p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#eeeae0] pb-4"><div><h3 className="font-display text-xl font-semibold">Tác phẩm liên quan</h3><p className="mt-1 font-body text-sm text-[#74776f]">{selectedBooks.length} cuốn sách được liên kết với tác giả này.</p></div><div className="flex gap-2" role="group" aria-label="Kiểu hiển thị sách"><button className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border px-3 font-body text-xs ${bookView === 'list' ? 'border-[var(--color-olive)] bg-[rgba(155,148,47,.12)] font-semibold text-[var(--color-olive-dark)]' : 'border-[#dedbd0] text-[#62655f]'}`} type="button" aria-pressed={bookView === 'list'} onClick={() => setBookView('list')}><i className="bi bi-list-ul" aria-hidden="true" />Danh sách</button><button className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border px-3 font-body text-xs ${bookView === 'grid' ? 'border-[var(--color-olive)] bg-[rgba(155,148,47,.12)] font-semibold text-[var(--color-olive-dark)]' : 'border-[#dedbd0] text-[#62655f]'}`} type="button" aria-pressed={bookView === 'grid'} onClick={() => setBookView('grid')}><i className="bi bi-grid-3x3-gap" aria-hidden="true" />Lưới</button></div></div>{selectedBooks.length === 0 ? <p className="mt-5 rounded-xl border border-dashed border-[#d9d6c8] bg-[#fcfbf7] p-5 font-body text-sm leading-6 text-[#74776f]">Chưa có sách được liên kết. Khi tạo sách và chọn tác giả này, sách sẽ xuất hiện tại đây.</p> : bookView === 'list' ? <div className="mt-5 space-y-3">{selectedBooks.map((book, index) => <a className="flex items-center gap-3 rounded-xl border border-[#e6e2d7] bg-[#fcfbf7] p-3 transition hover:border-[var(--color-olive)]" href={`/admin/books/report/${book.id}`} key={book.id}><span className="w-7 shrink-0 font-body text-sm font-semibold text-[var(--color-olive-dark)]">{index + 1}</span><img className="h-16 w-11 shrink-0 rounded-md object-cover" src={book.cover || BOOK_COVER_FALLBACK} alt="" onError={handleBookCoverError} /><span className="min-w-0 flex-1 font-body text-sm font-semibold text-[var(--color-ink)]">{book.title}</span><i className="bi bi-arrow-up-right shrink-0 text-[#8b8d86]" aria-hidden="true" /></a>)}</div> : <div className="mt-5 grid grid-cols-2 gap-3">{selectedBooks.map((book, index) => <a className="rounded-xl border border-[#e6e2d7] bg-[#fcfbf7] p-3 transition hover:border-[var(--color-olive)]" href={`/admin/books/report/${book.id}`} key={book.id}><div className="relative"><img className="aspect-[2/3] w-full rounded-lg object-cover" src={book.cover || BOOK_COVER_FALLBACK} alt="" onError={handleBookCoverError} /><span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 font-body text-xs font-semibold text-[var(--color-olive-dark)]">{index + 1}</span></div><span className="mt-2 block font-body text-sm font-semibold leading-5 text-[var(--color-ink)]">{book.title}</span></a>)}</div>}</aside></section>}
         </main>
       </div>
     </div>
@@ -3044,10 +3064,10 @@ function AdminSelect2({ label, value, options, onChange, placeholder, multiple =
 function AdminBookReportPage({ bookId }: { bookId: string }) {
   const catalogBook = readAdminCatalogBooks().find((item) => item.id === bookId)
   const legacyBook = readAdminBooks().find((item) => item.id === bookId)
-  const book: AdminCatalogBook | undefined = catalogBook ?? (legacyBook ? { id: bookId, isbn: legacyBook.isbn, title: legacyBook.title, author: legacyBook.author, cover: legacyBook.cover || '/assets/cover-edward.png', quantity: legacyBook.quantity, unitPrice: legacyBook.unitPrice, salePrice: legacyBook.salePrice, series: '', format: legacyBook.format, line: legacyBook.line, category: legacyBook.category, link: legacyBook.link, goodreads: '', description: '', status: legacyBook.quantity > 0 ? 'Đang hoạt động' : 'Hết hàng' } : undefined)
+  const book: AdminCatalogBook | undefined = catalogBook ?? (legacyBook ? { id: bookId, isbn: legacyBook.isbn, title: legacyBook.title, author: legacyBook.author, cover: legacyBook.cover || BOOK_COVER_FALLBACK, quantity: legacyBook.quantity, unitPrice: legacyBook.unitPrice, salePrice: legacyBook.salePrice, series: '', format: legacyBook.format, line: legacyBook.line, category: legacyBook.category, link: legacyBook.link, goodreads: '', description: '', status: legacyBook.quantity > 0 ? 'Đang hoạt động' : 'Hết hàng' } : undefined)
   if (!book) return <AdminSimpleCreateShell title="Không tìm thấy sách" backHref="/admin/authors" section="SÁCH" description="Bản ghi sách không tồn tại hoặc đã bị xóa."><div className="rounded-2xl border border-dashed border-[#d9d6c8] bg-white p-8 text-center font-body text-sm text-[#74776f]"><a className="font-semibold text-[var(--color-olive-dark)]" href="/admin/books">Quay lại danh sách sách</a></div></AdminSimpleCreateShell>
   const fields: Array<[string, string]> = [['ISBN', book.isbn], ['Tác giả', book.author], ['Series', book.series], ['Số lượng', `${book.quantity} quyển`], ['Đơn giá nhập', book.unitPrice === null ? '—' : `${book.unitPrice.toLocaleString('vi-VN')} VNĐ`], ['Giá bán', `${book.salePrice.toLocaleString('vi-VN')} VNĐ`], ['Thể thức', book.format], ['Dòng sách', book.line], ['Thể loại', book.category], ['Trạng thái bản ghi', book.status]]
-  return <AdminSimpleCreateShell title="Báo cáo chi tiết sách" backHref="/admin/authors" section="SÁCH" description="Thông tin chi tiết của bản ghi được liên kết từ hồ sơ tác giả."><div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]"><aside className="rounded-2xl border border-[#e6e2d7] bg-white p-4"><img className="aspect-[2/3] w-full rounded-xl object-cover" src={book.cover} alt={book.title} /><a className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-[#dedbd0] font-body text-sm font-medium" href={`/admin/authors`}>Về hồ sơ tác giả</a></aside><article className="rounded-2xl border border-[#e6e2d7] bg-white p-5 sm:p-6"><div className="border-b border-[#eeeae0] pb-5"><p className="font-body text-sm text-[#8b8d86]">Báo cáo sách</p><h2 className="mt-1 font-display text-2xl font-bold sm:text-3xl">{book.title}</h2></div><dl className="mt-5 grid gap-4 sm:grid-cols-2">{fields.map(([label, value]) => <div className="rounded-xl bg-[#fcfbf7] p-3" key={label}><dt className="font-body text-xs text-[#8b8d86]">{label}</dt><dd className="mt-1 font-body text-sm font-semibold">{value || '—'}</dd></div>)}</dl>{book.description && <div className="mt-5 border-t border-[#eeeae0] pt-5"><h3 className="font-display text-lg font-semibold">Mô tả sách</h3><p className="mt-2 whitespace-pre-wrap font-body text-sm leading-6 text-[#62655f]">{book.description}</p></div>}</article></div></AdminSimpleCreateShell>
+  return <AdminSimpleCreateShell title="Báo cáo chi tiết sách" backHref="/admin/authors" section="SÁCH" description="Thông tin chi tiết của bản ghi được liên kết từ hồ sơ tác giả."><div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]"><aside className="rounded-2xl border border-[#e6e2d7] bg-white p-4"><img className="aspect-[2/3] w-full rounded-xl object-cover" src={book.cover || BOOK_COVER_FALLBACK} alt={book.title} onError={handleBookCoverError} /><a className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-[#dedbd0] font-body text-sm font-medium" href={`/admin/authors`}>Về hồ sơ tác giả</a></aside><article className="rounded-2xl border border-[#e6e2d7] bg-white p-5 sm:p-6"><div className="border-b border-[#eeeae0] pb-5"><p className="font-body text-sm text-[#8b8d86]">Báo cáo sách</p><h2 className="mt-1 font-display text-2xl font-bold sm:text-3xl">{book.title}</h2></div><dl className="mt-5 grid gap-4 sm:grid-cols-2">{fields.map(([label, value]) => <div className="rounded-xl bg-[#fcfbf7] p-3" key={label}><dt className="font-body text-xs text-[#8b8d86]">{label}</dt><dd className="mt-1 font-body text-sm font-semibold">{value || '—'}</dd></div>)}</dl>{book.description && <div className="mt-5 border-t border-[#eeeae0] pt-5"><h3 className="font-display text-lg font-semibold">Mô tả sách</h3><p className="mt-2 whitespace-pre-wrap font-body text-sm leading-6 text-[#62655f]">{book.description}</p></div>}</article></div></AdminSimpleCreateShell>
 }
 
 function AdminInfoTooltip({ label, text }: { label: string; text: string }) {
@@ -3108,8 +3128,7 @@ function AdminCategoryCreatePageV2() {
 }
 
 function AdminListShell({ title, section, description: _description, createHref, createLabel, children }: { title: string; section: string; description: string; createHref: string; createLabel: string; children: ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  return <div className="admin-shell flex min-h-screen bg-[#f7f7f2] text-[var(--color-ink)]"><aside className={`admin-sidebar fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r border-[#e5e2d7] bg-white transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? 'is-open translate-x-0' : ''}`}><div className="flex h-16 items-center justify-between border-b border-[#eeeae0] px-5"><a className="admin-brand-link" href="/#home" aria-label="LineryBooks"><AdminBrand /></a><button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] lg:hidden" type="button" aria-label="Đóng menu quản trị" onClick={() => setSidebarOpen(false)}><i className="bi bi-x-lg" aria-hidden="true" /></button></div><AdminManagementSidebar pathname={window.location.pathname} /></aside>{sidebarOpen && <button className="fixed inset-0 z-30 bg-[rgba(31,42,36,.32)] lg:hidden" type="button" aria-label="Đóng menu quản trị" onClick={() => setSidebarOpen(false)} />}<div className="min-w-0 flex-1"><header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[#e5e2d7] bg-white/95 px-4 backdrop-blur sm:px-5 lg:px-6"><div className="flex items-center gap-2"><button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] text-[var(--color-ink)] lg:hidden" type="button" aria-label="Mở menu quản trị" onClick={() => setSidebarOpen(true)}><i className="bi bi-list" aria-hidden="true" /></button><h1 className="font-body text-lg font-semibold tracking-tight">{title}</h1></div><a className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-olive)] font-body text-sm text-white" href={createHref} aria-label={createLabel}>K</a></header><main className="w-full p-3 sm:p-4 lg:p-5"><div className="admin-page-toolbar mb-4 flex min-h-10 flex-wrap items-center justify-between gap-3"><div className="admin-breadcrumb flex min-w-0 items-center gap-2 font-body text-sm text-[#8b8d86]"><a className="shrink-0 hover:text-[var(--color-olive-dark)]" href="/admin">Quản trị</a><i className="bi bi-chevron-right shrink-0 text-xs" aria-hidden="true" /><span className="shrink-0">{section}</span><i className="bi bi-chevron-right shrink-0 text-xs" aria-hidden="true" /><span className="min-w-0 truncate font-medium text-[var(--color-ink)]">{title}</span></div><a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a></div>{children}</main></div></div>
+  return <AdminShell title={title} section={section} headerActions={<a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a>}><div className="admin-page-toolbar mb-4 flex min-h-10 flex-wrap items-center justify-between gap-3"><div className="admin-breadcrumb flex min-w-0 items-center gap-2 font-body text-sm text-[#8b8d86]"><a className="shrink-0 hover:text-[var(--color-olive-dark)]" href="/admin">Quản trị</a><i className="bi bi-chevron-right shrink-0 text-xs" aria-hidden="true" /><span className="shrink-0">{section}</span><i className="bi bi-chevron-right shrink-0 text-xs" aria-hidden="true" /><span className="min-w-0 truncate font-medium text-[var(--color-ink)]">{title}</span></div></div>{children}</AdminShell>
 }
 
 function AdminAuthorsPageV3() {
@@ -3259,26 +3278,79 @@ function AdminBooksPageV2({ managementView }: { managementView: BookManagementVi
     setBookPage((current) => Math.min(current, totalBookPages))
   }, [totalBookPages])
   if (managementView === 'categories') return <AdminCategoriesPageV4 />
-  return <AdminListShell title="Quản lý sách" section="SÁCH" description="Danh sách sách là màn riêng. Bấm Thêm sách để mở màn tạo mới; các trường quan hệ sẽ chọn từ dữ liệu chuẩn đã tạo." createHref="/admin/books/new" createLabel="Thêm sách"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="flex items-center justify-between gap-4 border-b border-[#eeeae0] p-5"><div><h3 className="font-display text-lg font-semibold">Danh sách sách</h3><p className="mt-1 font-body text-sm text-[#74776f]">{filteredBooks.length} / {books.length} bản ghi {catalogLoaded ? 'từ database' : 'đang chờ database hoặc dữ liệu cục bộ'}.</p></div><span className="inline-flex min-h-9 items-center rounded-lg bg-[#f6f5ed] px-3 font-body text-xs text-[#62655f]">{catalogLoaded ? 'Supabase catalog' : 'Dữ liệu catalog'}</span></div><AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tên sách, ISBN hoặc tác giả" filters={[{ label: 'Tất cả trạng thái', value: statusFilter, onChange: setStatusFilter, options: [{ label: 'Còn hàng', value: 'in-stock' }, { label: 'Hết hàng', value: 'out-of-stock' }] }, { label: 'Tất cả danh mục / chủ đề', value: categoryFilter, onChange: setCategoryFilter, options: categoryOptions.map((category) => ({ label: category, value: category })) }, { label: 'Tất cả tác giả', value: authorFilter, onChange: setAuthorFilter, options: authorOptions.map((author) => ({ label: author, value: author })) }, { label: 'Tất cả nhà xuất bản', value: publisherFilter, onChange: setPublisherFilter, options: publisherOptions.map((publisher) => ({ label: publisher, value: publisher })) }]} onClear={() => { setQuery(''); setStatusFilter('all'); setCategoryFilter('all'); setAuthorFilter('all'); setPublisherFilter('all') }} /><div className="overflow-x-auto"><table className="min-w-[860px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['STT', 'Ảnh bìa', 'ISBN', 'Tên sách', 'Tác giả', 'Số lượng', 'Giá bán', 'Trạng thái'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}<th className="px-4 py-3 text-right font-body text-sm font-semibold">Thao tác</th></tr></thead><tbody>{pagedBooks.map((book, index) => <tr className="border-t border-[#eeeae0]" key={`${book.isbn}-${book.title}`}><td className="px-4 py-3 font-body text-sm text-[#74776f]">{(bookPage - 1) * bookPageSize + index + 1}</td><td className="px-4 py-3"><img className="h-16 w-11 object-cover" src={book.cover || '/assets/cover-edward.png'} alt={`Bìa ${book.title}`} onError={(event) => { event.currentTarget.src = '/assets/cover-edward.png' }} /></td><td className="px-4 py-3 font-body text-sm">{book.isbn || '—'}</td><td className="max-w-[280px] px-4 py-3 font-body text-sm font-medium"><a className="admin-data-link" href={reportHref(book)}>{book.title}</a></td><td className="px-4 py-3 font-body text-sm">{book.author ? <a className="text-[var(--color-olive-dark)] underline-offset-2 hover:underline" href={authorHref(book.author)}>{book.author}</a> : '—'}</td><td className="px-4 py-3 font-body text-sm">{book.quantity}</td><td className="px-4 py-3 font-body text-sm">{book.salePrice.toLocaleString('vi-VN')}₫</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${book.quantity > 0 ? 'bg-[#eaf7ef] text-[#39733e]' : 'bg-[#fff0ed] text-[#a33d32]'}`}>{book.quantity > 0 ? 'Còn hàng' : 'Hết hàng'}</span></td><td className="px-4 py-3 text-right"><div className="flex justify-end gap-1"><a className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#f5f3ec]" href={reportHref(book)} aria-label={`Xem ${book.title}`} title="Xem"><i className="bi bi-eye" aria-hidden="true" /></a><a className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#f5f3ec]" href={reportHref(book)} aria-label={`Sửa ${book.title}`} title="Sửa"><i className="bi bi-pencil" aria-hidden="true" /></a><button className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#fff0ed] hover:text-[#a33d32]" type="button" aria-label={`Xóa ${book.title}`} title="Xóa" onClick={() => setBooks((current) => current.filter((item) => item !== book))}><i className="bi bi-trash3" aria-hidden="true" /></button></div></td></tr>)}</tbody></table></div><AdminTableFooter total={filteredBooks.length} pageSize={bookPageSize} onPageSizeChange={setBookPageSize} page={bookPage} onPageChange={setBookPage} /></section></AdminListShell>
+  return <AdminListShell title="Quản lý sách" section="SÁCH" description="Danh sách sách là màn riêng. Bấm Thêm sách để mở màn tạo mới; các trường quan hệ sẽ chọn từ dữ liệu chuẩn đã tạo." createHref="/admin/books/new" createLabel="Thêm sách"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="flex items-center justify-between gap-4 border-b border-[#eeeae0] p-5"><div><h3 className="font-display text-lg font-semibold">Danh sách sách</h3><p className="mt-1 font-body text-sm text-[#74776f]">{filteredBooks.length} / {books.length} bản ghi {catalogLoaded ? 'từ database' : 'đang chờ database hoặc dữ liệu cục bộ'}.</p></div><span className="inline-flex min-h-9 items-center rounded-lg bg-[#f6f5ed] px-3 font-body text-xs text-[#62655f]">{catalogLoaded ? 'Supabase catalog' : 'Dữ liệu catalog'}</span></div><AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tên sách, ISBN hoặc tác giả" filters={[{ label: 'Tất cả trạng thái', value: statusFilter, onChange: setStatusFilter, options: [{ label: 'Còn hàng', value: 'in-stock' }, { label: 'Hết hàng', value: 'out-of-stock' }] }, { label: 'Tất cả danh mục / chủ đề', value: categoryFilter, onChange: setCategoryFilter, options: categoryOptions.map((category) => ({ label: category, value: category })) }, { label: 'Tất cả tác giả', value: authorFilter, onChange: setAuthorFilter, options: authorOptions.map((author) => ({ label: author, value: author })) }, { label: 'Tất cả nhà xuất bản', value: publisherFilter, onChange: setPublisherFilter, options: publisherOptions.map((publisher) => ({ label: publisher, value: publisher })) }]} onClear={() => { setQuery(''); setStatusFilter('all'); setCategoryFilter('all'); setAuthorFilter('all'); setPublisherFilter('all') }} /><div className="overflow-x-auto"><table className="min-w-[860px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['STT', 'Ảnh bìa', 'ISBN', 'Tên sách', 'Tác giả', 'Số lượng', 'Giá bán', 'Trạng thái'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}<th className="px-4 py-3 text-right font-body text-sm font-semibold">Thao tác</th></tr></thead><tbody>{pagedBooks.map((book, index) => <tr className="border-t border-[#eeeae0]" key={`${book.isbn}-${book.title}`}><td className="px-4 py-3 font-body text-sm text-[#74776f]">{(bookPage - 1) * bookPageSize + index + 1}</td><td className="px-4 py-3"><img className="h-16 w-11 object-cover" src={book.cover || BOOK_COVER_FALLBACK} alt={`Bìa ${book.title}`} onError={(event) => { event.currentTarget.src = BOOK_COVER_FALLBACK }} /></td><td className="px-4 py-3 font-body text-sm">{book.isbn || '—'}</td><td className="max-w-[280px] px-4 py-3 font-body text-sm font-medium"><a className="admin-data-link" href={reportHref(book)}>{book.title}</a></td><td className="px-4 py-3 font-body text-sm">{book.author ? <a className="text-[var(--color-olive-dark)] underline-offset-2 hover:underline" href={authorHref(book.author)}>{book.author}</a> : '—'}</td><td className="px-4 py-3 font-body text-sm">{book.quantity}</td><td className="px-4 py-3 font-body text-sm">{book.salePrice.toLocaleString('vi-VN')}₫</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${book.quantity > 0 ? 'bg-[#eaf7ef] text-[#39733e]' : 'bg-[#fff0ed] text-[#a33d32]'}`}>{book.quantity > 0 ? 'Còn hàng' : 'Hết hàng'}</span></td><td className="px-4 py-3 text-right"><div className="flex justify-end gap-1"><a className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#f5f3ec]" href={reportHref(book)} aria-label={`Xem ${book.title}`} title="Xem"><i className="bi bi-eye" aria-hidden="true" /></a><a className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#f5f3ec]" href={reportHref(book)} aria-label={`Sửa ${book.title}`} title="Sửa"><i className="bi bi-pencil" aria-hidden="true" /></a><button className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#fff0ed] hover:text-[#a33d32]" type="button" aria-label={`Xóa ${book.title}`} title="Xóa" onClick={() => setBooks((current) => current.filter((item) => item !== book))}><i className="bi bi-trash3" aria-hidden="true" /></button></div></td></tr>)}</tbody></table></div><AdminTableFooter total={filteredBooks.length} pageSize={bookPageSize} onPageSizeChange={setBookPageSize} page={bookPage} onPageChange={setBookPage} /></section></AdminListShell>
 }
 
 function AdminNewsPageV2() {
   const [query, setQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [sortFilter, setSortFilter] = useState('newest')
-  const items = [...runtimeNewsItems].filter((item) => `${item.titleVi || item.title} ${item.slug} ${item.excerptVi || item.excerpt}`.toLowerCase().includes(query.trim().toLowerCase())).filter((item) => typeFilter === 'all' || item.contentType === typeFilter).sort((a, b) => sortFilter === 'oldest' ? (a.date || '').localeCompare(b.date || '') : (b.date || '').localeCompare(a.date || ''))
-  return <AdminListShell title="Quản lý tin tức" section="NỘI DUNG" description="Danh sách tin tức và eMagazine đã xuất bản; nội dung chi tiết được nhập bằng trình soạn thảo ở màn tạo mới." createHref="/admin/news/new" createLabel="Tạo bài viết"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#eeeae0] p-5"><h3 className="font-display text-lg font-semibold">Danh sách bài viết</h3><p className="mt-1 font-body text-sm text-[#74776f]">{items.length} / {runtimeNewsItems.length} bài đang hiển thị</p></div><AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tiêu đề, đường dẫn hoặc mô tả" filters={[{ label: 'Tất cả loại bài', value: typeFilter, onChange: setTypeFilter, options: [{ label: 'Tin tức', value: 'news' }, { label: 'eMagazine', value: 'emagazine' }] }, { label: 'Sắp xếp ngày', value: sortFilter, onChange: setSortFilter, options: [{ label: 'Mới nhất', value: 'newest' }, { label: 'Cũ nhất', value: 'oldest' }] }]} onClear={() => { setQuery(''); setTypeFilter('all'); setSortFilter('newest') }} /><div className="overflow-x-auto"><table className="min-w-[900px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['Tiêu đề', 'Đường dẫn', 'Ngày xuất bản', 'Trạng thái', 'Thao tác'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{items.map((item) => <tr className="border-t border-[#eeeae0]" key={item.slug}><td className="px-4 py-3 font-body text-sm font-medium">{item.titleVi || item.title}</td><td className="px-4 py-3 font-body text-sm text-[#74776f]">{item.slug}</td><td className="px-4 py-3 font-body text-sm">{item.date || '—'}</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.contentType === 'emagazine' ? 'bg-[#fff3e8] text-[#b55b2f]' : 'bg-[#edf7ef] text-[#39733e]'}`}>{item.contentType === 'emagazine' ? 'Đã xuất bản · eMagazine' : 'Đã xuất bản · Tin tức'}</span></td><td className="px-4 py-3"><div className="flex justify-end gap-1"><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/${item.slug}`} aria-label={`Xem ${item.titleVi || item.title}`} title="Xem"><i className="bi bi-eye" aria-hidden="true" /></a><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/edit/${item.slug}`} aria-label={`Sửa ${item.titleVi || item.title}`} title="Sửa nội dung"><i className="bi bi-pencil" aria-hidden="true" /></a></div></td></tr>)}</tbody></table></div></section></AdminListShell>
+  const [items, setItems] = useState<NewsItem[]>(runtimeNewsItems)
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let active = true
+    loadPublicNewsPosts().then((records) => {
+      if (!active || !records) return
+      applyPublicNews(records)
+      setItems([...runtimeNewsItems])
+    }).catch(() => undefined).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+  const filteredItems = [...items].filter((item) => `${item.titleVi || item.title} ${item.slug} ${item.excerptVi || item.excerpt}`.toLowerCase().includes(query.trim().toLowerCase())).filter((item) => typeFilter === 'all' || item.contentType === typeFilter).sort((a, b) => sortFilter === 'oldest' ? (a.date || '').localeCompare(b.date || '') : (b.date || '').localeCompare(a.date || ''))
+  return <AdminListShell title="Quản lý tin tức" section="NỘI DUNG" description="Danh sách tin tức và eMagazine đã xuất bản; nội dung chi tiết được nhập bằng trình soạn thảo ở màn tạo mới." createHref="/admin/news/new" createLabel="Tạo bài viết"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#eeeae0] p-5"><h3 className="font-display text-lg font-semibold">Danh sách bài viết</h3><p className="mt-1 font-body text-sm text-[#74776f]">{loading ? 'Đang tải dữ liệu thật từ Supabase…' : `${filteredItems.length} / ${items.length} bài đang hiển thị từ Supabase`}</p></div><AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tiêu đề, đường dẫn hoặc mô tả" filters={[{ label: 'Tất cả loại bài', value: typeFilter, onChange: setTypeFilter, options: [{ label: 'Tin tức', value: 'news' }, { label: 'eMagazine', value: 'emagazine' }] }, { label: 'Sắp xếp ngày', value: sortFilter, onChange: setSortFilter, options: [{ label: 'Mới nhất', value: 'newest' }, { label: 'Cũ nhất', value: 'oldest' }] }]} onClear={() => { setQuery(''); setTypeFilter('all'); setSortFilter('newest') }} /><div className="overflow-x-auto"><table className="min-w-[900px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['Tiêu đề', 'Đường dẫn', 'Ngày xuất bản', 'Trạng thái', 'Thao tác'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{filteredItems.map((item) => <tr className="border-t border-[#eeeae0]" key={item.slug}><td className="px-4 py-3 font-body text-sm font-medium">{item.titleVi || item.title}</td><td className="px-4 py-3 font-body text-sm text-[#74776f]">{item.slug}</td><td className="px-4 py-3 font-body text-sm">{item.date || '—'}</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.contentType === 'emagazine' ? 'bg-[#fff3e8] text-[#b55b2f]' : 'bg-[#edf7ef] text-[#39733e]'}`}>{item.contentType === 'emagazine' ? 'Đã xuất bản · eMagazine' : 'Đã xuất bản · Tin tức'}</span></td><td className="px-4 py-3"><div className="flex justify-end gap-1"><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/${item.slug}`} aria-label={`Xem ${item.titleVi || item.title}`} title="Xem"><i className="bi bi-eye" aria-hidden="true" /></a><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/edit/${item.slug}`} aria-label={`Sửa ${item.titleVi || item.title}`} title="Sửa nội dung"><i className="bi bi-pencil" aria-hidden="true" /></a></div></td></tr>)}</tbody></table></div></section></AdminListShell>
 }
 
 function AdminNewsPreviewPage({ slug }: { slug: string }) {
-  const item = runtimeNewsItems.find((entry) => entry.slug === slug)
+  const [item, setItem] = useState<NewsItem | undefined>(() => runtimeNewsItems.find((entry) => entry.slug === slug))
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let active = true
+    loadPublicNewsPosts().then((records) => {
+      if (!active || !records) return
+      applyPublicNews(records)
+      setItem(runtimeNewsItems.find((entry) => entry.slug === slug))
+    }).catch(() => undefined).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [slug])
+  if (loading) return <AdminSimpleCreateShell title="Đang tải bài viết" backHref="/admin/news" section="NỘI DUNG" description="Đang đọc nội dung thật từ Supabase…"><div className="rounded-xl border border-[#e6e2d7] bg-white p-6 font-body text-sm text-[#74776f]">Đang tải dữ liệu bài viết…</div></AdminSimpleCreateShell>
   if (!item) return <AdminListShell title="Bài viết không tồn tại" section="NỘI DUNG" description="Không tìm thấy bài viết với đường dẫn này." createHref="/admin/news/new" createLabel="Tạo bài viết"><p className="font-body text-sm text-[#74776f]">Kiểm tra lại đường dẫn hoặc quay về danh sách bài viết.</p></AdminListShell>
   const paragraphs = item.bodyVi?.length ? item.bodyVi : item.body
   return <AdminSimpleCreateShell title="Xem bài viết" backHref="/admin/news" section="NỘI DUNG" description="Xem trước nội dung đã xuất bản." headerActions={<a className="admin-primary-action inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white hover:bg-[var(--color-olive-dark)]" href={`/admin/news/edit/${item.slug}`}><i className="bi bi-pencil mr-2" aria-hidden="true" />Sửa nội dung</a>}><article className="mx-auto max-w-4xl"><div className="flex flex-wrap items-center gap-2 font-body text-sm text-[#74776f]"><span className="rounded-full bg-[#f6f5ed] px-2.5 py-1">{item.contentType === 'emagazine' ? 'eMagazine' : 'Tin tức'}</span><span>{item.date}</span></div><h2 className="mt-4 font-display text-3xl font-semibold tracking-tight">{item.titleVi || item.title}</h2><p className="mt-3 font-body text-base leading-7 text-[#62655f]">{item.excerptVi || item.excerpt}</p><img className="mt-6 max-h-[28rem] w-full rounded-2xl object-cover" src={item.image} alt={item.titleVi || item.title} onError={(event) => { event.currentTarget.src = '/assets/news-instagram-01.jpg' }} />{item.contentType === 'emagazine' ? <div className="mt-8 space-y-5">{(item.blocksVi ?? item.blocks ?? []).map((block, index) => block.type === 'heading' ? <h3 className="font-display text-2xl font-semibold" key={block.id || index}>{block.content}</h3> : block.type === 'quote' ? <blockquote className="border-l-2 border-[var(--color-olive)] pl-4 font-display text-xl italic text-[#62655f]" key={block.id || index}>{block.content}</blockquote> : block.type === 'image' ? null : <p className="font-body text-base leading-8 text-[#303832]" key={block.id || index}>{block.content}</p>)}</div> : <div className="mt-8 space-y-5">{paragraphs.map((paragraph, index) => <p className="font-body text-base leading-8 text-[#303832]" key={index}>{paragraph}</p>)}</div>}</article></AdminSimpleCreateShell>
 }
 
+const stripEditorMarkup = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+const editorHtmlToParagraphs = (value: string) => {
+  const paragraphs = [...value.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map((match) => stripEditorMarkup(match[1])).filter(Boolean)
+  return paragraphs.length ? paragraphs : [stripEditorMarkup(value)].filter(Boolean)
+}
+const editorJsToBlocks = (value: string): PublicNewsBlock[] => {
+  try {
+    const parsed = JSON.parse(value) as { blocks?: Array<{ type?: string; data?: Record<string, unknown> }> }
+    return (parsed.blocks ?? []).map((block, index) => {
+      const data = block.data ?? {}
+      const type = block.type === 'header' ? 'heading' : block.type === 'quote' ? 'quote' : block.type === 'image' ? 'image' : 'paragraph'
+      const content = String(data.text ?? data.caption ?? data.message ?? '')
+      const image = typeof data.file === 'object' && data.file ? String((data.file as { url?: unknown }).url ?? '') : String(data.url ?? '')
+      return { id: `editor-${index}`, type: type as PublicNewsBlock['type'], content: stripEditorMarkup(content), image, alt: String(data.alt ?? ''), caption: String(data.caption ?? ''), fullBleed: false }
+    }).filter((block) => block.content || block.image)
+  } catch {
+    return []
+  }
+}
+
 function AdminNewsCreatePageV2({ editSlug }: { editSlug?: string }) {
-  const editingItem = editSlug ? runtimeNewsItems.find((item) => item.slug === editSlug) : undefined
+  const [items, setItems] = useState<NewsItem[]>(runtimeNewsItems)
+  const [loading, setLoading] = useState(Boolean(editSlug))
+  useEffect(() => {
+    let active = true
+    loadPublicNewsPosts().then((records) => {
+      if (!active || !records) return
+      applyPublicNews(records)
+      setItems([...runtimeNewsItems])
+    }).catch(() => undefined).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+  const editingItem = editSlug ? items.find((item) => item.slug === editSlug) : undefined
   const [content, setContent] = useState(() => editingItem?.contentType === 'emagazine' ? JSON.stringify({ blocks: editingItem.blocksVi ?? editingItem.blocks ?? [] }) : editingItem?.bodyVi?.map((paragraph) => `<p>${paragraph}</p>`).join('') ?? '')
   const [contentType, setContentType] = useState<'news' | 'emagazine'>(() => editingItem?.contentType ?? 'news')
   const [saved, setSaved] = useState(false)
@@ -3287,31 +3359,50 @@ function AdminNewsCreatePageV2({ editSlug }: { editSlug?: string }) {
   const [title, setTitle] = useState(editingItem?.titleVi || editingItem?.title || '')
   const [slug, setSlug] = useState(editingItem?.slug || '')
   const [excerpt, setExcerpt] = useState(editingItem?.excerptVi || editingItem?.excerpt || '')
-  const saveNews = (event: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (!editingItem) return
+    setTitle(editingItem.titleVi || editingItem.title)
+    setSlug(editingItem.slug)
+    setExcerpt(editingItem.excerptVi || editingItem.excerpt)
+    setContent(editingItem.contentType === 'emagazine' ? JSON.stringify({ blocks: editingItem.blocksVi ?? editingItem.blocks ?? [] }) : editingItem.bodyVi?.map((paragraph) => `<p>${paragraph}</p>`).join('') ?? '')
+    setContentType(editingItem.contentType ?? 'news')
+  }, [editingItem?.slug])
+  const saveNews = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const nextSlug = slug.trim() || editingItem?.slug || `bai-viet-${Date.now()}`
+    const isEmagazine = contentType === 'emagazine'
+    const parsedBlocks = isEmagazine ? editorJsToBlocks(content) : []
+    const paragraphs = isEmagazine ? parsedBlocks.filter((block) => block.type === 'paragraph').map((block) => block.content) : editorHtmlToParagraphs(content)
     const nextItem: NewsItem = {
       ...(editingItem ?? { image: '/assets/news-instagram-01.jpg', date: new Date().toLocaleDateString('en-GB'), kicker: contentType === 'emagazine' ? 'eMagazine' : 'News', body: [], bodyVi: [], byline: '' }),
       title: title.trim() || editingItem?.title || 'Untitled article',
       titleVi: title.trim() || editingItem?.titleVi || 'Bài viết mới',
-      slug: slug.trim() || editingItem?.slug || `bai-viet-${Date.now()}`,
+      slug: nextSlug,
       excerpt: excerpt.trim(),
       excerptVi: excerpt.trim(),
       contentType,
-      body: contentType === 'news' ? [content] : editingItem?.body ?? [],
-      bodyVi: contentType === 'news' ? [content] : editingItem?.bodyVi ?? [],
-      blocks: editingItem?.blocks ?? [],
-      blocksVi: editingItem?.blocksVi ?? [],
+      body: paragraphs,
+      bodyVi: paragraphs,
+      blocks: parsedBlocks,
+      blocksVi: parsedBlocks,
     }
-    const overrides = readAdminNewsOverrides().filter((item) => item.slug !== nextItem.slug)
-    writeAdminNewsOverrides([...overrides, nextItem])
-    runtimeNewsItems = [nextItem, ...runtimeNewsItems.filter((item) => item.slug !== nextItem.slug)]
-    setSaved(true)
+    try {
+      await upsertNewsPost({ slug: nextItem.slug, contentType: nextItem.contentType ?? 'news', title: nextItem.title, titleVi: nextItem.titleVi, kicker: nextItem.kicker, kickerVi: nextItem.kicker, excerpt: nextItem.excerpt, excerptVi: nextItem.excerptVi, body: nextItem.body, bodyVi: nextItem.bodyVi, image: nextItem.image, byline: nextItem.byline, blocks: parsedBlocks.map(({ id: _id, ...block }) => block), blocksVi: parsedBlocks.map(({ id: _id, ...block }) => block) })
+      const overrides = readAdminNewsOverrides().filter((item) => item.slug !== nextItem.slug)
+      writeAdminNewsOverrides([...overrides, nextItem])
+      runtimeNewsItems = [nextItem, ...runtimeNewsItems.filter((item) => item.slug !== nextItem.slug)]
+      setSaved(true)
+    } catch (error) {
+      setSaved(false)
+      window.alert(`Không thể lưu bài vào Supabase: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`)
+    }
   }
-  return <AdminSimpleCreateShell title={editingItem ? 'Sửa nội dung bài viết' : 'Tin mới'} backHref="/admin/news" section="NỘI DUNG" description="Soạn nội dung tin tức bằng trình soạn thảo rich text, sau đó lưu thành bản nháp hoặc xuất bản khi kết nối backend." tabs={[{ id: 'news-content', label: 'Nội dung' }, { id: 'news-seo', label: 'Tối ưu hóa tìm kiếm Google' }, { id: 'news-history', label: 'Lịch sử thao tác' }]} headerActions={<AdminCreateHeaderActions formId="admin-news-create-form" cancelHref="/admin/news" saveLabel={editingItem ? 'Lưu thay đổi' : 'Xuất bản'} />}>
+  if (loading) return <AdminSimpleCreateShell title="Đang tải bài viết" backHref="/admin/news" section="NỘI DUNG" description="Đang đọc nội dung thật từ Supabase…"><div className="rounded-xl border border-[#e6e2d7] bg-white p-6 font-body text-sm text-[#74776f]">Đang tải dữ liệu bài viết…</div></AdminSimpleCreateShell>
+  return <AdminSimpleCreateShell title={editingItem ? 'Sửa nội dung bài viết' : 'Tin mới'} backHref="/admin/news" section="NỘI DUNG" description="Soạn nội dung và lưu trực tiếp vào Supabase để trang người dùng đọc cùng một bản ghi thật." tabs={[{ id: 'news-content', label: 'Nội dung' }, { id: 'news-seo', label: 'Tối ưu hóa tìm kiếm Google' }, { id: 'news-history', label: 'Lịch sử thao tác' }]} headerActions={<AdminCreateHeaderActions formId="admin-news-create-form" cancelHref="/admin/news" saveLabel={editingItem ? 'Lưu thay đổi' : 'Xuất bản'} />}>
      <form id="admin-news-create-form" className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" onSubmit={saveNews}>
       <div className="min-w-0 space-y-5">
         <AdminCreatePanel id="news-content" title="Nội dung tin bài">
-          <div className="space-y-4"><div className="admin-news-type-tabs" role="tablist" aria-label="Loại nội dung"><button className={`admin-news-type-tab ${contentType === 'news' ? 'is-active' : ''}`} type="button" role="tab" aria-selected={contentType === 'news'} onClick={() => { setContentType('news'); setSaved(false) }}>Tin tức</button><button className={`admin-news-type-tab ${contentType === 'emagazine' ? 'is-active' : ''}`} type="button" role="tab" aria-selected={contentType === 'emagazine'} onClick={() => { setContentType('emagazine'); setSaved(false) }}>eMagazine</button></div><p className="admin-news-type-note">{contentType === 'news' ? 'Bài viết tin tức tiêu chuẩn với nội dung biên tập theo dạng bài.' : 'Bài longform trực quan, chia thành các block nội dung để dễ dàn trang và đọc trên web.'}</p><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Tiêu đề bài viết<span className="ml-1 text-[var(--color-olive-dark)]">*</span></span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" required value={title} onChange={(event) => setTitle(event.target.value)} placeholder={contentType === 'emagazine' ? 'Nhập tiêu đề eMagazine' : 'Nhập tiêu đề bài viết'} /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Đường dẫn</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="tu-dong-sinh-tu-tieu-de" /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Mô tả ngắn</span><textarea className="min-h-24 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] p-3.5 font-body text-sm" value={excerpt} onChange={(event) => setExcerpt(event.target.value)} placeholder="Mô tả ngắn hiển thị ở thẻ tin và khi chia sẻ..." /> </label>{contentType === 'news' ? <AdminCkEditor key="news-editor" label="Nội dung bài viết" value={content} onChange={setContent} placeholder="Nhập nội dung tin tức..." /> : <AdminEditorJs key="emagazine-editor" label="Nội dung eMagazine longform" value={content} onChange={setContent} placeholder="Bắt đầu viết eMagazine..." />}{saved && <p className="rounded-lg bg-[#edf7ef] px-3 py-2 font-body text-sm text-[#39733e]" role="status">Đã ghi nhận thay đổi trên màn hình demo. Khi nối API lưu bài, các trường này sẽ gửi đúng về bản ghi {editingItem ? 'đang sửa' : 'mới'}.</p>}</div>
+          <div className="space-y-4"><div className="admin-news-type-tabs" role="tablist" aria-label="Loại nội dung"><button className={`admin-news-type-tab ${contentType === 'news' ? 'is-active' : ''}`} type="button" role="tab" aria-selected={contentType === 'news'} onClick={() => { setContentType('news'); setSaved(false) }}>Tin tức</button><button className={`admin-news-type-tab ${contentType === 'emagazine' ? 'is-active' : ''}`} type="button" role="tab" aria-selected={contentType === 'emagazine'} onClick={() => { setContentType('emagazine'); setSaved(false) }}>eMagazine</button></div><p className="admin-news-type-note">{contentType === 'news' ? 'Bài viết tin tức tiêu chuẩn với nội dung biên tập theo dạng bài.' : 'Bài longform trực quan, chia thành các block nội dung để dễ dàn trang và đọc trên web.'}</p><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Tiêu đề bài viết<span className="ml-1 text-[var(--color-olive-dark)]">*</span></span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" required value={title} onChange={(event) => setTitle(event.target.value)} placeholder={contentType === 'emagazine' ? 'Nhập tiêu đề eMagazine' : 'Nhập tiêu đề bài viết'} /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Đường dẫn</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="tu-dong-sinh-tu-tieu-de" /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Mô tả ngắn</span><textarea className="min-h-24 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] p-3.5 font-body text-sm" value={excerpt} onChange={(event) => setExcerpt(event.target.value)} placeholder="Mô tả ngắn hiển thị ở thẻ tin và khi chia sẻ..." /> </label>{contentType === 'news' ? <AdminCkEditor key="news-editor" label="Nội dung bài viết" value={content} onChange={setContent} placeholder="Nhập nội dung tin tức..." /> : <AdminEditorJs key="emagazine-editor" label="Nội dung eMagazine longform" value={content} onChange={setContent} placeholder="Bắt đầu viết eMagazine..." />}{saved && <p className="rounded-lg bg-[#edf7ef] px-3 py-2 font-body text-sm text-[#39733e]" role="status">Đã lưu bài viết thật vào Supabase. Trang người dùng sẽ đọc cùng bản ghi này.</p>}</div>
         </AdminCreatePanel>
         <AdminCreatePanel id="news-seo" title="Tối ưu hóa tìm kiếm Google"><div className="grid gap-4 sm:grid-cols-2"><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">SEO Title</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" placeholder="Tiêu đề hiển thị trên Google" /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">SEO Keywords</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" placeholder="Từ khóa" /></label><label className="block sm:col-span-2"><span className="mb-1.5 block font-body text-sm font-medium">SEO Description</span><textarea className="min-h-20 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] p-3.5 font-body text-sm" placeholder="Mô tả kết quả tìm kiếm" /></label></div></AdminCreatePanel>
         <AdminCreatePanel id="news-history" title="Lịch sử thao tác"><div className="overflow-x-auto"><table className="min-w-full text-left font-body text-sm"><thead className="bg-[#f7f8fb]"><tr><th className="px-3 py-2 font-semibold">Thời gian</th><th className="px-3 py-2 font-semibold">Hành động</th><th className="px-3 py-2 font-semibold">Người thực hiện</th></tr></thead><tbody><tr className="border-t border-[#e2e5ee]"><td className="px-3 py-3 text-[#74776f]">—</td><td className="px-3 py-3">Chưa có thao tác</td><td className="px-3 py-3 text-[#74776f]">—</td></tr></tbody></table></div></AdminCreatePanel>
@@ -3522,6 +3613,7 @@ export function App() {
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [catalogLoading, setCatalogLoading] = useState(true)
+  const [catalogError, setCatalogError] = useState<string | null>(null)
   const [, refreshPublicCatalog] = useState(0)
   const previewCloseTimer = useRef<number | null>(null)
   const cartPulseTimer = useRef<number | null>(null)
@@ -3536,9 +3628,27 @@ export function App() {
       return () => { cancelled = true }
     }
 
-    loadPublicCatalogProducts().then((records) => {
+    products = []
+    artbookProducts = []
+    limitedProducts = []
+    catalogProducts = []
+    setCatalogError(null)
+    const cachedCatalog = getCachedPublicCatalogProducts()
+    if (cachedCatalog?.length) {
+      applyPublicCatalog(cachedCatalog)
+      setSelectedProduct(getProductFromPath(window.location.pathname))
+      setSelectedAuthor(getAuthorFromPath(window.location.pathname))
+      setSelectedNews(getNewsFromPath(window.location.pathname))
+      setCatalogLoading(false)
+      refreshPublicCatalog((value) => value + 1)
+    }
+    const loadFullCatalog = () => loadPublicCatalogProducts().then((records) => {
       if (cancelled) return
-      if (records?.length) applyPublicCatalog(records)
+      if (!records?.length) {
+        setCatalogError('Chưa có dữ liệu sách từ backend để hiển thị.')
+      } else {
+        applyPublicCatalog(records)
+      }
       setSelectedProduct(getProductFromPath(window.location.pathname))
       setSelectedAuthor(getAuthorFromPath(window.location.pathname))
       setSelectedNews(getNewsFromPath(window.location.pathname))
@@ -3546,18 +3656,50 @@ export function App() {
       setCatalogLoading(false)
       refreshPublicCatalog((value) => value + 1)
     }).catch((error) => {
-      console.warn('Supabase catalog unavailable; using local demo catalog.', error)
-      if (!cancelled) setCatalogLoading(false)
+      console.warn('Supabase catalog unavailable.', error)
+      products = []
+      artbookProducts = []
+      limitedProducts = []
+      catalogProducts = []
+      if (!cancelled) {
+        setCatalogError('Không tải được dữ liệu sách từ backend.')
+        setCatalogLoading(false)
+        refreshPublicCatalog((value) => value + 1)
+      }
     })
+
+    // The complete catalog already contains homepage module assignments. One
+    // request path avoids the previous homepage-then-catalog waterfall.
+    void loadFullCatalog().catch(() => undefined)
 
     const needsCreators = path === '/authors' || path.startsWith('/authors/')
     if (needsCreators) loadPublicCreatorProfiles().then((profiles) => {
-      if (!cancelled && profiles?.length) runtimeAuthorProfiles = Object.fromEntries(profiles.map((profile) => [profile.name, profile]))
+      if (cancelled || !profiles) return
+      runtimeAuthorProfiles = Object.fromEntries(profiles.map((profile) => [profile.name, profile]))
+      const makeWriterColumns = (names: string[]): MenuColumn[] => {
+        const grouped = new Map<string, string[]>()
+        names.filter(Boolean).sort((first, second) => first.localeCompare(second, undefined, { sensitivity: 'base' })).forEach((name) => {
+          const eyebrow = name.trim().charAt(0).toUpperCase() || '#'
+          grouped.set(eyebrow, [...(grouped.get(eyebrow) ?? []), name])
+        })
+        return [...grouped.entries()].map(([eyebrow, links]) => ({ eyebrow, links }))
+      }
+      runtimeAuthorColumns = makeWriterColumns(profiles.filter((profile) => profile.roles.includes('author')).map((profile) => profile.name))
+      runtimeTranslatorColumns = makeWriterColumns(profiles.filter((profile) => profile.roles.includes('translator')).map((profile) => profile.name))
+      if (path.startsWith('/authors/') || path.startsWith('/creators/')) {
+        const slug = path.split('/').pop() ?? ''
+        const matchedProfile = profiles.find((profile) => profile.slug === slug)
+        if (matchedProfile) setSelectedAuthor(matchedProfile.name)
+      }
+      refreshPublicCatalog((value) => value + 1)
     }).catch(() => undefined)
 
     const needsNews = path === '/' || path === '/news' || path.startsWith('/news/')
     if (needsNews) loadPublicNewsPosts().then((news) => {
-      if (!cancelled && news?.length) applyPublicNews(news)
+      if (cancelled || !news) return
+      applyPublicNews(news)
+      if (path.startsWith('/news/')) setSelectedNews(getNewsFromPath(path))
+      refreshPublicCatalog((value) => value + 1)
     }).catch(() => undefined)
     return () => { cancelled = true }
   }, [])
@@ -3881,7 +4023,8 @@ export function App() {
   return <>
     <SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} />
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
-    <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'utility-panel-active' : ''} ${view === 'detail' ? 'subject-panel-active' : ''}`}>
+    <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'utility-panel-active' : ''}`}>
+    {catalogError && !['login', 'register', 'forgot-password', 'password-reset-sent', 'reset-password', 'password-reset-complete'].includes(view) && <div className="catalog-backend-notice" role="status">{catalogError}</div>}
     {!isEmagazineView && <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} cartPulse={cartPulse} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => setHeroMotionOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} language={language} />}
     {!isEmagazineView && <><button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} /><MobileMenu isOpen={menuOpen} onCategory={showCategory} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} /></>}
      {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage heroMotionOpen={heroMotionOpen} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'collection' ? <AllBooksPage heroMotionOpen={heroMotionOpen} collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'search' ? <SearchResultsPage query={searchQuery} loading={catalogLoading} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} />) : <main>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Book cover placeholder</title>
+  <desc id="desc">A light gray book cover with a centered image icon</desc>
+  <rect width="600" height="900" fill="#e7e8e6"/>
+  <g fill="none" stroke="#8b918c" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="150" y="315" width="300" height="270" rx="18"/>
+    <path d="M174 534l82-82 64 62 52-54 54 74"/>
+    <circle cx="365" cy="397" r="31"/>
+  </g>
+</svg>
