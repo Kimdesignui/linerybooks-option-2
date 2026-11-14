@@ -390,6 +390,17 @@ let runtimeAuthorProfiles: Record<string, PublicCreatorProfile> = {}
 const authorSlug = (author: string) => author.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const productSlug = (title: string) => title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const normalizeProductCategory = (category: string) => category.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+const normalizeProductCategories = (categories: string[]) => {
+  const uniqueCategories = [...new Set(categories.map((category) => category.trim()).filter(Boolean))]
+  const normalized = new Set(uniqueCategories.map(normalizeProductCategory))
+  if (!normalized.has('fiction') || !normalized.has('non fiction')) return uniqueCategories
+  const fictionSignals = ['novels', 'short stories', 'poetry drama']
+  const nonFictionSignals = ['essays', 'research studies', 'memoir biography']
+  const hasFictionSignal = fictionSignals.some((signal) => normalized.has(signal))
+  const hasNonFictionSignal = nonFictionSignals.some((signal) => normalized.has(signal))
+  const remove = hasFictionSignal && !hasNonFictionSignal ? 'non fiction' : hasNonFictionSignal && !hasFictionSignal ? 'fiction' : 'non fiction'
+  return uniqueCategories.filter((category) => normalizeProductCategory(category) !== remove)
+}
 const getProductFromPath = (pathname: string) => {
   const slug = pathname.startsWith('/books/') ? pathname.split('/')[2] ?? '' : ''
   return catalogProducts.find((product) => productSlug(product.title) === slug) ?? null
@@ -438,7 +449,7 @@ let runtimeAuthorColumns: MenuColumn[] = []
 let runtimeTranslatorColumns: MenuColumn[] = []
 
 const applyPublicCatalog = (records: PublicCatalogProduct[]) => {
-  const mapped = records.map((record) => ({ ...record }))
+  const mapped = records.map((record) => ({ ...record, categories: normalizeProductCategories(record.categories) }))
   const makeWriterColumns = (names: string[]): MenuColumn[] => {
     const grouped = new Map<string, string[]>()
     names.sort((first, second) => first.localeCompare(second, undefined, { sensitivity: 'base' })).forEach((name) => {
@@ -1627,7 +1638,7 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
         <h1>{product.title}</h1>
         <p className="book-detail-author">by <a href={`/authors/${authorSlug(product.author)}`} onClick={(event) => { event.preventDefault(); onAuthor(product.author) }}>{product.author}</a></p>
         <div className="book-detail-rule" />
-        <div className="book-detail-category"><span>Classification</span><div>{product.categories.map((category) => <a className="book-classification-link" key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}</a>)}</div></div>
+        <div className="book-detail-category"><div aria-label="Book classifications">{product.categories.map((category) => <a className="book-classification-link" key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}</a>)}</div></div>
         <div className="book-detail-purchase">
           <div className="book-detail-price-row">
             {isAvailable && <div className="book-detail-quantity" aria-label="Select quantity">
