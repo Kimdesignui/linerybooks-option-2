@@ -108,7 +108,7 @@ body[data-admin-module="/admin/reports"] .admin-shell main > section:last-child 
 .admin-brand img { display: block; width: 32px; min-width: 32px; max-width: 32px; height: 32px; min-height: 32px; max-height: 32px; flex: 0 0 32px; flex-shrink: 0; aspect-ratio: 1; border-radius: 50%; object-fit: cover; }
 .admin-brand span { overflow: hidden; color: var(--color-ink); font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
 /* Keep the remaining legacy admin shell on the same LineryBooks brand asset. */
-.admin-shell .admin-sidebar > div:first-child > a.font-display { display: inline-flex; width: 156px; height: 32px; align-items: center; overflow: hidden; background: url('/assets/linerybooks-logo-pixel-bg.svg') left center / 32px 32px no-repeat; padding-left: 42px; font-size: 0; letter-spacing: .02em; line-height: 32px; white-space: nowrap; }
+.admin-shell .admin-sidebar > div:first-child > a.font-display { display: inline-flex; width: 156px; height: 32px; align-items: center; overflow: hidden; background: url('/assets/linerybooks-logo-pixel-bg.svg') left center / 32px 32px no-repeat; border-radius: 999px; padding-left: 42px; font-size: 0; letter-spacing: .02em; line-height: 32px; white-space: nowrap; }
 .admin-shell table img[alt^='Bìa '] { width: 48px; height: auto; aspect-ratio: 2 / 3; object-fit: cover; }
 .admin-shell table td > span.rounded-full { white-space: nowrap; }
 body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:last-child > button:last-child { background: #934125; color: #fff; }
@@ -1324,7 +1324,7 @@ main:has(.news-module) + .site-footer { margin-top: var(--section-gap); }
 .footer-link-column a:hover, .footer-link-column a:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
 .footer-copy h2 { margin: 0 0 8px; font-size: 44px; line-height: 1; }
 .footer-brand { display: inline-flex; align-items: center; gap: 12px; }
-.footer-brand img { width: 42px; height: 42px; display: block; object-fit: contain; }
+.footer-brand img { width: 42px; height: 42px; display: block; border: 2px solid #fffad8; border-radius: 50%; object-fit: cover; }
 .footer-copy p { margin: 7px 0; font-family: var(--font-caslon); font-size: 16px; font-style: italic; line-height: 1.35; }
 .footer-contact { display: flex; align-items: center; gap: 8px; margin: 7px 0; font-family: var(--font-caslon); font-size: 16px; font-style: italic; line-height: 1.35; }
 .footer-contact i { flex: 0 0 14px; width: 14px; font-size: 12px; font-style: normal; text-align: center; }
