@@ -8,7 +8,7 @@
   "theme_color": "#9b942f",
   "icons": [
     {
-      "src": "/assets/linerybooks-logo-pixel-bg.svg",
+      "src": "/assets/linerybooks-favicon-round.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

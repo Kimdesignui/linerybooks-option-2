@@ -1776,7 +1776,7 @@ function Footer() {
   ]
   return <footer className="site-footer scroll-section" id="about">
     <div className="footer-copy">
-      <h2 className="footer-brand"><img src="/assets/linerybooks-logo-pixel-bg.svg" alt="LineryBooks" /> <span>LINERY</span></h2>
+      <h2 className="footer-brand"><img src="/assets/linerybooks-favicon-round.svg" alt="LineryBooks" /> <span>LINERY</span></h2>
       <p className="footer-quote">(pn.) /'lınəri/<br />a curated bookstore &amp; independent press, crafted in Hanoi</p>
       <div className="footer-contact"><i className="bi bi-telephone-fill" aria-hidden="true" /><a href="tel:+840946936039">+84 0946936039</a></div>
       <div className="footer-contact"><i className="bi bi-geo-alt-fill" aria-hidden="true" /><span>Hanoi Book Street, Cua Nam Ward, Hanoi</span></div>

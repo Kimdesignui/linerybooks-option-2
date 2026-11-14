@@ -108,7 +108,7 @@ body[data-admin-module="/admin/reports"] .admin-shell main > section:last-child 
 .admin-brand img { display: block; width: 32px; min-width: 32px; max-width: 32px; height: 32px; min-height: 32px; max-height: 32px; flex: 0 0 32px; flex-shrink: 0; aspect-ratio: 1; border-radius: 50%; object-fit: cover; }
 .admin-brand span { overflow: hidden; color: var(--color-ink); font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
 /* Keep the remaining legacy admin shell on the same LineryBooks brand asset. */
-.admin-shell .admin-sidebar > div:first-child > a.font-display { display: inline-flex; width: 156px; height: 32px; align-items: center; overflow: hidden; background: url('/assets/linerybooks-logo-pixel-bg.svg') left center / 32px 32px no-repeat; border-radius: 999px; padding-left: 42px; font-size: 0; letter-spacing: .02em; line-height: 32px; white-space: nowrap; }
+.admin-shell .admin-sidebar > div:first-child > a.font-display { display: inline-flex; width: 156px; height: 32px; align-items: center; overflow: hidden; background: url('/assets/linerybooks-favicon-round.svg') left center / 32px 32px no-repeat; border-radius: 999px; padding-left: 42px; font-size: 0; letter-spacing: .02em; line-height: 32px; white-space: nowrap; }
 .admin-shell table img[alt^='Bìa '] { width: 48px; height: auto; aspect-ratio: 2 / 3; object-fit: cover; }
 .admin-shell table td > span.rounded-full { white-space: nowrap; }
 body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:has(> article) > article > div:last-child > button:last-child { background: #934125; color: #fff; }
@@ -1483,7 +1483,7 @@ main:has(.news-module) + .site-footer { margin-top: var(--section-gap); }
   .cart-page > .cart-layout { width: min(720px, 100%); }
 }
 @media (max-width: 520px) {
-  :root { --page-gutter: 24px; --header-height: 64px; --module-radius: 12px; }
+  :root { --page-gutter: 16px; --header-height: 64px; --module-radius: 12px; }
   .emagazine-page { padding: 0; }
   .emagazine-story { width: 100%; border-radius: 0; }
   .emagazine-topbar > span { font-size: 18px; }
@@ -1570,7 +1570,7 @@ main:has(.news-module) + .site-footer { margin-top: var(--section-gap); }
   .all-books-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 0; }
   .all-books-pagination { gap: 8px; padding-top: 16px; }
   .all-books-pagination button { width: 40px; height: 40px; font-size: 16px; }
-  .book-detail-page { width: auto; margin: var(--page-gutter); padding: 28px 24px 56px; border-radius: var(--module-radius); }
+  .book-detail-page { width: auto; margin: var(--page-gutter); padding: 28px 16px 56px; border-radius: var(--module-radius); }
   .cart-page { padding: 0 var(--page-gutter) 12px; }
   .cart-drawer-header { padding: 24px 18px 18px; }
   .cart-drawer-header h1 { font-size: 26px; }
