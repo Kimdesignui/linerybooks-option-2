@@ -1651,13 +1651,10 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
             <p className="book-detail-price" aria-live="polite">{totalPrice}</p>
           </div>
           <div className="book-detail-actions">
-            {isAvailable ? <>
-              <button className="book-add-button" type="button" onClick={(event) => onAddToCart(product, event.currentTarget)}>Add to Cart</button>
-              <button className="book-buy-button" type="button" onClick={() => onBuyNow(product)}>Buy Now</button>
-            </> : <button className="book-out-of-stock-button" type="button" disabled>Out of stock</button>}
+            <button className="book-add-button" type="button" disabled={!isAvailable} aria-disabled={!isAvailable} onClick={(event) => onAddToCart(product, event.currentTarget)}>Add to Cart</button>
+            <button className="book-buy-button" type="button" onClick={() => onBuyNow(product)}>{isAvailable ? 'Buy Now' : 'PreOrder'}</button>
           </div>
         </div>
-        <p className={`book-detail-note ${isAvailable ? '' : 'book-detail-note-unavailable'}`}>{isAvailable ? 'Available from Linery Bookstore' : 'This title is currently unavailable.'}</p>
         <section className="book-detail-inline-description" aria-labelledby="book-description-title">
           <h2 id="book-description-title">Description</h2>
           <div id="book-description-copy" className={`book-description-content ${descriptionExpanded ? 'is-expanded' : ''}`}>
@@ -1774,7 +1771,7 @@ function UtilityPanel({ product, onClose, onOpenDetail, onAuthor, onAddToCart, o
           <a className="book-preview-link" href="#a" onClick={(event) => { event.preventDefault(); onOpenDetail(product) }}>View full details <span aria-hidden="true">→</span></a>
           </div>
         </div>
-        <div className="utility-panel-footer book-preview-actions">{product.available === false ? <button className="book-out-of-stock-button book-preview-out-of-stock" type="button" disabled>Out of stock</button> : <><button className="book-preview-add-button" type="button" onClick={(event) => onAddToCart(product, event.currentTarget)}>Add to cart</button><button className="book-preview-buy-button" type="button" onClick={() => onBuyNow(product)}>Buy Now</button></>}</div>
+        <div className="utility-panel-footer book-preview-actions"><button className="book-preview-add-button" type="button" disabled={product.available === false} aria-disabled={product.available === false} onClick={(event) => onAddToCart(product, event.currentTarget)}>Add to cart</button><button className="book-preview-buy-button" type="button" onClick={() => onBuyNow(product)}>{product.available === false ? 'PreOrder' : 'Buy Now'}</button></div>
       </> : <div className="utility-panel-empty"><img src="/assets/quick-view-illustration.png" alt="" aria-hidden="true" /><p>Hello — I’m here to help you preview book information.</p><span>Choose a book to see its cover and publication details.</span></div>}
     </aside>
   </div>
