@@ -1771,8 +1771,8 @@ function UtilityPanel({ product, onClose, onOpenDetail, onAuthor, onAddToCart, o
 
 function Footer() {
   const footerColumns = [
-    { title: 'About Us', links: [['Giới thiệu', '/news/gioi-thieu'], ['Liên hệ', '/news/lien-he']] },
-    { title: 'Chính sách - điều khoản', links: [['Chính sách', '/news/chinh-sach'], ['Điều khoản', '/news/dieu-khoan']] },
+    { title: 'About Us', links: [['About Us', '/news/gioi-thieu'], ['Contact', '/news/lien-he']] },
+    { title: 'Policies & Terms', links: [['Policies', '/news/chinh-sach'], ['Terms', '/news/dieu-khoan']] },
   ]
   return <footer className="site-footer scroll-section" id="about">
     <div className="footer-copy">
