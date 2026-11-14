@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import localCreatorImageMap from '../data/creator-image-map.json'
 
 export type SupabaseCatalogSnapshot = {
   books: number
@@ -284,19 +285,24 @@ export async function loadPublicCreatorProfiles(): Promise<PublicCreatorProfile[
     }
     return ((creators.data ?? []) as Array<Record<string, unknown>>).map((creator) => {
     const id = String(creator.id)
+    const slug = String(creator.slug ?? '')
     const creatorImages = imageRows
       .filter((row) => row.creator_id === id)
       .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order)
       .map((row) => publicMediaUrl(row.storage_path))
+    const hostedCreatorImage = localCreatorImageMap[slug as keyof typeof localCreatorImageMap]
+    const resolvedCreatorImages = hostedCreatorImage
+      ? unique([hostedCreatorImage, ...creatorImages])
+      : creatorImages
     const birthYear = creator.birth_year == null ? '' : String(creator.birth_year)
     const deathYear = creator.death_year == null ? '' : String(creator.death_year)
     const awardsText = String(creator.awards ?? '').trim()
     const awardCount = awardsText && awardsText !== '-' ? awardsText.split(';').map((award) => award.trim()).filter(Boolean).length : 0
     return {
       name: String(creator.display_name ?? ''),
-      slug: String(creator.slug ?? ''),
+      slug,
       roles: rolesByCreator.get(id) ?? [],
-      images: unique(creatorImages),
+      images: resolvedCreatorImages,
       born: birthYear,
       died: deathYear,
       awards: awardCount,
