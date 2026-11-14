@@ -1668,7 +1668,7 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
         </section>
         <section className="book-details-grid book-detail-inline-details" aria-labelledby="details-title">
           <h2 id="details-title">Details</h2>
-          <dl><div><dt>Publisher</dt><dd>{product.publisher}</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Format</dt><dd>Paperback</dd></div></dl>
+          <dl><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Publisher</dt><dd>{product.publisher}</dd></div></dl>
         </section>
         {relatedProducts.length > 0 && <RelatedBooksPanel items={relatedProducts} onOpenDetail={onOpenDetail} />}
       </div>
