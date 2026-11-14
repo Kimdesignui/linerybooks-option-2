@@ -626,8 +626,15 @@ function MobileMenu({ isOpen, onClose, onCategory, onAllBooks, onCollection, onA
     const distanceY = event.clientY - start.y
     if (distanceX < -64 && Math.abs(distanceX) > Math.abs(distanceY) * 1.2) onClose()
   }
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    const start = swipeStart.current
+    if (!start) return
+    const distanceX = event.clientX - start.x
+    const distanceY = event.clientY - start.y
+    if (distanceX < -10 && Math.abs(distanceX) > Math.abs(distanceY) * 1.2) event.preventDefault()
+  }
 
-  return <aside className={`mobile-menu menu-navigation ${isOpen ? 'is-open' : ''}`} aria-label="Mobile navigation" aria-hidden={!isOpen} onPointerDown={handlePointerDown} onPointerUp={handlePointerUp} onPointerCancel={() => { swipeStart.current = null }}>
+  return <aside className={`mobile-menu menu-navigation ${isOpen ? 'is-open' : ''}`} aria-label="Mobile navigation" aria-hidden={!isOpen} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={() => { swipeStart.current = null }}>
     <div className="mobile-menu-header">
       <div className="mobile-menu-language-options" aria-label="Choose language">
         <button type="button" className="mobile-menu-language-toggle" role="switch" aria-checked={language === 'vi'} aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`} onClick={() => onSelectLanguage(language === 'en' ? 'vi' : 'en')}>
@@ -3998,6 +4005,7 @@ export function App() {
   const [, refreshPublicCatalog] = useState(0)
   const previewCloseTimer = useRef<number | null>(null)
   const cartPulseTimer = useRef<number | null>(null)
+  const edgeSwipeStart = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -4110,35 +4118,25 @@ export function App() {
     return () => document.body.classList.remove('menu-open')
   }, [menuOpen])
 
-  useEffect(() => {
-    if (menuOpen) return undefined
-    const start = { x: 0, y: 0 }
-    let tracking = false
-    const handlePointerDown = (event: PointerEvent) => {
-      const isMobileViewport = window.matchMedia('(max-width: 1100px)').matches
-      if ((event.pointerType !== 'touch' && !(event.pointerType === 'mouse' && isMobileViewport)) || event.clientX > 32) return
-      start.x = event.clientX
-      start.y = event.clientY
-      tracking = true
-    }
-    const handlePointerUp = (event: PointerEvent) => {
-      const isMobileViewport = window.matchMedia('(max-width: 1100px)').matches
-      if (!tracking || (event.pointerType !== 'touch' && !(event.pointerType === 'mouse' && isMobileViewport))) return
-      tracking = false
-      const distanceX = event.clientX - start.x
-      const distanceY = event.clientY - start.y
-      if (distanceX > 64 && Math.abs(distanceX) > Math.abs(distanceY) * 1.2) setMenuOpen(true)
-    }
-    const cancelTracking = () => { tracking = false }
-    window.addEventListener('pointerdown', handlePointerDown, { passive: true })
-    window.addEventListener('pointerup', handlePointerUp, { passive: true })
-    window.addEventListener('pointercancel', cancelTracking, { passive: true })
-    return () => {
-      window.removeEventListener('pointerdown', handlePointerDown)
-      window.removeEventListener('pointerup', handlePointerUp)
-      window.removeEventListener('pointercancel', cancelTracking)
-    }
-  }, [menuOpen])
+  const handleEdgePointerDown = (event: React.PointerEvent<HTMLSpanElement>) => {
+    const isMobileViewport = window.matchMedia('(max-width: 1100px)').matches
+    if (event.pointerType === 'touch' || (event.pointerType === 'mouse' && isMobileViewport)) edgeSwipeStart.current = { x: event.clientX, y: event.clientY }
+  }
+  const handleEdgePointerMove = (event: React.PointerEvent<HTMLSpanElement>) => {
+    const start = edgeSwipeStart.current
+    if (!start) return
+    const distanceX = event.clientX - start.x
+    const distanceY = event.clientY - start.y
+    if (distanceX > 10 && Math.abs(distanceX) > Math.abs(distanceY) * 1.2) event.preventDefault()
+  }
+  const handleEdgePointerUp = (event: React.PointerEvent<HTMLSpanElement>) => {
+    const start = edgeSwipeStart.current
+    edgeSwipeStart.current = null
+    if (!start) return
+    const distanceX = event.clientX - start.x
+    const distanceY = event.clientY - start.y
+    if (distanceX > 64 && Math.abs(distanceX) > Math.abs(distanceY) * 1.2) setMenuOpen(true)
+  }
 
   useEffect(() => {
     document.body.classList.toggle('linery-enhanced', isEnhancedVariant)
@@ -4444,7 +4442,7 @@ export function App() {
     <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'utility-panel-active' : ''}`}>
     {catalogError && !['login', 'register', 'forgot-password', 'password-reset-sent', 'reset-password', 'password-reset-complete'].includes(view) && <div className="catalog-backend-notice" role="status">{catalogError}</div>}
     {!isEmagazineView && <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} cartPulse={cartPulse} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => setHeroMotionOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} language={language} />}
-    {!isEmagazineView && <><button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} /><MobileMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} onCategory={showCategory} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} /></>}
+    {!isEmagazineView && <><button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />{!menuOpen && <span className="mobile-menu-edge-swipe" aria-hidden="true" onPointerDown={handleEdgePointerDown} onPointerMove={handleEdgePointerMove} onPointerUp={handleEdgePointerUp} onPointerCancel={() => { edgeSwipeStart.current = null }} />}<MobileMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} onCategory={showCategory} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} /></>}
      {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage heroMotionOpen={heroMotionOpen} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'collection' ? <AllBooksPage heroMotionOpen={heroMotionOpen} collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'search' ? <SearchResultsPage query={searchQuery} loading={catalogLoading} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} />) : <main>
      <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration"><HeroBanner motionOpen={heroMotionOpen} /></section>
       <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} language={language} onCollection={showCollection} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} />)}</div>

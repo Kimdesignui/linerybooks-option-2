@@ -433,7 +433,7 @@ button { cursor: pointer; }
 @keyframes cart-button-pulse { 0%, 100% { transform: scale(1); } 35% { transform: scale(1.16); } 70% { transform: scale(.96); } }
 .cart-flyer { position: fixed; z-index: 60; width: 64px; height: 96px; border-radius: 8px; object-fit: cover; box-shadow: 0 12px 24px rgba(31,42,36,.28); pointer-events: none; }
 .menu-button { display: none; }
-.mobile-menu { display: none; }
+.mobile-menu, .mobile-menu-edge-swipe { display: none; }
 .mobile-backdrop { display: none; }
 .shop-menu { position: relative; z-index: 10; display: grid; grid-template-rows: 0fr; width: 100%; margin: 0; padding: 0; overflow: hidden; border: 0; border-radius: 0; background: var(--color-olive); color: #fff; font-family: var(--font-display); box-shadow: none; opacity: 0; pointer-events: none; transform: translateY(-18px); transition: grid-template-rows 620ms cubic-bezier(.22, .61, .36, 1), opacity 220ms ease, transform 620ms cubic-bezier(.22, .61, .36, 1); }
 @keyframes shop-menu-in {
@@ -1364,6 +1364,7 @@ main:has(.news-module) + .site-footer { margin-top: var(--section-gap); }
   .search-control.is-open .search-input { width: calc(var(--search-open-width) - 50px); }
   .mobile-backdrop { position: fixed; z-index: 28; inset: 0; display: block; width: 100%; padding: 0; border: 0; background: rgba(31,42,36,.28); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 280ms ease, visibility 0s linear 280ms; }
   .mobile-backdrop.is-open { opacity: 1; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+  .mobile-menu-edge-swipe { position: fixed; z-index: 27; inset: 0 auto 0 0; display: block; width: 28px; touch-action: pan-y; pointer-events: auto; }
   .mobile-menu { position: fixed; z-index: 30; inset: 0 auto 0 0; display: block; width: min(340px, calc(100vw - var(--page-gutter))); height: 100vh; height: 100dvh; min-height: 0; max-height: 100dvh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: rgba(31,42,36,.5) rgba(31,42,36,.08); padding: 28px 20px calc(56px + env(safe-area-inset-bottom, 0px)); border: 1px solid rgba(255,255,255,.3); border-left: 0; border-radius: 0; background: rgba(155, 148, 47, .76); color: #fff; font-family: var(--font-display); box-shadow: 10px 0 30px rgba(0,0,0,.24), inset -1px 0 0 rgba(255,255,255,.1); -webkit-backdrop-filter: blur(30px) saturate(150%); backdrop-filter: blur(30px) saturate(150%); opacity: 0; visibility: hidden; pointer-events: none; transform: translateX(-100%); transition: transform 360ms cubic-bezier(.22, .61, .36, 1), opacity 260ms ease, visibility 0s linear 360ms; }
   .mobile-menu::-webkit-scrollbar { width: 2px; }
   .mobile-menu::-webkit-scrollbar-track { background: rgba(31,42,36,.08); }
