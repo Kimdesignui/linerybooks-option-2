@@ -1678,7 +1678,7 @@ main:has(.news-module) + .site-footer { margin-top: var(--section-gap); }
   .product-overlay-copy strong { -webkit-line-clamp: 2; line-clamp: 2; }
   .product-author { font-size: 12px; }
   .product-price { padding-top: 4px; font-size: 14px; line-height: 1.5; }
-  .site-footer { width: calc(100% - (var(--page-gutter) * 2)); max-width: none; min-height: 0; margin: var(--section-gap) var(--page-gutter) 6px; padding: 24px; border-radius: var(--module-radius); display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 28px; }
+  .site-footer { width: calc(100% - 32px); max-width: none; min-height: 0; margin: var(--section-gap) 16px 24px; padding: 16px; padding-bottom: 24px; border-radius: var(--module-radius); display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 28px; }
   .footer-links { padding-top: 36px; }
   .footer-link-column a { font-size: 14px; }
   .footer-copy { padding-block: 0; }
