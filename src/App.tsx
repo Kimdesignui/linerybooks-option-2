@@ -1613,7 +1613,6 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
   }, [lightboxOpen, galleryImages.length])
 
   return <main className="book-detail-page">
-    <nav className="book-detail-breadcrumb" aria-label="Breadcrumb"><button onClick={onBack}>Books</button><span aria-hidden="true">/</span><span>{product.title}</span></nav>
     <section className="book-detail-hero">
       <div className="book-detail-gallery">
         <button className="book-detail-cover-wrap" type="button" aria-label={`Open gallery for ${product.title}`} onClick={() => setLightboxOpen(true)}>
@@ -1624,6 +1623,7 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
         {hasReadExcerpt && <div className="book-excerpt-cta"><button className="book-excerpt-button" type="button" aria-pressed={readExcerptOpen} onClick={() => setReadExcerptOpen((open) => !open)}><i className="bi bi-book-half" aria-hidden="true" /> {readExcerptOpen ? 'Close excerpt' : 'Read Excerpt'}</button><button className="book-excerpt-button book-look-inside-button" type="button" onClick={() => { const slug = product.slug || productSlug(product.title); const reader = window.open(`/books/${slug}/reader`, '_blank'); if (!reader) window.location.assign(`/books/${slug}/reader`) }}><i className="bi bi-file-earmark-pdf" aria-hidden="true" /> Look inside</button></div>}
       </div>
       <div className="book-detail-copy">
+        <nav className="book-detail-breadcrumb" aria-label="Breadcrumb"><button onClick={onBack}>Books</button><span aria-hidden="true">/</span><span>{product.title}</span></nav>
         <h1>{product.title}</h1>
         <p className="book-detail-author">by <a href={`/authors/${authorSlug(product.author)}`} onClick={(event) => { event.preventDefault(); onAuthor(product.author) }}>{product.author}</a></p>
         <div className="book-detail-rule" />
