@@ -241,19 +241,20 @@ export async function loadPublicCatalogProducts(): Promise<PublicCatalogProduct[
 }
 
 export async function loadPublicBookSample(bookId: string, bookSlug?: string): Promise<{ url?: string; pageCount?: number; fileType?: 'pdf' | 'epub' } | null> {
-  if (!supabase || !bookId) return null
+  const bundledDemoSample = bookSlug === 'a-manual-for-cleaning-women'
+    ? { url: '/assets/book-samples/a-manual-for-cleaning-women.pdf', pageCount: 4, fileType: 'pdf' as const }
+    : null
+  if (!supabase || !bookId) return bundledDemoSample
   const cached = publicBookSamplePromise.get(bookId)
   if (cached) return cached
   const request = (async () => {
     const { data, error } = await supabase.from('books').select('sample_pdf_storage_path,sample_pdf_page_count,sample_pdf_enabled,sample_file_type').eq('id', bookId).maybeSingle()
     if (error) {
-      if (import.meta.env.DEV && bookSlug === 'a-manual-for-cleaning-women') return { url: '/assets/book-samples/a-manual-for-cleaning-women.pdf', pageCount: 4, fileType: 'pdf' as const }
-      return null
+      return bundledDemoSample
     }
     const row = data as { sample_pdf_storage_path?: string | null; sample_pdf_page_count?: number | null; sample_pdf_enabled?: boolean | null; sample_file_type?: 'pdf' | 'epub' | null } | null
     if (!row?.sample_pdf_enabled || !row.sample_pdf_storage_path) {
-      if (import.meta.env.DEV && bookSlug === 'a-manual-for-cleaning-women') return { url: '/assets/book-samples/a-manual-for-cleaning-women.pdf', pageCount: 4, fileType: 'pdf' as const }
-      return null
+      return bundledDemoSample
     }
     const fileType: 'pdf' | 'epub' = row.sample_file_type === 'epub' || /\.epub(?:$|\?)/i.test(row.sample_pdf_storage_path) ? 'epub' : 'pdf'
     return { url: publicMediaUrl(row.sample_pdf_storage_path), pageCount: row.sample_pdf_page_count ? Number(row.sample_pdf_page_count) : undefined, fileType }
