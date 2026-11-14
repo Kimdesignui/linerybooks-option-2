@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:classic": "vite --mode classic --port 5173",
-    "dev:enhanced": "vite --mode enhanced --port 5174",
+    "dev:enhanced": "vite --mode enhanced --host 0.0.0.0 --port 5174",
     "build": "tsc -b && vite build",
     "build:enhanced": "tsc -b && vite build --mode enhanced",
     "preview": "vite preview"
@@ -24,7 +24,12 @@
     "@tailwindcss/vite": "latest",
     "@vitejs/plugin-react": "latest",
     "bootstrap-icons": "^1.13.2",
+    "fflate": "^0.8.3",
+    "flipview": "github:hikashop-nicolas/flipview#main",
     "lucide-react": "latest",
+    "onnxruntime-web": "^1.22.0",
+    "pdfjs-dist": "^5.7.284",
+    "phonemizer": "file:vendor/phonemizer-1.2.2.tgz",
     "preline": "^4.2.0",
     "react": "latest",
     "react-dom": "latest",

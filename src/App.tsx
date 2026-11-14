@@ -1,15 +1,18 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ElementType, type FormEvent, type ReactNode, type SyntheticEvent } from 'react'
 import 'bootstrap-icons/font/bootstrap-icons.css'
+import { createEpubSource, createFlipview, createPdfSource, type FlipviewHandle } from 'flipview'
+import 'flipview/flipview.css'
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { getCachedPublicCatalogProducts, loadPublicBookSample, loadPublicCatalogProducts, loadPublicCreatorProfiles, loadPublicNewsPosts, upsertNewsPost, type PublicCatalogProduct, type PublicCreatorProfile, type PublicNewsPost, type PublicNewsBlock } from './lib/supabase-data'
 import { supabase } from './lib/supabase'
 import hueEmagazine from './data/emagazine-hue.json'
 
-type Product = { id?: string; slug?: string; isbn?: string; image: string; gallery?: string[]; title: string; author: string; translators?: string[]; illustrators?: string[]; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean; limited?: boolean; moduleSlugs?: string[]; samplePdfUrl?: string; samplePdfPageCount?: number }
+type Product = { id?: string; slug?: string; isbn?: string; image: string; gallery?: string[]; title: string; author: string; translators?: string[]; illustrators?: string[]; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean; limited?: boolean; moduleSlugs?: string[]; samplePdfUrl?: string; samplePdfPageCount?: number; sampleFileType?: 'pdf' | 'epub' }
 type CartItem = { product: Product; quantity: number }
 type PaymentMethod = 'vnpay' | 'bank' | 'momo' | 'apple' | 'zalopay'
 type FulfillmentMethod = 'pickup' | 'delivery'
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[]; byline?: string; blocks?: PublicNewsBlock[]; blocksVi?: PublicNewsBlock[]; contentType?: 'news' | 'emagazine' }
-type View = 'home' | 'authors' | 'all-books' | 'collection' | 'search' | 'author' | 'detail' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete' | 'account' | 'admin'
+type View = 'home' | 'authors' | 'all-books' | 'collection' | 'search' | 'author' | 'detail' | 'book-reader' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete' | 'account' | 'admin'
 type AccountTab = 'profile' | 'orders' | 'orders-demo' | 'order-detail' | 'transactions' | 'transaction-detail' | 'security'
 type WriterDirectoryFilter = 'all' | 'authors' | 'translators'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
@@ -134,6 +137,10 @@ const loginSlides = [
   { image: '/assets/login-library-woman.png', quote: 'Books make room for wonder.' },
 ]
 const isEnhancedVariant = import.meta.env.VITE_LINERY_VARIANT === 'enhanced'
+const nghiTtsVoices: Record<'vi-VN' | 'en-US', string[]> = {
+  'vi-VN': ['Ngọc Huyền (mới)', 'Ban Mai', 'Chiếu Thành', 'Duy Onyx (mới)', 'Lạc Phi', 'Mai Phương', 'Minh Khang', 'Minh Quang', 'Mạnh Dũng', 'Mỹ Tâm', 'Ngọc Ngạn', 'Phương Trang', 'Thanh Phương Viettel', 'Thiện Tâm', 'Trấn Thành', 'Tài An', 'Việt Thảo'],
+  'en-US': ['Libritts_r', 'Mattheo'],
+}
 const welcomeStorageKey = 'linery-welcome-seen-v3'
 
 function HamburgerIcon() {
@@ -329,7 +336,11 @@ const newsItems: NewsItem[] = [
     image: '/assets/news-instagram-04.jpg', title: 'Điều khoản sử dụng', titleVi: 'Điều khoản sử dụng', date: 'Policies', kicker: 'Policies', slug: 'dieu-khoan', excerpt: 'Điều khoản sử dụng website và các dịch vụ của LineryBooks.', excerptVi: 'Điều khoản sử dụng website và các dịch vụ của LineryBooks.', body: ['Nội dung điều khoản sẽ được cập nhật từ khu vực quản trị và hiển thị thống nhất trên website.'], bodyVi: ['Nội dung điều khoản sẽ được cập nhật từ khu vực quản trị và hiển thị thống nhất trên website.'],
   },
 ]
-let runtimeNewsItems: NewsItem[] = []
+// Render the editorial module immediately while the public query is still in
+// flight. Supabase remains the source of truth once the seed migration is
+// applied; missing rows are temporarily filled from the same checked-in seed
+// set so the storefront never presents an empty news module.
+let runtimeNewsItems: NewsItem[] = [...newsItems]
 const adminNewsOverridesStorageKey = 'linery-admin-news-overrides'
 const readAdminNewsOverrides = (): NewsItem[] => {
   try {
@@ -349,13 +360,16 @@ const getNewsFromPath = (pathname: string) => {
   return runtimeNewsItems.find((item) => item.slug === legacySlug) ?? null
 }
 const applyPublicNews = (records: PublicNewsPost[]) => {
-  // Supabase is the source of truth. The local list is only used when the
-  // request itself fails, so missing rows cannot be silently hidden.
+  // Supabase is the source of truth once the complete editorial seed is
+  // present. During rollout, preserve the checked-in standard news set for
+  // slugs that the backend has not returned yet instead of silently hiding
+  // cards from the storefront.
   const overrides = readAdminNewsOverrides()
   const overrideBySlug = new Map(overrides.map((item) => [item.slug, item]))
   const remoteItems = records.map((record) => ({ ...record }))
   const remoteSlugs = new Set(remoteItems.map((item) => item.slug))
-  runtimeNewsItems = [...remoteItems.map((item) => overrideBySlug.get(item.slug) ?? item), ...overrides.filter((item) => !remoteSlugs.has(item.slug))]
+  const missingSeedItems = newsItems.filter((item) => !remoteSlugs.has(item.slug))
+  runtimeNewsItems = [...remoteItems.map((item) => overrideBySlug.get(item.slug) ?? item), ...missingSeedItems, ...overrides.filter((item) => !remoteSlugs.has(item.slug) && !newsItems.some((seedItem) => seedItem.slug === item.slug))]
 }
 
 const authorProfiles: Record<string, { image: string; images?: string[]; born: string; died: string; bornPlace: string; diedPlace: string; awards: number; academicTitle: string; bio: string }> = {
@@ -377,7 +391,7 @@ const authorSlug = (author: string) => author.toLowerCase().replaceAll(/[^a-z0-9
 const productSlug = (title: string) => title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
 const normalizeProductCategory = (category: string) => category.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 const getProductFromPath = (pathname: string) => {
-  const slug = pathname.startsWith('/books/') ? pathname.split('/').pop() ?? '' : ''
+  const slug = pathname.startsWith('/books/') ? pathname.split('/')[2] ?? '' : ''
   return catalogProducts.find((product) => productSlug(product.title) === slug) ?? null
 }
 const getAuthorFromPath = (pathname: string) => {
@@ -402,6 +416,7 @@ const getViewFromPath = (pathname: string, hash: string): View => {
   if (pathname === '/search') return 'search'
   if (pathname === '/cart') return 'cart'
   if (pathname === '/checkout') return 'checkout'
+  if (pathname.startsWith('/books/') && pathname.endsWith('/reader') && getProductFromPath(pathname)) return 'book-reader'
   if (pathname === '/news') return 'news'
   if (pathname.startsWith('/news/') && getNewsFromPath(pathname)) return 'news-detail'
   if ((pathname.startsWith('/authors/') || pathname.startsWith('/creators/')) && getAuthorFromPath(pathname)) return 'author'
@@ -419,6 +434,8 @@ let sections = [
   { title: 'LINERY PICKS', items: products },
   { title: 'GRAB & SAVE', items: limitedProducts },
 ]
+let runtimeAuthorColumns: MenuColumn[] = []
+let runtimeTranslatorColumns: MenuColumn[] = []
 
 const applyPublicCatalog = (records: PublicCatalogProduct[]) => {
   const mapped = records.map((record) => ({ ...record }))
@@ -522,9 +539,6 @@ const translatorColumns: MenuColumn[] = [
   { eyebrow: 'O', links: ['Patrick O’Brian', 'Leri Price', 'Mira Rosenthal', 'Julia Sanches', 'Caroline Schmidt', 'Damion Searls', 'Bela Shayevich', 'Brian Sneeden', 'Carol Stewart', 'Alison L. Strayer'] },
   { eyebrow: 'V', links: ['Saskia Vogel', 'Francesca Wade', 'Adrian Nathan West', 'Shaun Whiteside', 'Natasha Wimmer', 'Frank Wynne'] },
 ]
-
-let runtimeAuthorColumns: MenuColumn[] = []
-let runtimeTranslatorColumns: MenuColumn[] = []
 
 const writerMenuGroups: MenuColumn[] = [
   { eyebrow: 'Role', links: ['Author', 'Translator', 'Illustrator'] },
@@ -1302,14 +1316,250 @@ function RelatedBooksPanel({ items, onOpenDetail }: { items: Product[]; onOpenDe
   </section>
 }
 
-function BookLookInsideNotice({ pdfUrl, pageCount, onClose }: { pdfUrl?: string; pageCount?: number; onClose: () => void }) {
-  return <div className="book-excerpt-overlay" role="presentation">
-    <button className="book-excerpt-backdrop" type="button" aria-label="Close Look inside" onClick={onClose} />
-    <aside className="book-excerpt-drawer book-look-inside-drawer" role="dialog" aria-modal="true" aria-labelledby="book-look-inside-title">
-      <div className="book-excerpt-header"><div><p className="book-detail-kicker">Look inside</p><h2 id="book-look-inside-title">Book preview</h2><p className="book-excerpt-byline">{pdfUrl ? `${pageCount ? `${pageCount} pages` : 'PDF reading sample'} · Open the sample in the reader below.` : 'The PDF reading sample will appear here when it is connected to this title.'}</p></div><button className="book-excerpt-close" type="button" onClick={onClose}><i className="bi bi-x-lg" aria-hidden="true" /> Close</button></div>
-      {pdfUrl ? <iframe className="book-look-inside-frame" title="Book reading sample" src={pdfUrl} /> : <div className="book-look-inside-empty"><i className="bi bi-file-earmark-pdf" aria-hidden="true" /><h3>Reading sample not available yet</h3><p>Upload or connect the sample PDF in the book record to enable page-turning preview and free browser text-to-speech.</p></div>}
-    </aside>
-  </div>
+function BookReaderPage({ product, onBack }: { product: Product; onBack: () => void }) {
+  const silentAudioDataUri = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+  const [sample, setSample] = useState<{ url?: string; pageCount?: number; fileType?: 'pdf' | 'epub' } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [speaking, setSpeaking] = useState(false)
+  const [hasReadableText, setHasReadableText] = useState(false)
+  const [selectedVoiceName, setSelectedVoiceName] = useState('')
+  const [speechLanguage, setSpeechLanguage] = useState<'auto' | 'vi-VN' | 'en-US'>('auto')
+  const [speechRate, setSpeechRate] = useState(1)
+  const [speechNotice, setSpeechNotice] = useState('')
+  const speechAudioRef = useRef<HTMLAudioElement | null>(null)
+  const speechUnlockAudioRef = useRef<HTMLAudioElement | null>(null)
+  const speechAudioUrlRef = useRef('')
+  const ttsWorkerRef = useRef<Worker | null>(null)
+  const ttsWorkerModelRef = useRef('')
+  const [readerBackground, setReaderBackground] = useState<'paper' | 'night' | 'olive'>('paper')
+  const readerHostRef = useRef<HTMLDivElement | null>(null)
+  const flipviewRef = useRef<FlipviewHandle | null>(null)
+  const readerUrl = sample?.url ?? product.samplePdfUrl
+  const fileType = sample?.fileType ?? product.sampleFileType ?? (readerUrl?.toLowerCase().includes('.epub') ? 'epub' : 'pdf')
+  const getVisibleText = () => {
+    if (!readerHostRef.current) return ''
+    const pageInput = readerHostRef.current.querySelector<HTMLInputElement>('.fv-page-input')
+    const currentPage = Number(pageInput?.value)
+    const layers = Array.from(readerHostRef.current.querySelectorAll('.fv-text-layer')).filter((layer) => {
+      const page = layer.closest<HTMLElement>('.fv-page')
+      if (!page) return false
+      const pageLabel = page.getAttribute('aria-label') ?? ''
+      const rect = page.getBoundingClientRect()
+      const style = window.getComputedStyle(page)
+      const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
+      return isVisible && (!currentPage || pageLabel.startsWith(`Page ${currentPage} of`))
+    })
+    return layers.map((layer) => {
+      const fragments = Array.from(layer.querySelectorAll<HTMLElement>('span[role="presentation"]')).map((span) => {
+        const rect = span.getBoundingClientRect()
+        const fontSize = Number.parseFloat(window.getComputedStyle(span).fontSize) || 8
+        return { text: span.textContent?.replace(/\s+/g, ' ').trim() ?? '', top: rect.top, left: rect.left, right: rect.right, fontSize }
+      }).filter((fragment) => fragment.text.length > 0).sort((a, b) => a.top - b.top || a.left - b.left)
+      const lines: Array<{ top: number; right: number; fontSize: number; text: string }> = []
+      fragments.forEach((fragment) => {
+        const line = lines[lines.length - 1]
+        if (!line || Math.abs(fragment.top - line.top) > Math.max(2, fragment.fontSize * 0.55)) {
+          lines.push({ top: fragment.top, right: fragment.right, fontSize: fragment.fontSize, text: fragment.text })
+          return
+        }
+        const gap = fragment.left - line.right
+        line.text += `${gap > line.fontSize * 1.05 ? ' ' : ''}${fragment.text}`
+        line.right = fragment.right
+      })
+      return lines.map((line) => line.text).join('\n')
+    }).filter((text) => text.length > 1).join('\n').replace(/[�◊]/g, '').replace(/\n{3,}/g, '\n\n').trim()
+  }
+
+  const waitForReaderPaint = (timeout = 5000) => new Promise<boolean>((resolve) => {
+    const startedAt = performance.now()
+    const check = () => {
+      const host = readerHostRef.current
+      const paintedPage = host ? Array.from(host.querySelectorAll<HTMLElement>('.fv-page.fv-rendered')).some((page) => {
+        const rect = page.getBoundingClientRect()
+        const canvas = page.querySelector<HTMLCanvasElement>('.fv-page-canvas')
+        return rect.width > 0 && rect.height > 0 && Boolean(canvas?.width && canvas?.height)
+      }) : false
+      if (paintedPage) {
+        resolve(true)
+        return
+      }
+      if (performance.now() - startedAt >= timeout) {
+        resolve(false)
+        return
+      }
+      window.requestAnimationFrame(check)
+    }
+    window.requestAnimationFrame(check)
+  })
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    loadPublicBookSample(product.id ?? '', product.slug).then((value) => {
+      if (!cancelled) {
+        setSample(value ? { ...value, fileType: value.fileType ?? (value.url?.toLowerCase().includes('.epub') ? 'epub' : 'pdf') } : null)
+        setLoading(false)
+      }
+    }).catch(() => { if (!cancelled) { setError('Không tải được file đọc thử.'); setLoading(false) } })
+    return () => { cancelled = true }
+  }, [product.id, product.slug])
+
+  useEffect(() => {
+    if (!readerUrl || !readerHostRef.current) return undefined
+    let cancelled = false
+    setLoading(true)
+    setError('')
+    const createSource = fileType === 'epub'
+      ? createEpubSource({ url: readerUrl })
+      : createPdfSource({ url: readerUrl, workerSrc: pdfWorkerUrl })
+    createSource.then((source) => {
+      if (cancelled || !readerHostRef.current) return
+      const book = createFlipview(readerHostRef.current, source, {
+        mode: 'auto',
+        showCover: true,
+        hardCovers: false,
+        flippingTime: 700,
+        textLayer: true,
+        search: true,
+        panel: true,
+        zoom: true,
+        keyboard: true,
+        deepLink: true,
+        downloadUrl: readerUrl,
+        share: true,
+        onReady: (handle) => {
+          flipviewRef.current = handle
+          void waitForReaderPaint().then((painted) => {
+            if (cancelled) return
+            setLoading(false)
+            if (!painted) setError(`Không thể vẽ trang của file ${fileType.toUpperCase()}. Hãy tải lại trình đọc.`)
+            window.setTimeout(() => setHasReadableText(getVisibleText().length > 1), 120)
+          })
+        },
+        onPageChange: () => { window.setTimeout(() => setHasReadableText(getVisibleText().length > 1), 120) },
+        onError: () => { if (!cancelled) setError(`Không thể hiển thị trang của file ${fileType.toUpperCase()}.`) },
+      })
+      flipviewRef.current = book
+      setLoading(false)
+    }).catch(() => { if (!cancelled) { setError(`Không thể mở file ${fileType.toUpperCase()} đọc thử.`); setLoading(false) } })
+    return () => { cancelled = true; flipviewRef.current?.destroy(); flipviewRef.current = null }
+  }, [readerUrl, fileType])
+
+  const activeLanguage = speechLanguage === 'auto' ? 'vi-VN' : speechLanguage
+  const voiceOptions = nghiTtsVoices[activeLanguage]
+  useEffect(() => {
+    if (!voiceOptions.includes(selectedVoiceName)) setSelectedVoiceName(voiceOptions[0])
+  }, [selectedVoiceName, voiceOptions])
+  const stopSpeech = () => {
+    ttsWorkerRef.current?.terminate()
+    ttsWorkerRef.current = null
+    ttsWorkerModelRef.current = ''
+    speechAudioRef.current?.pause()
+    speechAudioRef.current = null
+    if (speechAudioUrlRef.current) { URL.revokeObjectURL(speechAudioUrlRef.current); speechAudioUrlRef.current = '' }
+    setSpeaking(false)
+  }
+  const unlockAudioPlayback = () => {
+    if (!speechUnlockAudioRef.current) {
+      const unlockAudio = new Audio(silentAudioDataUri)
+      unlockAudio.muted = true
+      speechUnlockAudioRef.current = unlockAudio
+    }
+    void speechUnlockAudioRef.current.play().catch(() => undefined)
+  }
+  const createTtsWorker = (model: string, language: 'vi-VN' | 'en-US') => {
+    ttsWorkerRef.current?.terminate()
+    const worker = new Worker(new URL('./tts/workers/tts-worker.js', import.meta.url), { type: 'module' })
+    ttsWorkerRef.current = worker
+    ttsWorkerModelRef.current = model
+    return new Promise<Worker>((resolve, reject) => {
+      const onMessage = (event: MessageEvent<{ status?: string; data?: string }>) => {
+        if (event.data.status === 'ready') { worker.removeEventListener('message', onMessage); resolve(worker) }
+        if (event.data.status === 'error') { worker.removeEventListener('message', onMessage); reject(new Error(event.data.data ?? 'TTS model failed to load.')) }
+      }
+      worker.addEventListener('message', onMessage)
+      worker.addEventListener('error', () => reject(new Error('TTS worker failed to start.')), { once: true })
+      worker.postMessage({ type: 'init', model, lang: language })
+    })
+  }
+  const speakWithNghiTts = async (text: string, language: 'vi-VN' | 'en-US') => {
+    const options = nghiTtsVoices[language]
+    const model = options.includes(selectedVoiceName) ? selectedVoiceName : options[0]
+    const worker = ttsWorkerRef.current && ttsWorkerModelRef.current === model ? ttsWorkerRef.current : await createTtsWorker(model, language)
+    const audioBlob = await new Promise<Blob>((resolve, reject) => {
+      const onMessage = (event: MessageEvent<{ status?: string; audio?: Blob; data?: string }>) => {
+        if (event.data.status === 'complete' && event.data.audio) { worker.removeEventListener('message', onMessage); resolve(event.data.audio) }
+        if (event.data.status === 'error') { worker.removeEventListener('message', onMessage); reject(new Error(event.data.data ?? 'TTS generation failed.')) }
+      }
+      worker.addEventListener('message', onMessage)
+      worker.postMessage({ type: 'speak', text, speed: speechRate, voice: 0, model, lang: language })
+    })
+    const audioUrl = URL.createObjectURL(audioBlob)
+    speechAudioUrlRef.current = audioUrl
+    const audio = new Audio(audioUrl)
+    audio.preload = 'auto'
+    audio.volume = 1
+    speechAudioRef.current = audio
+    audio.onended = stopSpeech
+    audio.onerror = () => {
+      stopSpeech()
+      setSpeechNotice('Trình duyệt không phát được audio NGHI-TTS. Hãy kiểm tra âm lượng hoặc tải lại trang.')
+    }
+    await audio.play()
+    setSpeaking(true)
+    return true
+  }
+  const speakBook = async () => {
+    if (!readerHostRef.current) return
+    if (speaking) { stopSpeech(); return }
+    const pageText = getVisibleText()
+    if (!pageText) {
+      setSpeechNotice('Trang này là ảnh scan nên chưa có lớp chữ để đọc. Hãy bật OCR cho bản đọc thử hoặc chuyển tới trang có văn bản.')
+      return
+    }
+    unlockAudioPlayback()
+    const inferredLanguage = speechLanguage === 'auto' ? (/[ăâđêôơưĂÂĐÊÔƠƯ]/.test(pageText) ? 'vi-VN' : 'en-US') : speechLanguage
+    setSpeechNotice('')
+    setSpeaking(true)
+    try { await speakWithNghiTts(pageText, inferredLanguage) } catch (ttsError) { setSpeaking(false); setSpeechNotice(`Không tải được giọng đọc ${inferredLanguage === 'vi-VN' ? 'tiếng Việt' : 'tiếng Anh'}. ${ttsError instanceof Error ? ttsError.message : 'Hãy thử lại.'}`) }
+  }
+  const closeReader = () => {
+    if (window.opener && !window.opener.closed) {
+      window.close()
+      return
+    }
+    onBack()
+  }
+
+  return <main className={`book-reader-page reader-background-${readerBackground}`}>
+    <header className="book-reader-header">
+      <button className="book-reader-back" type="button" onClick={closeReader}><i className="bi bi-x-lg" aria-hidden="true" /> Close reader</button>
+      <div className="book-reader-heading"><span>Look inside</span><h1>{product.title}</h1><p>{product.author} · {fileType.toUpperCase()} reading sample</p></div>
+      <span className="book-reader-format">{fileType.toUpperCase()}</span>
+    </header>
+    <section className="book-reader-stage" aria-label={`${product.title} book reader`}>
+      {loading && <div className="book-reader-status">Loading reading sample…</div>}
+      {error && <div className="book-reader-status book-reader-error">{error}</div>}
+      {!loading && !error && !readerUrl && <div className="book-reader-status">Reading sample not available yet.</div>}
+      {readerUrl && <div className="book-reader-host" ref={readerHostRef} aria-label={`${fileType.toUpperCase()} book reader`} />}
+    </section>
+    <div className="book-reader-tools">
+      <div className="book-reader-background-picker" role="group" aria-label="Reader background">
+        <span>Background</span>
+        {(['paper', 'night', 'olive'] as const).map((background) => <button key={background} className={`book-reader-background-swatch is-${background}`} type="button" aria-label={`Use ${background} background`} aria-pressed={readerBackground === background} onClick={() => setReaderBackground(background)} />)}
+      </div>
+      <div className="book-reader-speech-group">
+        <div className="book-reader-speech-settings">
+          <label className="book-reader-voice-label"><span className="book-reader-select-with-icon"><i className="bi bi-translate" aria-hidden="true" /><select className="book-reader-language" value={speechLanguage} onChange={(event) => setSpeechLanguage(event.target.value as 'auto' | 'vi-VN' | 'en-US')} aria-label="Choose speech language"><option value="auto">Auto</option><option value="vi-VN">VI</option><option value="en-US">EN</option></select></span></label>
+          <label className="book-reader-voice-label"><i className="bi bi-person-voice" aria-hidden="true" /><span>Voice</span><select className="book-reader-voice" value={selectedVoiceName} onChange={(event) => setSelectedVoiceName(event.target.value)} aria-label="Choose reading voice">{voiceOptions.map((voiceName) => <option key={voiceName} value={voiceName}>{voiceName}</option>)}</select></label>
+          <label className="book-reader-rate-label"><i className="bi bi-speedometer2" aria-hidden="true" /><span className="book-reader-rate-text">Speed</span><select className="book-reader-rate" value={speechRate} onChange={(event) => setSpeechRate(Number(event.target.value))} aria-label={`Reading speed ${speechRate.toFixed(1)}x`}><option value="0.8">0.8×</option><option value="1">1.0×</option><option value="1.2">1.2×</option><option value="1.4">1.4×</option><option value="1.6">1.6×</option><option value="1.8">1.8×</option></select></label>
+        </div>
+        <button className={`book-reader-speech${speaking ? ' is-speaking' : ''}`} type="button" onClick={speakBook} disabled={!readerUrl || loading || !!error} aria-label={speaking ? 'Stop reading' : 'Read aloud'} title={speaking ? 'Stop reading' : 'Read aloud'}><span>{speaking ? 'Stop reading' : 'Read aloud'}</span> <i className={`bi ${speaking ? 'bi-volume-up' : 'bi-volume-mute'}`} aria-hidden="true" /></button>
+      </div>
+      {speechNotice && <p className="book-reader-speech-notice" role="status">{speechNotice}</p>}
+    </div>
+  </main>
 }
 
 function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBuyNow, onPreview, onPreviewLeave, onSelectQuickView, quickViewOpen }: { product: Product; onBack: () => void; onAuthor: (author: string) => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onBuyNow: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }) {
@@ -1329,31 +1579,27 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
   const [activeImage, setActiveImage] = useState(0)
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const [readExcerptOpen, setReadExcerptOpen] = useState(false)
-  const [lookInsideOpen, setLookInsideOpen] = useState(false)
-  const [bookSample, setBookSample] = useState<{ url?: string; pageCount?: number } | null>(null)
+  const [bookSample, setBookSample] = useState<{ url?: string; pageCount?: number; fileType?: 'pdf' | 'epub' } | null>(null)
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const unitPrice = Number(product.price.replace(/[^0-9]/g, ''))
   const totalPrice = `${(unitPrice * quantity).toLocaleString('vi-VN')}₫`
   const isAvailable = product.available !== false
-  const hasReadExcerpt = Boolean(product.samplePdfUrl) || /a manual for cleaning women/i.test(product.title)
-  const samplePdfUrl = bookSample?.url ?? product.samplePdfUrl
-  const samplePdfPageCount = bookSample?.pageCount ?? product.samplePdfPageCount
+  const hasReadExcerpt = Boolean(product.samplePdfUrl || bookSample?.url)
 
   useEffect(() => {
     setBookSample(null)
-    setLookInsideOpen(false)
   }, [product.id, product.title])
 
   useEffect(() => {
-    if (!lookInsideOpen || !product.id || bookSample?.url) return undefined
+    if (!product.id || bookSample?.url) return undefined
     let cancelled = false
-    loadPublicBookSample(product.id).then((sample) => {
+    loadPublicBookSample(product.id, product.slug).then((sample) => {
       if (!cancelled && sample) setBookSample(sample)
     }).catch(() => undefined)
     return () => { cancelled = true }
-  }, [lookInsideOpen, product.id, bookSample?.url])
+  }, [product.id, bookSample?.url])
 
   useEffect(() => {
     if (!lightboxOpen) return undefined
@@ -1375,7 +1621,7 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
           <img className="book-detail-cover" src={galleryImages[activeImage] || BOOK_COVER_FALLBACK} alt={product.title} onError={handleBookCoverError} />
           <span className="book-detail-zoom"><i className="bi bi-arrows-fullscreen" aria-hidden="true" /> View full image</span>
         </button>
-        {hasReadExcerpt && <div className="book-excerpt-cta"><button className="book-excerpt-button" type="button" aria-pressed={readExcerptOpen} onClick={() => setReadExcerptOpen((open) => !open)}><i className="bi bi-book-half" aria-hidden="true" /> {readExcerptOpen ? 'Close excerpt' : 'Read Excerpt'}</button><button className="book-excerpt-button book-look-inside-button" type="button" aria-pressed={lookInsideOpen} onClick={() => setLookInsideOpen(true)}><i className="bi bi-file-earmark-pdf" aria-hidden="true" /> Look inside</button></div>}
+        {hasReadExcerpt && <div className="book-excerpt-cta"><button className="book-excerpt-button" type="button" aria-pressed={readExcerptOpen} onClick={() => setReadExcerptOpen((open) => !open)}><i className="bi bi-book-half" aria-hidden="true" /> {readExcerptOpen ? 'Close excerpt' : 'Read Excerpt'}</button><button className="book-excerpt-button book-look-inside-button" type="button" onClick={() => { const slug = product.slug || productSlug(product.title); const reader = window.open(`/books/${slug}/reader`, '_blank'); if (!reader) window.location.assign(`/books/${slug}/reader`) }}><i className="bi bi-file-earmark-pdf" aria-hidden="true" /> Look inside</button></div>}
       </div>
       <div className="book-detail-copy">
         <h1>{product.title}</h1>
@@ -1453,7 +1699,6 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
         <article className="book-excerpt-content"><h3>Angel&apos;s Laundromat</h3><p>A short story set around a laundromat in Albuquerque, where chance encounters, memory and loneliness gather in the everyday rhythm of washing clothes.</p><p className="book-excerpt-quote">“A tall old Indian in faded Levi&apos;s and a fine Zuni belt.”</p><p>Berlin&apos;s story moves through observation and recollection, bringing its characters into focus through small gestures, vivid details and an unexpected intimacy.</p></article>
       </aside>
     </div>}
-    {lookInsideOpen && hasReadExcerpt && <BookLookInsideNotice pdfUrl={samplePdfUrl} pageCount={samplePdfPageCount} onClose={() => setLookInsideOpen(false)} />}
     {lightboxOpen && <div className="book-lightbox" role="dialog" aria-modal="true" aria-label={`Image gallery for ${product.title}`} onClick={() => setLightboxOpen(false)}>
       <div className="book-lightbox-frame" onClick={(event) => event.stopPropagation()}>
         <img className="book-lightbox-image" src={galleryImages[activeImage] || BOOK_COVER_FALLBACK} alt={product.title} onError={handleBookCoverError} />
@@ -1531,7 +1776,7 @@ function Footer() {
   ]
   return <footer className="site-footer scroll-section" id="about">
     <div className="footer-copy">
-      <h2>LINERY</h2>
+      <h2 className="footer-brand"><img src="/assets/linerybooks-logo-pixel-bg.svg" alt="LineryBooks" /> <span>LINERY</span></h2>
       <p className="footer-quote">(pn.) /'lınəri/<br />a curated bookstore &amp; independent press, crafted in Hanoi</p>
       <div className="footer-contact"><i className="bi bi-telephone-fill" aria-hidden="true" /><a href="tel:+840946936039">+84 0946936039</a></div>
       <div className="footer-contact"><i className="bi bi-geo-alt-fill" aria-hidden="true" /><span>Hanoi Book Street, Cua Nam Ward, Hanoi</span></div>
@@ -2445,6 +2690,119 @@ function readEditorJsData(value: string) {
   }
 }
 
+const publicBlocksToEditorJsData = (value: string) => {
+  const parsed = readEditorJsData(value)
+  if (!parsed) return undefined
+  return {
+    ...parsed,
+    blocks: (parsed.blocks as Array<Record<string, unknown>>).map((block, index) => {
+      if (block.data && typeof block.data === 'object') return block
+      const type = String(block.type ?? 'paragraph')
+      if (type === 'image') {
+        return {
+          id: String(block.id ?? `editor-${index}`),
+          type: 'image',
+          data: {
+            file: { url: String(block.image ?? '') },
+            caption: String(block.caption ?? ''),
+            alt: String(block.alt ?? ''),
+          },
+        }
+      }
+      if (type === 'heading') {
+        return { id: String(block.id ?? `editor-${index}`), type: 'header', data: { text: String(block.content ?? ''), level: 2 } }
+      }
+      if (type === 'quote') {
+        return { id: String(block.id ?? `editor-${index}`), type: 'quote', data: { text: String(block.content ?? ''), caption: '' } }
+      }
+      return { id: String(block.id ?? `editor-${index}`), type: 'paragraph', data: { text: String(block.content ?? '') } }
+    }),
+  }
+}
+
+class EditorJsImagePreviewTool {
+  private data: { file?: { url?: string }; url?: string; caption?: string; alt?: string }
+  private image: HTMLImageElement | null = null
+  private urlInput: HTMLInputElement | null = null
+  private captionInput: HTMLInputElement | null = null
+  private altInput: HTMLInputElement | null = null
+
+  static get toolbox() {
+    return { title: 'Ảnh', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.3"/><path d="m4 17 4.5-4.5 3.2 3.2 2.4-2.4L20 19"/></svg>' }
+  }
+
+  constructor({ data }: { data?: Record<string, unknown> }) {
+    const file = data?.file && typeof data.file === 'object' ? data.file as { url?: string } : undefined
+    this.data = { file, url: String(data?.url ?? ''), caption: String(data?.caption ?? ''), alt: String(data?.alt ?? '') }
+  }
+
+  render() {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'admin-editorjs-image-tool'
+    const preview = document.createElement('div')
+    preview.className = 'admin-editorjs-image-preview'
+    this.image = document.createElement('img')
+    this.image.className = 'admin-editorjs-image-preview-media'
+    this.image.alt = this.data.alt ?? ''
+    this.image.hidden = true
+    this.image.addEventListener('error', () => {
+      this.image?.classList.add('is-broken')
+      this.image?.removeAttribute('src')
+      this.image?.setAttribute('alt', 'Không tải được ảnh')
+    })
+    preview.append(this.image)
+    const empty = document.createElement('span')
+    empty.className = 'admin-editorjs-image-empty'
+    empty.textContent = 'Nhập đường dẫn ảnh để xem trước'
+    preview.append(empty)
+    wrapper.append(preview)
+
+    const fields = document.createElement('div')
+    fields.className = 'admin-editorjs-image-fields'
+    this.urlInput = document.createElement('input')
+    this.urlInput.className = 'admin-editorjs-image-input'
+    this.urlInput.type = 'url'
+    this.urlInput.placeholder = 'Đường dẫn ảnh (URL hoặc /assets/...)'
+    this.urlInput.value = this.data.file?.url || this.data.url || ''
+    this.captionInput = document.createElement('input')
+    this.captionInput.className = 'admin-editorjs-image-input'
+    this.captionInput.placeholder = 'Chú thích ảnh (không bắt buộc)'
+    this.captionInput.value = this.data.caption ?? ''
+    this.altInput = document.createElement('input')
+    this.altInput.className = 'admin-editorjs-image-input'
+    this.altInput.placeholder = 'Mô tả ảnh cho khả năng truy cập'
+    this.altInput.value = this.data.alt ?? ''
+    fields.append(this.urlInput, this.captionInput, this.altInput)
+    wrapper.append(fields)
+
+    const updatePreview = () => {
+      const url = this.urlInput?.value.trim() ?? ''
+      if (!this.image || !url) {
+        if (this.image) this.image.hidden = true
+        empty.hidden = false
+        return
+      }
+      this.image.hidden = false
+      this.image.classList.remove('is-broken')
+      this.image.src = url
+      this.image.alt = this.altInput?.value.trim() ?? ''
+      empty.hidden = true
+    }
+    this.urlInput.addEventListener('input', updatePreview)
+    this.altInput.addEventListener('input', updatePreview)
+    updatePreview()
+    return wrapper
+  }
+
+  save() {
+    return {
+      file: { url: this.urlInput?.value.trim() ?? '' },
+      caption: this.captionInput?.value.trim() ?? '',
+      alt: this.altInput?.value.trim() ?? '',
+    }
+  }
+}
+
 function AdminEditorJs({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
   const holderId = useRef(`admin-emagazine-${Math.random().toString(36).slice(2)}`).current
   const holderRef = useRef<HTMLDivElement | null>(null)
@@ -2471,8 +2829,9 @@ function AdminEditorJs({ label, value, onChange, placeholder }: { label: string;
         holder: holderRef.current ?? holderId,
         autofocus: false,
         placeholder,
-        data: readEditorJsData(value) as any,
+        data: publicBlocksToEditorJsData(value) as any,
         tools: {
+          image: { class: EditorJsImagePreviewTool as any },
           header: { class: EditorJsHeader as any, inlineToolbar: true, config: { levels: [2, 3, 4], defaultLevel: 2 } },
           list: { class: List, inlineToolbar: true, config: { defaultStyle: 'unordered' } },
           quote: { class: Quote, inlineToolbar: true },
@@ -3128,7 +3487,7 @@ function AdminCategoryCreatePageV2() {
 }
 
 function AdminListShell({ title, section, description: _description, createHref, createLabel, children }: { title: string; section: string; description: string; createHref: string; createLabel: string; children: ReactNode }) {
-  return <AdminShell title={title} section={section} headerActions={<a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a>}><div className="admin-page-toolbar mb-4 flex min-h-10 flex-wrap items-center justify-between gap-3"><div className="admin-breadcrumb flex min-w-0 items-center gap-2 font-body text-sm text-[#8b8d86]"><a className="shrink-0 hover:text-[var(--color-olive-dark)]" href="/admin">Quản trị</a><i className="bi bi-chevron-right shrink-0 text-xs" aria-hidden="true" /><span className="shrink-0">{section}</span><i className="bi bi-chevron-right shrink-0 text-xs" aria-hidden="true" /><span className="min-w-0 truncate font-medium text-[var(--color-ink)]">{title}</span></div></div>{children}</AdminShell>
+  return <AdminShell title={title} section={section} headerActions={<a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a>}>{children}</AdminShell>
 }
 
 function AdminAuthorsPageV3() {
@@ -3297,7 +3656,7 @@ function AdminNewsPageV2() {
     return () => { active = false }
   }, [])
   const filteredItems = [...items].filter((item) => `${item.titleVi || item.title} ${item.slug} ${item.excerptVi || item.excerpt}`.toLowerCase().includes(query.trim().toLowerCase())).filter((item) => typeFilter === 'all' || item.contentType === typeFilter).sort((a, b) => sortFilter === 'oldest' ? (a.date || '').localeCompare(b.date || '') : (b.date || '').localeCompare(a.date || ''))
-  return <AdminListShell title="Quản lý tin tức" section="NỘI DUNG" description="Danh sách tin tức và eMagazine đã xuất bản; nội dung chi tiết được nhập bằng trình soạn thảo ở màn tạo mới." createHref="/admin/news/new" createLabel="Tạo bài viết"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#eeeae0] p-5"><h3 className="font-display text-lg font-semibold">Danh sách bài viết</h3><p className="mt-1 font-body text-sm text-[#74776f]">{loading ? 'Đang tải dữ liệu thật từ Supabase…' : `${filteredItems.length} / ${items.length} bài đang hiển thị từ Supabase`}</p></div><AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tiêu đề, đường dẫn hoặc mô tả" filters={[{ label: 'Tất cả loại bài', value: typeFilter, onChange: setTypeFilter, options: [{ label: 'Tin tức', value: 'news' }, { label: 'eMagazine', value: 'emagazine' }] }, { label: 'Sắp xếp ngày', value: sortFilter, onChange: setSortFilter, options: [{ label: 'Mới nhất', value: 'newest' }, { label: 'Cũ nhất', value: 'oldest' }] }]} onClear={() => { setQuery(''); setTypeFilter('all'); setSortFilter('newest') }} /><div className="overflow-x-auto"><table className="min-w-[900px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['Tiêu đề', 'Đường dẫn', 'Ngày xuất bản', 'Trạng thái', 'Thao tác'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{filteredItems.map((item) => <tr className="border-t border-[#eeeae0]" key={item.slug}><td className="px-4 py-3 font-body text-sm font-medium">{item.titleVi || item.title}</td><td className="px-4 py-3 font-body text-sm text-[#74776f]">{item.slug}</td><td className="px-4 py-3 font-body text-sm">{item.date || '—'}</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.contentType === 'emagazine' ? 'bg-[#fff3e8] text-[#b55b2f]' : 'bg-[#edf7ef] text-[#39733e]'}`}>{item.contentType === 'emagazine' ? 'Đã xuất bản · eMagazine' : 'Đã xuất bản · Tin tức'}</span></td><td className="px-4 py-3"><div className="flex justify-end gap-1"><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/${item.slug}`} aria-label={`Xem ${item.titleVi || item.title}`} title="Xem"><i className="bi bi-eye" aria-hidden="true" /></a><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/edit/${item.slug}`} aria-label={`Sửa ${item.titleVi || item.title}`} title="Sửa nội dung"><i className="bi bi-pencil" aria-hidden="true" /></a></div></td></tr>)}</tbody></table></div></section></AdminListShell>
+  return <AdminListShell title="Quản lý tin tức" section="NỘI DUNG" description="Danh sách tin tức và eMagazine đã xuất bản; nội dung chi tiết được nhập bằng trình soạn thảo ở màn tạo mới." createHref="/admin/news/new" createLabel="Tạo bài viết"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#eeeae0] p-5"><h3 className="font-display text-lg font-semibold">Danh sách bài viết</h3><p className="mt-1 font-body text-sm text-[#74776f]">{loading ? 'Đang tải dữ liệu thật từ Supabase…' : `${filteredItems.length} / ${items.length} bài đang hiển thị từ Supabase`}</p></div><AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tiêu đề, đường dẫn hoặc mô tả" filters={[{ label: 'Tất cả loại bài', value: typeFilter, onChange: setTypeFilter, options: [{ label: 'Tin tức', value: 'news' }, { label: 'eMagazine', value: 'emagazine' }] }, { label: 'Sắp xếp ngày', value: sortFilter, onChange: setSortFilter, options: [{ label: 'Mới nhất', value: 'newest' }, { label: 'Cũ nhất', value: 'oldest' }] }]} onClear={() => { setQuery(''); setTypeFilter('all'); setSortFilter('newest') }} /><div className="admin-news-table-scroll overflow-x-auto"><table className="admin-news-table min-w-[900px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['Tiêu đề', 'Đường dẫn', 'Ngày xuất bản', 'Trạng thái', 'Thao tác'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{filteredItems.map((item) => <tr className="border-t border-[#eeeae0]" key={item.slug}><td className="px-4 py-3 font-body text-sm font-medium">{item.titleVi || item.title}</td><td className="px-4 py-3 font-body text-sm text-[#74776f]">{item.slug}</td><td className="px-4 py-3 font-body text-sm">{item.date || '—'}</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.contentType === 'emagazine' ? 'bg-[#fff3e8] text-[#b55b2f]' : 'bg-[#edf7ef] text-[#39733e]'}`}>{item.contentType === 'emagazine' ? 'Đã xuất bản · eMagazine' : 'Đã xuất bản · Tin tức'}</span></td><td className="px-4 py-3"><div className="flex justify-end gap-1"><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/${item.slug}`} aria-label={`Xem ${item.titleVi || item.title}`} title="Xem"><i className="bi bi-eye" aria-hidden="true" /></a><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/edit/${item.slug}`} aria-label={`Sửa ${item.titleVi || item.title}`} title="Sửa nội dung"><i className="bi bi-pencil" aria-hidden="true" /></a></div></td></tr>)}</tbody></table></div></section></AdminListShell>
 }
 
 function AdminNewsPreviewPage({ slug }: { slug: string }) {
@@ -3315,7 +3674,7 @@ function AdminNewsPreviewPage({ slug }: { slug: string }) {
   if (loading) return <AdminSimpleCreateShell title="Đang tải bài viết" backHref="/admin/news" section="NỘI DUNG" description="Đang đọc nội dung thật từ Supabase…"><div className="rounded-xl border border-[#e6e2d7] bg-white p-6 font-body text-sm text-[#74776f]">Đang tải dữ liệu bài viết…</div></AdminSimpleCreateShell>
   if (!item) return <AdminListShell title="Bài viết không tồn tại" section="NỘI DUNG" description="Không tìm thấy bài viết với đường dẫn này." createHref="/admin/news/new" createLabel="Tạo bài viết"><p className="font-body text-sm text-[#74776f]">Kiểm tra lại đường dẫn hoặc quay về danh sách bài viết.</p></AdminListShell>
   const paragraphs = item.bodyVi?.length ? item.bodyVi : item.body
-  return <AdminSimpleCreateShell title="Xem bài viết" backHref="/admin/news" section="NỘI DUNG" description="Xem trước nội dung đã xuất bản." headerActions={<a className="admin-primary-action inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white hover:bg-[var(--color-olive-dark)]" href={`/admin/news/edit/${item.slug}`}><i className="bi bi-pencil mr-2" aria-hidden="true" />Sửa nội dung</a>}><article className="mx-auto max-w-4xl"><div className="flex flex-wrap items-center gap-2 font-body text-sm text-[#74776f]"><span className="rounded-full bg-[#f6f5ed] px-2.5 py-1">{item.contentType === 'emagazine' ? 'eMagazine' : 'Tin tức'}</span><span>{item.date}</span></div><h2 className="mt-4 font-display text-3xl font-semibold tracking-tight">{item.titleVi || item.title}</h2><p className="mt-3 font-body text-base leading-7 text-[#62655f]">{item.excerptVi || item.excerpt}</p><img className="mt-6 max-h-[28rem] w-full rounded-2xl object-cover" src={item.image} alt={item.titleVi || item.title} onError={(event) => { event.currentTarget.src = '/assets/news-instagram-01.jpg' }} />{item.contentType === 'emagazine' ? <div className="mt-8 space-y-5">{(item.blocksVi ?? item.blocks ?? []).map((block, index) => block.type === 'heading' ? <h3 className="font-display text-2xl font-semibold" key={block.id || index}>{block.content}</h3> : block.type === 'quote' ? <blockquote className="border-l-2 border-[var(--color-olive)] pl-4 font-display text-xl italic text-[#62655f]" key={block.id || index}>{block.content}</blockquote> : block.type === 'image' ? null : <p className="font-body text-base leading-8 text-[#303832]" key={block.id || index}>{block.content}</p>)}</div> : <div className="mt-8 space-y-5">{paragraphs.map((paragraph, index) => <p className="font-body text-base leading-8 text-[#303832]" key={index}>{paragraph}</p>)}</div>}</article></AdminSimpleCreateShell>
+  return <AdminSimpleCreateShell title="Xem bài viết" backHref="/admin/news" section="NỘI DUNG" description="Xem trước nội dung đã xuất bản." headerActions={<a className="admin-primary-action inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white hover:bg-[var(--color-olive-dark)]" href={`/admin/news/edit/${item.slug}`}><i className="bi bi-pencil mr-2" aria-hidden="true" />Sửa nội dung</a>}><article className="mx-auto max-w-4xl"><div className="flex flex-wrap items-center gap-2 font-body text-sm text-[#74776f]"><span className="rounded-full bg-[#f6f5ed] px-2.5 py-1">{item.contentType === 'emagazine' ? 'eMagazine' : 'Tin tức'}</span><span>{item.date}</span></div><h2 className="mt-4 font-display text-3xl font-semibold tracking-tight">{item.titleVi || item.title}</h2><p className="mt-3 font-body text-base leading-7 text-[#62655f]">{item.excerptVi || item.excerpt}</p><img className="mt-6 max-h-[28rem] w-full rounded-2xl object-cover" src={item.image} alt={item.titleVi || item.title} onError={(event) => { event.currentTarget.src = '/assets/news-instagram-01.jpg' }} />{item.contentType === 'emagazine' ? <div className="admin-news-preview-content mt-8 space-y-5">{(item.blocksVi ?? item.blocks ?? []).map((block, index) => block.type === 'heading' ? <h3 className="font-display text-2xl font-semibold" key={block.id || index}>{block.content}</h3> : block.type === 'quote' ? <blockquote className="border-l-2 border-[var(--color-olive)] pl-4 font-display text-xl italic text-[#62655f]" key={block.id || index}>{block.content}</blockquote> : block.type === 'image' ? <figure className="admin-news-preview-figure" key={block.id || index}><img src={block.image} alt={block.alt || block.caption || ''} loading="lazy" onError={(event) => { event.currentTarget.hidden = true }} />{block.caption && <figcaption>{block.caption}</figcaption>}</figure> : <p className="font-body text-base leading-8 text-[#303832]" key={block.id || index}>{block.content}</p>)}</div> : <div className="mt-8 space-y-5">{paragraphs.map((paragraph, index) => <p className="font-body text-base leading-8 text-[#303832]" key={index}>{paragraph}</p>)}</div>}</article></AdminSimpleCreateShell>
 }
 
 const stripEditorMarkup = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -4019,6 +4378,13 @@ export function App() {
   }
 
   const isEmagazineView = view === 'news-detail' && selectedNews?.contentType === 'emagazine'
+
+  if (view === 'book-reader') {
+    return <>
+      <SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} />
+      <BookReaderPage product={selectedProduct ?? products[0]} onBack={() => window.location.assign(`/books/${selectedProduct?.slug || productSlug(selectedProduct?.title || products[0]?.title || '')}`)} />
+    </>
+  }
 
   return <>
     <SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} />

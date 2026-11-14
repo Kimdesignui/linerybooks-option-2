@@ -8,15 +8,17 @@ Giao diện được dựng từ frame Figma `linerybooks.vn` bằng React + Typ
 git clone https://github.com/Kimdesignui/linerybooks-option-2.git
 cd linerybooks-option-2
 npm install
-npm run dev
+npm run dev:enhanced
 ```
 
-Mở `http://127.0.0.1:5173/` trong trình duyệt. Nếu máy đã clone repo trước đó:
+Mở `http://127.0.0.1:5174/` trong trình duyệt. Package phonemizer của TTS đã được vendored tại `vendor/`, nên không cần có thư mục `../nghitts-src` trên máy mới.
+
+Nếu máy đã clone repo trước đó:
 
 ```powershell
 git pull origin main
 npm install
-npm run dev
+npm run dev:enhanced
 ```
 
 ## Chạy local
@@ -29,7 +31,7 @@ npm run dev
 Sau đó mở đúng địa chỉ server:
 
 ```text
-http://127.0.0.1:5173/
+http://127.0.0.1:5174/
 ```
 
 Không mở trực tiếp `index.html` bằng double-click hoặc URL bắt đầu bằng `file:///`. `index.html` là entry của Vite và cần server để biên dịch `src/main.tsx` và nạp Tailwind.
@@ -45,7 +47,9 @@ Mở địa chỉ mà Vite in ra, thường là `http://127.0.0.1:4173/`.
 
 ## Ghi chú bàn giao
 
-- Dữ liệu sản phẩm hiện là mock data trong `src/App.tsx`, sẵn sàng thay bằng API.
+- Biến môi trường Supabase dùng `.env.enhanced` theo cấu hình local hiện có; khi chuyển máy, tạo file này từ `.env.test.example` và điền URL/publishable key của project Supabase tương ứng.
+- Migration và seed dữ liệu nằm trong `supabase/migrations/`; chạy theo thứ tự timestamp bằng Supabase SQL Editor hoặc Supabase CLI đã đăng nhập.
+- File PDF đọc thử demo nằm tại `public/assets/book-samples/a-manual-for-cleaning-women.pdf`.
 - Asset tĩnh nằm trong `public/assets/`.
 - Responsive đã định nghĩa cho desktop, tablet và mobile theo các frame 1920/768/390 trong Figma.
 
@@ -70,7 +74,7 @@ Mở địa chỉ mà Vite in ra, thường là `http://127.0.0.1:4173/`.
 
 ## File cần xem khi tiếp tục phát triển
 
-- `src/App.tsx`: dữ liệu mock, component, điều hướng và interaction.
+  - `src/App.tsx`: component, điều hướng, reader và interaction.
 - `src/styles.css`: toàn bộ CSS responsive, ribbon, menu, card, detail page và footer.
 - `src/main.tsx`: entry point React.
 - `public/assets/`: ảnh hero, footer, bìa sách và SVG ribbon.
