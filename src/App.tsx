@@ -4173,19 +4173,47 @@ function AdminCategoriesPageRemote() {
   const [categories, setCategories] = useState<AdminTaxonomyRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<{ id: string; position: 'before' | 'inside' | 'after' } | null>(null)
   const refresh = () => { setLoading(true); void loadAdminTaxonomy(['category', 'topic']).then((rows) => { setCategories(rows); setError('') }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Không tải được danh mục từ Supabase.')).finally(() => setLoading(false)) }
   useEffect(() => { refresh() }, [])
   const getDepth = (id: string): number => { const item = categories.find((entry) => entry.id === id); return item?.parentId ? getDepth(item.parentId) + 1 : 0 }
   const numberFor = (id: string): string => { const item = categories.find((entry) => entry.id === id); if (!item) return ''; const siblings = categories.filter((entry) => entry.kind === item.kind && entry.parentId === item.parentId).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'vi')); const position = siblings.findIndex((entry) => entry.id === id) + 1; return item.parentId ? `${numberFor(item.parentId).replace(/\.$/, '')}.${position}` : `${position}.` }
-  const move = async (id: string, direction: -1 | 1) => {
-    const current = [...categories].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'vi'))
-    const index = current.findIndex((item) => item.id === id)
-    const next = current[index + direction]
-    if (index < 0 || !next || next.kind !== current[index].kind || next.parentId !== current[index].parentId) return
-    try { await Promise.all([updateAdminTaxonomyTerm(current[index].id, { sortOrder: next.sortOrder }), updateAdminTaxonomyTerm(next.id, { sortOrder: current[index].sortOrder })]); refresh() } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không cập nhật được thứ tự.') }
+  const rootIndexFor = (id: string) => {
+    let current = categories.find((entry) => entry.id === id)
+    while (current?.parentId) current = categories.find((entry) => entry.id === current?.parentId)
+    return current ? categories.filter((entry) => entry.kind === current?.kind && !entry.parentId).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'vi')).findIndex((entry) => entry.id === current?.id) : 0
+  }
+  const moveCategory = async () => {
+    if (!draggedId || !dropTarget || draggedId === dropTarget.id) return
+    const moving = categories.find((entry) => entry.id === draggedId)
+    const target = categories.find((entry) => entry.id === dropTarget.id)
+    if (!moving || !target || moving.kind !== target.kind) return
+    const descendants = new Set<string>()
+    const collect = (parentId: string) => categories.filter((entry) => entry.parentId === parentId).forEach((entry) => { descendants.add(entry.id); collect(entry.id) })
+    collect(draggedId)
+    if (descendants.has(target.id)) return
+    const nextParentId = dropTarget.position === 'inside' ? target.id : target.parentId
+    const oldSiblings = categories.filter((entry) => entry.kind === moving.kind && entry.parentId === moving.parentId && entry.id !== moving.id).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'vi'))
+    const nextSiblings = categories.filter((entry) => entry.kind === moving.kind && entry.parentId === nextParentId && entry.id !== moving.id).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'vi'))
+    const targetIndex = nextSiblings.findIndex((entry) => entry.id === target.id)
+    const insertIndex = dropTarget.position === 'inside' ? nextSiblings.length : Math.max(0, targetIndex + (dropTarget.position === 'after' ? 1 : 0))
+    nextSiblings.splice(insertIndex, 0, moving)
+    try {
+      const updatesById = new Map<string, Promise<unknown>>()
+      oldSiblings.forEach((entry, index) => updatesById.set(entry.id, updateAdminTaxonomyTerm(entry.id, { sortOrder: index })))
+      nextSiblings.forEach((entry, index) => updatesById.set(entry.id, updateAdminTaxonomyTerm(entry.id, { parentId: entry.id === moving.id ? nextParentId : entry.parentId, sortOrder: index })))
+      const updates = [...updatesById.values()]
+      await Promise.all(updates)
+      setDraggedId(null)
+      setDropTarget(null)
+      refresh()
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không cập nhật được vị trí trong cây.') }
   }
   const remove = async (item: AdminTaxonomyRow) => { if (!window.confirm(`Xóa “${item.name}” khỏi Supabase?`)) return; try { await deleteAdminTaxonomyTerm(item.id); refresh() } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không xóa được danh mục.') } }
-  return <AdminListShell title="Danh mục sách" section="SÁCH" description="Cây danh mục và chủ đề được đọc, tạo, sửa và xóa trực tiếp trong Supabase." createHref="/admin/books/categories/new" createLabel="Thêm danh mục"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#e6e2d7] p-5"><h3 className="font-display text-lg font-semibold">Cây danh mục và chủ đề</h3><p className="mt-1 font-body text-sm text-[#74776f]">{loading ? 'Đang tải dữ liệu thật từ Supabase…' : `${categories.length} mục đang hoạt động`}</p></div>{error && <p className="m-5 rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-4 font-body text-sm text-[#a33d32]" role="alert">{error}</p>}<div className="divide-y divide-[#e6e2d7]">{categories.map((item) => { const depth = getDepth(item.id); return <div className="flex items-center gap-3 px-4 py-3 sm:px-5" key={item.id}><span className="w-12 flex-none font-body text-sm font-semibold text-[var(--color-olive-dark)]">{numberFor(item.id)}</span><div className={`min-w-0 flex-1 font-body text-sm ${depth ? 'pl-6' : ''}`}><div className="flex flex-wrap items-center gap-2"><span className="font-medium">{item.name}</span><span className="rounded-full border border-[#d9d6c8] bg-[#fcfbf7] px-2 py-0.5 font-body text-[11px] text-[#74776f]">{taxonomyKindLabel[item.kind]}</span></div><p className="mt-0.5 text-xs text-[#74776f]">{item.parentId ? `Con của ${categories.find((parent) => parent.id === item.parentId)?.name ?? 'mục khác'}` : 'Cấp cao nhất'}</p></div><div className="flex items-center gap-1"><button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)]" type="button" aria-label={`Đưa ${item.name} lên`} onClick={() => void move(item.id, -1)}><i className="bi bi-chevron-up" aria-hidden="true" /></button><button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)]" type="button" aria-label={`Đưa ${item.name} xuống`} onClick={() => void move(item.id, 1)}><i className="bi bi-chevron-down" aria-hidden="true" /></button><a className="inline-flex h-8 items-center rounded-lg border border-[#dedbd0] px-3 font-body text-xs text-[var(--color-olive-dark)]" href={`/admin/books/categories/${item.id}`}>Sửa</a><button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dedbd0] text-[#a33d32]" type="button" aria-label={`Xóa ${item.name}`} onClick={() => void remove(item)}><i className="bi bi-trash3" aria-hidden="true" /></button></div></div> })}</div>{!loading && !categories.length && <div className="p-10 text-center font-body text-sm text-[#74776f]">Chưa có danh mục thật trong Supabase.</div>}</section></AdminListShell>
+  const targetLabel = dropTarget ? categories.find((entry) => entry.id === dropTarget.id)?.name : ''
+  const dropMessage = dropTarget?.position === 'inside' ? `Thả vào giữa dòng để đưa vào “${targetLabel}”` : dropTarget?.position === 'before' ? `Thả lên trên “${targetLabel}”` : dropTarget ? `Thả xuống dưới “${targetLabel}”` : 'Kéo biểu tượng để sắp xếp hoặc phân cấp'
+  return <AdminListShell title="Danh mục sách" section="SÁCH" description="Cây danh mục và chủ đề được đọc, tạo, sửa và xóa trực tiếp trong Supabase." createHref="/admin/books/categories/new" createLabel="Thêm danh mục"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#e6e2d7] p-5"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><h3 className="font-display text-lg font-semibold">Cây danh mục và chủ đề</h3><p className="mt-1 max-w-2xl font-body text-sm leading-6 text-[#74776f]">{loading ? 'Đang tải dữ liệu thật từ Supabase…' : `${categories.length} mục đang hoạt động`} · Kéo một dòng để đổi thứ tự; vùng giữa dòng là đưa vào cấp con.</p></div></div>{error && <p className="mt-4 rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-4 font-body text-sm text-[#a33d32]" role="alert">{error}</p>}{draggedId && <p className="mt-4 rounded-lg border border-[var(--color-olive)] bg-[rgba(155,148,47,.08)] px-3 py-2 font-body text-sm font-medium text-[var(--color-olive-dark)]" role="status"><i className="bi bi-arrows-move mr-2" aria-hidden="true" />{dropMessage}</p>}</div><div className="divide-y divide-[#e6e2d7]">{categories.map((item) => { const depth = getDepth(item.id); const targetPosition = dropTarget?.id === item.id ? dropTarget.position : null; const depthClass = depth === 1 ? 'pl-6' : depth === 2 ? 'pl-12' : depth > 2 ? 'pl-16' : ''; const groupClass = rootIndexFor(item.id) % 2 === 0 ? 'bg-[#fcfbf7]' : 'bg-[#f3f3e8]'; return <div className={`relative flex items-center gap-3 px-4 py-3 transition sm:px-5 ${groupClass} ${draggedId === item.id ? 'opacity-45' : ''} ${targetPosition === 'inside' ? 'ring-2 ring-inset ring-[var(--color-olive)]' : ''} ${targetPosition === 'before' ? 'border-t-2 border-t-[var(--color-olive)]' : ''} ${targetPosition === 'after' ? 'border-b-2 border-b-[var(--color-olive)]' : ''}`} data-category-id={item.id} key={item.id} draggable onDragStart={(event) => { setDraggedId(item.id); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', item.id) }} onDragEnd={() => { setDraggedId(null); setDropTarget(null) }} onDragOver={(event) => { event.preventDefault(); if (draggedId === item.id) return; const rect = event.currentTarget.getBoundingClientRect(); const ratio = (event.clientY - rect.top) / rect.height; setDropTarget({ id: item.id, position: ratio < .3 ? 'before' : ratio > .7 ? 'after' : 'inside' }); event.dataTransfer.dropEffect = 'move' }} onDrop={(event) => { event.preventDefault(); void moveCategory() }}><button className="inline-flex h-9 w-9 flex-none cursor-grab items-center justify-center rounded-lg border border-transparent text-[#74776f] hover:border-[var(--color-olive)] hover:bg-white active:cursor-grabbing" type="button" aria-label={`Kéo ${item.name}`}><i className="bi bi-grip-vertical" aria-hidden="true" /></button><span className="w-12 flex-none font-body text-sm font-semibold text-[var(--color-olive-dark)]">{numberFor(item.id)}</span><div className={`min-w-0 flex-1 font-body text-sm ${depthClass}`}><div className="flex flex-wrap items-center gap-2"><span className="inline-flex w-5 shrink-0 items-center justify-center">{depth > 0 && <i className="bi bi-arrow-return-right text-[var(--color-olive-dark)]" aria-hidden="true" />}</span><span className="font-medium">{item.name}</span><span className="rounded-full border border-[#d9d6c8] bg-white/70 px-2 py-0.5 font-body text-[11px] text-[#74776f]">{taxonomyKindLabel[item.kind]}</span></div><p className="mt-0.5 text-xs text-[#74776f]">{item.parentId ? `Con của ${categories.find((parent) => parent.id === item.parentId)?.name ?? 'mục khác'}` : 'Cấp cao nhất'}</p></div><span className={`hidden rounded-full px-2.5 py-1 font-body text-xs sm:inline-flex ${targetPosition ? 'bg-white font-semibold text-[var(--color-olive-dark)]' : 'bg-white/60 text-[#74776f]'}`}>{targetPosition === 'inside' ? 'Vào cấp con' : targetPosition === 'before' ? 'Đặt lên trên' : targetPosition === 'after' ? 'Đặt xuống dưới' : 'Kéo để sắp xếp'}</span><a className="font-body text-sm text-[var(--color-olive-dark)]" href={`/admin/books/categories/${item.id}`}>Xem / sửa</a><button className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full text-[#a33d32] hover:bg-[#fff0ed]" type="button" aria-label={`Xóa ${item.name}`} onClick={() => void remove(item)}><i className="bi bi-trash3" aria-hidden="true" /></button></div> })}</div>{!loading && !categories.length && <div className="p-10 text-center font-body text-sm text-[#74776f]">Chưa có danh mục thật trong Supabase.</div>}<div className="border-t border-[#e6e2d7] bg-[#fcfbf7] px-5 py-3 font-body text-sm text-[#74776f]">Mẹo: thả ở 1/3 trên = đặt trước, vùng giữa = làm cấp con, 1/3 dưới = đặt sau.</div></section></AdminListShell>
 }
 
 function AdminCategoryCreatePageRemote() {
@@ -4198,6 +4226,47 @@ function AdminCategoryCreatePageRemote() {
   const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
   const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); try { await createAdminTaxonomyTerm({ name, slug, kind, parentId: parentId || null, sortOrder: parents.filter((item) => item.kind === kind).length }); window.location.href = '/admin/books/categories' } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Không tạo được danh mục.') } }
   return <AdminSimpleCreateShell title="Thêm danh mục sách" backHref="/admin/books/categories" section="SÁCH" description="Tạo dữ liệu danh mục thật trong Supabase."><form className="grid gap-4 rounded-2xl border border-[#e6e2d7] bg-white p-5" onSubmit={submit}><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Loại dữ liệu</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" value={kind} onChange={(event) => { setKind(event.target.value as AdminTaxonomyKind); setParentId('') }}><option value="category">Danh mục</option><option value="topic">Chủ đề</option></select></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Danh mục cha</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" value={parentId} onChange={(event) => setParentId(event.target.value)}><option value="">Không có</option>{parents.filter((item) => item.kind === kind).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Tên</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" required value={name} onChange={(event) => setName(event.target.value)} /></label>{message && <p className="rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-3 font-body text-sm text-[#a33d32]" role="alert">{message}</p>}<div className="flex justify-end gap-3"><a className="inline-flex min-h-11 items-center rounded-xl border border-[#dedbd0] px-5 font-body text-sm" href="/admin/books/categories">Hủy</a><button className="admin-primary-action inline-flex min-h-11 items-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white" type="submit">Lưu danh mục</button></div></form></AdminSimpleCreateShell>
+}
+
+function AdminTaxonomyEditPageRemote({ id }: { id: string }) {
+  const [item, setItem] = useState<AdminTaxonomyRow | null>(null)
+  const [parents, setParents] = useState<AdminTaxonomyRow[]>([])
+  const [name, setName] = useState('')
+  const [parentId, setParentId] = useState('')
+  const [isActive, setIsActive] = useState(true)
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  useEffect(() => {
+    void loadAdminTaxonomy(['category', 'topic']).then((rows) => {
+      const found = rows.find((row) => row.id === id) ?? null
+      setItem(found)
+      setParents(rows)
+      if (found) { setName(found.name); setParentId(found.parentId ?? ''); setIsActive(found.isActive) }
+      else setMessage('Không tìm thấy mục này trong Supabase.')
+    }).catch((reason: unknown) => setMessage(reason instanceof Error ? reason.message : 'Không tải được dữ liệu danh mục.')).finally(() => setLoading(false))
+  }, [id])
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!item) return
+    setSaving(true)
+    setMessage('')
+    const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    try {
+      await updateAdminTaxonomyTerm(item.id, { name: name.trim(), slug, parentId: parentId || null, isActive })
+      window.location.href = '/admin/books/categories'
+    } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Không lưu được danh mục.') } finally { setSaving(false) }
+  }
+  const isDescendant = (candidateId: string) => {
+    let current = parents.find((parent) => parent.id === candidateId)
+    while (current?.parentId) {
+      if (current.parentId === id) return true
+      current = parents.find((parent) => parent.id === current?.parentId)
+    }
+    return false
+  }
+  const possibleParents = parents.filter((parent) => parent.kind === item?.kind && parent.id !== id && !isDescendant(parent.id))
+  return <AdminSimpleCreateShell title={loading ? 'Đang tải danh mục' : `Sửa ${taxonomyKindLabel[item?.kind ?? 'category'].toLowerCase()}`} backHref="/admin/books/categories" section="SÁCH" description="Chỉnh sửa đúng bản ghi danh mục hoặc chủ đề trong Supabase."><form className="grid gap-4 rounded-2xl border border-[#e6e2d7] bg-white p-5" onSubmit={submit}><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Loại dữ liệu</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#f4f3ed] px-3.5 font-body text-sm" value={item ? taxonomyKindLabel[item.kind] : ''} readOnly /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Mục cha</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" value={parentId} onChange={(event) => setParentId(event.target.value)} disabled={!item}><option value="">Không có, cấp cao nhất</option>{possibleParents.map((parent) => <option value={parent.id} key={parent.id}>{parent.name}</option>)}</select></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Tên</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" required value={name} onChange={(event) => setName(event.target.value)} disabled={!item} /></label><label className="flex items-center gap-2 font-body text-sm"><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} disabled={!item} />Đang hoạt động</label>{message && <p className="rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-3 font-body text-sm text-[#a33d32]" role="alert">{message}</p>}<div className="flex justify-end gap-3"><a className="inline-flex min-h-11 items-center rounded-xl border border-[#dedbd0] px-5 font-body text-sm" href="/admin/books/categories">Hủy</a><button className="admin-primary-action inline-flex min-h-11 items-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-60" type="submit" disabled={!item || saving}>{saving ? 'Đang lưu…' : 'Lưu thay đổi'}</button></div></form></AdminSimpleCreateShell>
 }
 
 function AdminTaxonomyEntityPage({ kind, title, description }: { kind: AdminTaxonomyKind; title: string; description: string }) {
@@ -4902,6 +4971,7 @@ function AdminDashboard() {
   if (window.location.pathname === '/admin/books/new') return <AdminBookCreatePageV2 />
   if (window.location.pathname.startsWith('/admin/books/report/')) return <AdminBookReportPage bookId={window.location.pathname.split('/').pop() ?? ''} />
   if (window.location.pathname === '/admin/books/categories/new') return <AdminCategoryCreatePageRemote />
+  if (window.location.pathname.startsWith('/admin/books/categories/')) return <AdminTaxonomyEditPageRemote id={window.location.pathname.split('/').pop() ?? ''} />
   if (window.location.pathname.startsWith('/admin/books')) return <AdminBooksPageV2 managementView={getAdminBookViewFromPath(window.location.pathname)} />
   if (window.location.pathname === '/admin/customers') return <AdminCustomersPage />
   if (window.location.pathname === '/admin/inventory') return <AdminInventoryPage />
