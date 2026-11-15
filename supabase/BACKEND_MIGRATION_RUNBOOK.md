@@ -45,6 +45,12 @@ Project đang dùng đã có baseline này; verifier (bộ kiểm tra tự độ
 20. `20261115_normalize_homepage_module_order.sql`
    - chuẩn hóa `sort_order` của từng mô-đun về chuỗi liên tục;
    - ngăn không cho hai sách trong cùng mô-đun dùng cùng một vị trí carousel.
+21. `20261115_admin_user_management.sql`
+   - tạo bảng quyền quản trị và các hàm cấp/gỡ quyền;
+   - gán tài khoản chủ sở hữu sau khi tài khoản đó đã tồn tại trong Supabase Auth (hệ thống tài khoản).
+22. `20261116_allow_admin_book_writes.sql`
+   - cấp quyền cho quản trị viên tạo, sửa và xóa sách, ảnh sách, liên kết người sáng tạo, phân loại và mô-đun trang chủ;
+   - giữ nguyên RLS (Row Level Security - cơ chế giới hạn dữ liệu theo quyền), chỉ tài khoản quản trị mới được ghi.
 
 Các file đều dùng `if not exists`, `create or replace` và `on conflict` ở các điểm cần thiết để có thể chạy lại an toàn. Không chọn “Run without RLS”; nếu Supabase hiện cảnh báo, chọn “Run and enable RLS”.
 
