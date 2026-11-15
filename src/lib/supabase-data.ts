@@ -121,6 +121,7 @@ export type CreatorWritePayload = {
   awards?: string
   academicTitle?: string
   bioHtml?: string
+  isActive?: boolean
 }
 
 export type RemoteCartItem = {
@@ -192,6 +193,10 @@ export type AdminCreatorRow = {
   status: 'Đang hoạt động' | 'Tạm ẩn'
   image: string
   bio: string
+  awards?: string
+  academicTitle?: string
+  birthYear?: number | null
+  deathYear?: number | null
 }
 
 export type AdminInventoryRow = {
@@ -663,7 +668,7 @@ export async function loadAdminCustomers(): Promise<AdminCustomerRow[]> {
 export async function loadAdminCreators(): Promise<AdminCreatorRow[]> {
   if (!supabase) return []
   const [creators, roles, links, images] = await Promise.all([
-    supabase.from('creators').select('id,display_name,slug,is_active,bio_html,updated_at').order('display_name', { ascending: true }),
+    supabase.from('creators').select('id,display_name,slug,is_active,bio_html,awards,academic_title,birth_year,death_year,updated_at').order('display_name', { ascending: true }),
     supabase.from('creator_roles').select('creator_id,role'),
     supabase.from('book_creators').select('creator_id,book_id'),
     supabase.from('creator_images').select('creator_id,storage_path,sort_order,is_primary').order('sort_order', { ascending: true }),
@@ -698,6 +703,10 @@ export async function loadAdminCreators(): Promise<AdminCreatorRow[]> {
       status: row.is_active === false ? 'Tạm ẩn' : 'Đang hoạt động',
       image: imageMap.get(id) || '/assets/author-avatar-placeholder.png',
       bio: String(row.bio_html ?? ''),
+      awards: String(row.awards ?? ''),
+      academicTitle: String(row.academic_title ?? ''),
+      birthYear: row.birth_year == null ? null : Number(row.birth_year),
+      deathYear: row.death_year == null ? null : Number(row.death_year),
     }
   })
 }
@@ -1401,7 +1410,7 @@ export async function upsertCreatorProfile(payload: CreatorWritePayload): Promis
     death_year: payload.deathYear ?? null,
     awards: payload.awards?.trim() || null,
     bio_html: payload.bioHtml?.trim() || null,
-    is_active: true,
+    is_active: payload.isActive ?? true,
   }
   const withAcademicTitle = await client.from('creators').upsert({
     ...creatorRow,
