@@ -4770,6 +4770,7 @@ function AdminDashboard() {
   if (window.location.pathname === '/admin/promotions') return <AdminPromotionsPage />
   if (window.location.pathname === '/admin/publishers') return <AdminTaxonomyEntityPage kind="publisher" title="Nhà xuất bản" description="Danh sách nhà xuất bản được quản lý trực tiếp trong taxonomy_terms của Supabase." />
   if (window.location.pathname === '/admin/payments') return <AdminPaymentMethodsPage />
+  if (window.location.pathname === '/admin/settings/site-data') return <AdminSiteSettingsDataPage />
   if (window.location.pathname === '/admin/settings/admin-users') return <AdminAdminUsersPage />
   if (window.location.pathname === '/admin/settings') return <AdminSiteSettingsPage />
   if (window.location.pathname === '/admin/media') return <AdminMediaLibraryPage />
