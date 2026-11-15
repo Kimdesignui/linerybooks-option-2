@@ -406,7 +406,7 @@ const getViewFromPath = (pathname: string, hash: string): View => {
   if (hash === '#register') return 'register'
   if (hash === '#forgot-password') return 'forgot-password'
   if (hash === '#password-reset-sent') return 'password-reset-sent'
-  if (hash === '#reset-password') return 'reset-password'
+  if (hash === '#reset-password' || hash.startsWith('#reset-password#') || hash.includes('type=recovery')) return 'reset-password'
   if (hash === '#password-reset-complete') return 'password-reset-complete'
   if (hash === '#account') return 'account'
   if (pathname === '/authors' || pathname === '/creators') return 'authors'
@@ -2489,15 +2489,17 @@ function AdminAuthGate({ children }: { children: ReactNode }) {
   if (checking) return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-8 text-center shadow-[0_10px_30px_rgba(31,42,36,.04)]"><p className="font-body text-sm text-[#74776f]">Đang kiểm tra quyền quản trị…</p></section></main>
   if (allowed) return <>{children}</>
 
-  return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-6 shadow-[0_10px_30px_rgba(31,42,36,.04)] sm:p-8"><div className="mb-8"><p className="font-body text-xs font-semibold uppercase tracking-[.14em] text-[var(--color-olive)]">LINERY QUẢN TRỊ</p><h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">Đăng nhập quản trị</h1><p className="mt-2 font-body text-sm leading-6 text-[#74776f]">Chỉ tài khoản đã được cấp trong bảng <code>admin_users</code> mới có thể mở khu vực này.</p></div><form className="grid gap-4" onSubmit={signIn}><label className="grid gap-1.5 font-body text-sm font-medium">Email<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="email" type="email" autoComplete="username" required /></label><label className="grid gap-1.5 font-body text-sm font-medium">Mật khẩu<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="password" type="password" autoComplete="current-password" required /></label><button className="admin-primary-action inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-60" type="submit" disabled={submitting}>{submitting ? 'Đang xác thực…' : 'Đăng nhập quản trị'}</button></form>{email && <p className="mt-4 font-body text-xs text-[#74776f]">Tài khoản hiện tại: {email}</p>}{message && <p className="mt-4 rounded-xl bg-[#fff4ec] px-4 py-3 font-body text-sm leading-6 text-[#9a4c2d]" role="alert">{message}</p>}<a className="mt-6 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#home">← Quay lại website</a></section></main>
+  return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-6 shadow-[0_10px_30px_rgba(31,42,36,.04)] sm:p-8"><div className="mb-8"><p className="font-body text-xs font-semibold uppercase tracking-[.14em] text-[var(--color-olive)]">LINERY QUẢN TRỊ</p><h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">Đăng nhập quản trị</h1><p className="mt-2 font-body text-sm leading-6 text-[#74776f]">Chỉ tài khoản đã được cấp trong bảng <code>admin_users</code> mới có thể mở khu vực này.</p></div><form className="grid gap-4" onSubmit={signIn}><label className="grid gap-1.5 font-body text-sm font-medium">Email<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="email" type="email" autoComplete="username" required /></label><label className="grid gap-1.5 font-body text-sm font-medium">Mật khẩu<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="password" type="password" autoComplete="current-password" required /></label><button className="admin-primary-action inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-60" type="submit" disabled={submitting}>{submitting ? 'Đang xác thực…' : 'Đăng nhập quản trị'}</button></form><a className="mt-4 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#forgot-password">Quên mật khẩu?</a>{email && <p className="mt-4 font-body text-xs text-[#74776f]">Tài khoản hiện tại: {email}</p>}{message && <p className="mt-4 rounded-xl bg-[#fff4ec] px-4 py-3 font-body text-sm leading-6 text-[#9a4c2d]" role="alert">{message}</p>}<a className="mt-6 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#home">← Quay lại website</a></section></main>
 }
 
 type RecoveryMode = 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete'
 
-function PasswordRecoveryPage({ mode, onHome, onLogin, onEmailSent, onResetPassword, onComplete }: { mode: RecoveryMode; onHome: () => void; onLogin: () => void; onEmailSent: () => void; onResetPassword: () => void; onComplete: () => void }) {
+function PasswordRecoveryPage({ mode, onHome, onLogin, onEmailSent, onComplete }: { mode: RecoveryMode; onHome: () => void; onLogin: () => void; onEmailSent: (email: string) => Promise<void>; onComplete: (password: string) => Promise<void> }) {
   const [activeSlide, setActiveSlide] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [message, setMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     const timer = window.setInterval(() => setActiveSlide((slide) => (slide + 1) % loginSlides.length), 3000)
@@ -2523,10 +2525,11 @@ function PasswordRecoveryPage({ mode, onHome, onLogin, onEmailSent, onResetPassw
         <div className="login-card-inner">
           <h1 id="recovery-title">{heading}</h1>
           <p className="login-intro">{intro}</p>
-          {isForgotForm && <form className="login-form" onSubmit={(event) => { event.preventDefault(); onEmailSent() }}><label htmlFor="recovery-email">Email Address <span className="required-mark" aria-hidden="true">*</span></label><input id="recovery-email" name="email" type="email" placeholder="Enter Email" autoComplete="email" required /><button className="login-submit" type="submit">SEND RESET LINK</button></form>}
-          {isSent && <div className="recovery-status-card" role="status"><i className="bi bi-envelope-check" aria-hidden="true" /><strong>Reset email sent</strong><span>We’ve sent the password recovery email successfully. Please check your inbox and follow the link to create a new password.</span><button className="login-submit" type="button" onClick={onResetPassword}>OPEN RESET LINK</button></div>}
-          {isResetForm && <form className="login-form" onSubmit={(event) => { event.preventDefault(); onComplete() }}><label htmlFor="new-password">New Password <span className="required-mark" aria-hidden="true">*</span></label><div className="login-password-field"><input id="new-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter new password" autoComplete="new-password" required /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button></div><label htmlFor="confirm-new-password">Confirm Password <span className="required-mark" aria-hidden="true">*</span></label><div className="login-password-field"><input id="confirm-new-password" name="confirmPassword" type={showConfirmation ? 'text' : 'password'} placeholder="Confirm new password" autoComplete="new-password" required /><button type="button" aria-label={showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'} onClick={() => setShowConfirmation((visible) => !visible)}><i className={`bi ${showConfirmation ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button></div><button className="login-submit" type="submit">SAVE NEW PASSWORD</button></form>}
+          {isForgotForm && <form className="login-form" onSubmit={async (event) => { event.preventDefault(); setSubmitting(true); setMessage(''); try { const data = new FormData(event.currentTarget); await onEmailSent(String(data.get('email') ?? '').trim()) } catch (error) { setMessage(error instanceof Error ? error.message : 'Không gửi được email đặt lại mật khẩu.') } finally { setSubmitting(false) } }}><label htmlFor="recovery-email">Email Address <span className="required-mark" aria-hidden="true">*</span></label><input id="recovery-email" name="email" type="email" placeholder="Enter Email" autoComplete="email" required /><button className="login-submit" type="submit" disabled={submitting}>{submitting ? 'SENDING…' : 'SEND RESET LINK'}</button></form>}
+          {isSent && <div className="recovery-status-card" role="status"><i className="bi bi-envelope-check" aria-hidden="true" /><strong>Reset email sent</strong><span>We’ve sent a real password recovery email. Open it in your inbox, then choose a new password.</span></div>}
+          {isResetForm && <form className="login-form" onSubmit={async (event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const password = String(data.get('password') ?? ''); const confirmation = String(data.get('confirmPassword') ?? ''); if (password !== confirmation) { setMessage('Mật khẩu xác nhận không trùng nhau.'); return } setSubmitting(true); setMessage(''); try { await onComplete(password) } catch (error) { setMessage(error instanceof Error ? error.message : 'Không cập nhật được mật khẩu.') } finally { setSubmitting(false) } }}><label htmlFor="new-password">New Password <span className="required-mark" aria-hidden="true">*</span></label><div className="login-password-field"><input id="new-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter new password" autoComplete="new-password" minLength={8} required /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button></div><label htmlFor="confirm-new-password">Confirm Password <span className="required-mark" aria-hidden="true">*</span></label><div className="login-password-field"><input id="confirm-new-password" name="confirmPassword" type={showConfirmation ? 'text' : 'password'} placeholder="Confirm new password" autoComplete="new-password" minLength={8} required /><button type="button" aria-label={showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'} onClick={() => setShowConfirmation((visible) => !visible)}><i className={`bi ${showConfirmation ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button></div><button className="login-submit" type="submit" disabled={submitting}>{submitting ? 'SAVING…' : 'SAVE NEW PASSWORD'}</button></form>}
           {isComplete && <div className="recovery-status-card recovery-complete-card" role="status"><i className="bi bi-check2-circle" aria-hidden="true" /><strong>Password changed</strong><span>You can now sign in with your new password and continue discovering your next read.</span><button className="login-submit" type="button" onClick={onLogin}>BACK TO SIGN IN</button></div>}
+          {message && <p className="login-message" role="alert">{message}</p>}
           {!isComplete && <p className="recovery-back-link"><button type="button" onClick={onLogin}>Back to sign in</button></p>}
         </div>
       </div>
@@ -5150,6 +5153,13 @@ export function App() {
     setView('password-reset-sent')
   }
 
+  const sendPasswordReset = async (email: string) => {
+    if (!supabase) throw new Error('Supabase chưa được cấu hình cho môi trường này.')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/#reset-password` })
+    if (error) throw new Error(error.message)
+    showPasswordResetSent()
+  }
+
   const showResetPassword = () => {
     navigateTo('/#reset-password')
     setView('reset-password')
@@ -5158,6 +5168,13 @@ export function App() {
   const showPasswordResetComplete = () => {
     navigateTo('/#password-reset-complete')
     setView('password-reset-complete')
+  }
+
+  const completePasswordReset = async (password: string) => {
+    if (!supabase) throw new Error('Supabase chưa được cấu hình cho môi trường này.')
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) throw new Error(error.message)
+    showPasswordResetComplete()
   }
 
   const showAuthors = (filter: WriterDirectoryFilter = 'all') => {
@@ -5379,7 +5396,7 @@ export function App() {
     </div>
     {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} onForgotPassword={showForgotPassword} onLoginSuccess={completeLogin} />}
     {view === 'register' && <RegisterPage onHome={showHome} onLogin={showLogin} onRegisterSuccess={completeRegister} language={language} />}
-    {(view === 'forgot-password' || view === 'password-reset-sent' || view === 'reset-password' || view === 'password-reset-complete') && <PasswordRecoveryPage mode={view} onHome={showHome} onLogin={showLogin} onEmailSent={showPasswordResetSent} onResetPassword={showResetPassword} onComplete={showPasswordResetComplete} />}
+    {(view === 'forgot-password' || view === 'password-reset-sent' || view === 'reset-password' || view === 'password-reset-complete') && <PasswordRecoveryPage mode={view} onHome={showHome} onLogin={showLogin} onEmailSent={sendPasswordReset} onComplete={completePasswordReset} />}
     {quickViewAvailable && quickViewOpen && <UtilityPanel product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} onAuthor={showAuthor} onAddToCart={addToCart} onBuyNow={buyNow} onToggleWishlist={toggleWishlist} isWishlisted={isWishlisted} />}
   </>
 }
