@@ -9,6 +9,10 @@
     "dev:enhanced": "vite --mode enhanced --host 0.0.0.0 --port 5174",
     "build": "tsc -b && vite build",
     "build:enhanced": "tsc -b && vite build --mode enhanced",
+    "verify:supabase-backend": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-backend.ps1",
+    "verify:news-metadata": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-news-metadata.ps1",
+    "verify:hosted-images": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-hosted-images.ps1",
+    "verify:homepage-modules": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-homepage-modules.ps1",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -48,11 +48,11 @@ on conflict do nothing;
 
 insert into public.books (isbn, title, slug, path, sale_price_vnd, page_count, weight, publication_date, status, is_visible_website, inventory_quantity, reserved_inventory_quantity, cover_storage_path, description_html)
 values
-  ('9781681374741', 'Valentino and Sagittarius', 'valentino-and-sagittarius', '/books/valentino-and-sagittarius', 409000, 144, '159g', '2020-09-15', 'active', true, 1, 1, '/media/assets/f1624fa0-efeb-4c07-a4b1-75bd3c9e18f4-9781681374741.jpg', '<p>September 2020 selection of the NYRB Classics Book Club.</p>'),
-  ('9780399590528', 'Educated', 'educated', '/books/educated', 512000, 368, '266g', '2022-02-08', 'active', true, 1, 0, '/media/assets/0b7e4e63-8447-434b-aebf-f67250ac95ab-9780399590528.jpg', '<p>An unforgettable memoir about education, family and self-invention.</p>'),
-  ('9781681379616', 'Memoirs from Beyond the Grave', 'memoirs-from-beyond-the-grave', '/books/memoirs-from-beyond-the-grave', 767000, 592, '839g', '2025-12-02', 'active', true, 1, 0, '/media/assets/0509008d-35c3-43cb-b707-ff19ea0957b2-9781681379616.jpg', '<p>The third volume of Chateaubriand\'s memoirs in a new translation.</p>'),
-  ('9781250371782', 'Grief Is for People', 'grief-is-for-people', '/books/grief-is-for-people', 461000, 208, '—', '2027-01-02', 'active', true, 1, 0, '/media/assets/5f3c49fb-20d1-449c-bf82-5fd045b64c98-9781250371782.avif', '<p>A memoir about friendship, grief and the afterlife of loss.</p>'),
-  ('9781681373232', 'The Word of the Speechless', 'the-word-of-the-speechless', '/books/the-word-of-the-speechless', 511000, 272, '272g', '2019-10-22', 'active', true, 1, 0, '/media/assets/3bbaeb75-6c2e-4f94-92c1-2ebe1f5068b1-9781681373232.jpg', '<p>A collection introducing readers to Julio Ramón Ribeyro\'s short fiction.</p>')
+  ('9781681374741', 'Valentino and Sagittarius', 'valentino-and-sagittarius', '/books/valentino-and-sagittarius', 409000, 144, '159g', '2020-09-15', 'active', true, 1, 1, 'f1624fa0-efeb-4c07-a4b1-75bd3c9e18f4-9781681374741.jpg', '<p>September 2020 selection of the NYRB Classics Book Club.</p>'),
+  ('9780399590528', 'Educated', 'educated', '/books/educated', 512000, 368, '266g', '2022-02-08', 'active', true, 1, 0, '0b7e4e63-8447-434b-aebf-f67250ac95ab-9780399590528.jpg', '<p>An unforgettable memoir about education, family and self-invention.</p>'),
+  ('9781681379616', 'Memoirs from Beyond the Grave', 'memoirs-from-beyond-the-grave', '/books/memoirs-from-beyond-the-grave', 767000, 592, '839g', '2025-12-02', 'active', true, 1, 0, '0509008d-35c3-43cb-b707-ff19ea0957b2-9781681379616.jpg', '<p>The third volume of Chateaubriand\'s memoirs in a new translation.</p>'),
+  ('9781250371782', 'Grief Is for People', 'grief-is-for-people', '/books/grief-is-for-people', 461000, 208, '—', '2027-01-02', 'active', true, 1, 0, '5f3c49fb-20d1-449c-bf82-5fd045b64c98-9781250371782.avif', '<p>A memoir about friendship, grief and the afterlife of loss.</p>'),
+  ('9781681373232', 'The Word of the Speechless', 'the-word-of-the-speechless', '/books/the-word-of-the-speechless', 511000, 272, '272g', '2019-10-22', 'active', true, 1, 0, '3bbaeb75-6c2e-4f94-92c1-2ebe1f5068b1-9781681373232.jpg', '<p>A collection introducing readers to Julio Ramón Ribeyro\'s short fiction.</p>')
 on conflict (isbn) do update set title = excluded.title, sale_price_vnd = excluded.sale_price_vnd, updated_at = now();
 
 insert into public.book_images (book_id, storage_path, sort_order, is_primary)
@@ -81,9 +81,32 @@ select b.id, t.id from public.books b join public.taxonomy_terms t on
   (b.slug = 'the-word-of-the-speechless' and t.slug in ('fiction', 'international-literature', 'paperback', 'nyrb-classics', 'new-york-review-books', 'english'))
 on conflict do nothing;
 
-insert into public.book_homepage_modules (book_id, module_id)
-select b.id, m.id from public.books b cross join public.homepage_modules m
-where (b.slug = 'valentino-and-sagittarius' and m.slug in ('new-upcoming', 'grab-save'))
-   or (b.slug = 'educated' and m.slug = 'linery-press')
-   or (b.slug in ('memoirs-from-beyond-the-grave', 'grief-is-for-people', 'the-word-of-the-speechless') and m.slug = 'linery-picks')
-on conflict do nothing;
+-- When the seed is run against the full catalog, keep each active homepage
+-- module populated with up to 24 distinct books without overwriting manual
+-- merchandising links.
+with ranked as (
+  select
+    b.id as book_id,
+    m.id as module_id,
+    row_number() over (
+      partition by m.id
+      order by
+        case when m.slug = 'grab-save'
+          then case when b.inventory_quantity > b.reserved_inventory_quantity then 0 else 1 end
+          else 0
+        end,
+        case when m.slug = 'new-upcoming' then b.publication_date end desc nulls last,
+        case when m.slug = 'grab-save' then b.sale_price_vnd end asc nulls last,
+        b.created_at desc,
+        b.id
+    ) as position
+  from public.books b
+  cross join public.homepage_modules m
+  where b.status = 'active'
+    and b.is_visible_website = true
+)
+insert into public.book_homepage_modules (book_id, module_id, sort_order)
+select book_id, module_id, position::int
+from ranked
+where position <= 24
+on conflict (book_id, module_id) do nothing;

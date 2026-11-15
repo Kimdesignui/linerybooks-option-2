@@ -110,7 +110,7 @@ create table public.homepage_modules (
 create table public.book_homepage_modules (
   book_id uuid not null references public.books(id) on delete cascade,
   module_id uuid not null references public.homepage_modules(id) on delete cascade,
-  sort_order integer not null default 0,
+  sort_order integer not null default 1 check (sort_order > 0),
   primary key (book_id, module_id)
 );
 
@@ -118,6 +118,7 @@ create index taxonomy_terms_kind_parent_idx on public.taxonomy_terms(kind, paren
 create index books_status_visible_idx on public.books(status, is_visible_website);
 create index book_creators_creator_role_idx on public.book_creators(creator_id, role);
 create index book_taxonomy_terms_term_idx on public.book_taxonomy_terms(term_id);
+create unique index book_homepage_modules_module_sort_unique on public.book_homepage_modules(module_id, sort_order);
 create unique index book_images_one_primary_idx on public.book_images(book_id) where is_primary;
 create unique index creator_images_one_primary_idx on public.creator_images(creator_id) where is_primary;
 
