@@ -66,6 +66,15 @@ const emitFloatingNotice = (tone: FloatingNoticeTone, message: string) => {
 const queueFloatingNotice = (tone: FloatingNoticeTone, message: string) => {
   try { window.sessionStorage.setItem(floatingNoticeStorageKey, JSON.stringify({ tone, message })) } catch { /* storage may be unavailable */ }
 }
+const describeSaveError = (reason: unknown, fallback: string) => {
+  if (reason instanceof Error && reason.message) return reason.message
+  if (reason && typeof reason === 'object') {
+    const error = reason as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown }
+    const parts = [error.message, error.details, error.hint, error.code].filter((part): part is string => typeof part === 'string' && part.trim())
+    if (parts.length) return parts.join(' · ')
+  }
+  return fallback
+}
 
 function FloatingNoticeHost() {
   const [notices, setNotices] = useState<Array<FloatingNoticeDetail & { id: number }>>([])
@@ -3924,7 +3933,7 @@ function AdminBookCreatePageV2() {
       queueFloatingNotice('success', 'Đã lưu sách và các liên kết vào Supabase.')
       window.location.assign('/admin/books')
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : 'Không lưu được sách vào Supabase.'
+      const message = describeSaveError(reason, 'Không lưu được sách vào Supabase.')
       setSaveError(message)
       emitFloatingNotice('error', `Không thể lưu sách: ${message}`)
     }
