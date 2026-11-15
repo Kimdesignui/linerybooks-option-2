@@ -2,6 +2,14 @@
 -- An account must exist in Auth first; this migration only grants or changes
 -- its admin role and never stores a password in the public database.
 
+create table if not exists public.admin_users (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  role text not null default 'editor' check (role in ('owner', 'editor')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.admin_users enable row level security;
+
 create or replace function public.admin_list_admin_users()
 returns table(user_id uuid, email text, role text, created_at timestamptz)
 language plpgsql
