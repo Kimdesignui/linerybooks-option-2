@@ -25,6 +25,7 @@ create table public.creators (
   birth_year integer,
   death_year integer,
   awards text,
+  academic_title text,
   sort_order integer not null default 0,
   is_active boolean not null default true,
   created_at timestamptz not null default now(),

@@ -3,9 +3,10 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import { createEpubSource, createFlipview, createPdfSource, type FlipviewHandle } from 'flipview'
 import 'flipview/flipview.css'
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-import { getCachedPublicCatalogProducts, loadPublicBookSample, loadPublicCatalogProducts, loadPublicCreatorProfiles, loadPublicNewsPosts, upsertNewsPost, type PublicCatalogProduct, type PublicCreatorProfile, type PublicNewsPost, type PublicNewsBlock } from './lib/supabase-data'
+import { createRemoteOrder, getCachedPublicCatalogProducts, loadPublicBookSample, loadPublicCatalogProducts, loadPublicCreatorProfiles, loadPublicNewsPosts, loadRemoteCart, saveRemoteCartItem, toggleRemoteWishlist, upsertCreatorProfile, upsertNewsPost, type PublicCatalogProduct, type PublicCreatorProfile, type PublicNewsPost, type PublicNewsBlock } from './lib/supabase-data'
 import { supabase } from './lib/supabase'
 import hueEmagazine from './data/emagazine-hue.json'
+import localCreatorImageMap from './data/creator-image-map.json'
 
 type Product = { id?: string; slug?: string; isbn?: string; image: string; gallery?: string[]; title: string; author: string; translators?: string[]; illustrators?: string[]; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean; limited?: boolean; moduleSlugs?: string[]; samplePdfUrl?: string; samplePdfPageCount?: number; sampleFileType?: 'pdf' | 'epub' }
 type CartItem = { product: Product; quantity: number }
@@ -14,7 +15,7 @@ type FulfillmentMethod = 'pickup' | 'delivery'
 type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[]; byline?: string; blocks?: PublicNewsBlock[]; blocksVi?: PublicNewsBlock[]; contentType?: 'news' | 'emagazine' }
 type View = 'home' | 'authors' | 'all-books' | 'collection' | 'search' | 'author' | 'detail' | 'book-reader' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete' | 'account' | 'admin'
 type AccountTab = 'profile' | 'orders' | 'orders-demo' | 'order-detail' | 'transactions' | 'transaction-detail' | 'security'
-type WriterDirectoryFilter = 'all' | 'authors' | 'translators'
+type WriterDirectoryFilter = 'all' | 'authors' | 'translators' | 'illustrators'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
 const BOOK_COVER_FALLBACK = '/assets/book-cover-placeholder.svg'
 const handleBookCoverError = (event: SyntheticEvent<HTMLImageElement>) => {
@@ -45,8 +46,8 @@ type BookManagementView = 'books' | 'categories' | 'formats'
 type CategoryKind = 'Danh mục' | 'Chủ đề'
 type AdminBookFilters = { author: string; format: string; line: string; category: string; stock: 'all' | 'in-stock' | 'out-of-stock'; minSalePrice: string; maxSalePrice: string; minUnitPrice: string; maxUnitPrice: string }
 const emptyAdminBookFilters: AdminBookFilters = { author: '', format: '', line: '', category: '', stock: 'all', minSalePrice: '', maxSalePrice: '', minUnitPrice: '', maxUnitPrice: '' }
-type AdminAuthorForm = { name: string; classification: 'Tác giả' | 'Dịch giả' | 'Họa sĩ minh họa' | ''; birthYear: string; deathYear: string; gender: string; representativeWorks: string; format: string; genre: string; topics: string; awards: string; bio: string; englishLink: string; imageLink: string }
-const emptyAdminAuthorForm: AdminAuthorForm = { name: '', classification: '', birthYear: '', deathYear: '', gender: '', representativeWorks: '', format: '', genre: '', topics: '', awards: '', bio: '', englishLink: '', imageLink: '' }
+type AdminAuthorForm = { name: string; classification: 'Tác giả' | 'Dịch giả' | 'Họa sĩ minh họa' | ''; birthYear: string; deathYear: string; gender: string; representativeWorks: string; format: string; genre: string; topics: string; awards: string; academicTitle: string; bio: string; englishLink: string; imageLink: string }
+const emptyAdminAuthorForm: AdminAuthorForm = { name: '', classification: '', birthYear: '', deathYear: '', gender: '', representativeWorks: '', format: '', genre: '', topics: '', awards: '', academicTitle: '', bio: '', englishLink: '', imageLink: '' }
 type AdminCatalogFormField = { key: keyof AdminAuthorForm; label: string; input?: 'text' | 'number' | 'url' | 'textarea'; required?: boolean; help?: string }
 const adminAuthorFormFields: AdminCatalogFormField[] = [
   { key: 'name', label: 'Tên tác giả', required: true }, { key: 'birthYear', label: 'Năm sinh', input: 'number' }, { key: 'deathYear', label: 'Năm mất', input: 'number', help: 'Để trống nếu tác giả còn sống.' }, { key: 'gender', label: 'Giới tính' }, { key: 'format', label: 'Thể thức' }, { key: 'genre', label: 'Thể loại' }, { key: 'topics', label: 'Chủ đề' }, { key: 'englishLink', label: 'Link giới thiệu tiếng Anh', input: 'url' },
@@ -385,6 +386,13 @@ const authorProfiles: Record<string, { image: string; images?: string[]; born: s
     bio: 'Edward W. Said was a Palestinian-American literary critic, cultural theorist and public intellectual. He earned an AB from Princeton and an AM and PhD from Harvard, then taught at Columbia University, where he became the Parr Professor of English and Comparative Literature. His books Orientalism and Culture and Imperialism reshaped literary and cultural studies, while his writing and public work advocated for Palestinian national rights.',
   },
 }
+
+const normalizeProfileList = (value: string[] | string | number | null | undefined): string[] => {
+  if (Array.isArray(value)) return value.filter(Boolean).map(String)
+  if (typeof value === 'number') return []
+  const text = String(value ?? '').trim()
+  return text && text !== '—' && text !== '-' ? text.split(/[;\n]+/).map((item) => item.trim()).filter(Boolean) : []
+}
 const PUBLIC_AUTHOR_AVATAR_FALLBACK = '/assets/author-avatar-placeholder.png'
 let runtimeAuthorProfiles: Record<string, PublicCreatorProfile> = {}
 const authorSlug = (author: string) => author.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
@@ -436,7 +444,7 @@ const getViewFromPath = (pathname: string, hash: string): View => {
 }
 const getWriterFilterFromSearch = (search: string): WriterDirectoryFilter => {
   const filter = new URLSearchParams(search).get('type')
-  return filter === 'authors' || filter === 'translators' ? filter : 'all'
+  return filter === 'authors' || filter === 'translators' || filter === 'illustrators' ? filter : 'all'
 }
 
 let sections = [
@@ -447,6 +455,7 @@ let sections = [
 ]
 let runtimeAuthorColumns: MenuColumn[] = []
 let runtimeTranslatorColumns: MenuColumn[] = []
+let runtimeIllustratorColumns: MenuColumn[] = []
 
 const applyPublicCatalog = (records: PublicCatalogProduct[]) => {
   const mapped = records.map((record) => ({ ...record, categories: normalizeProductCategories(record.categories) }))
@@ -468,6 +477,7 @@ const applyPublicCatalog = (records: PublicCatalogProduct[]) => {
   catalogProducts = [...mapped]
   runtimeAuthorColumns = makeWriterColumns([...new Set(mapped.filter((product) => product.writerType === 'Authors').map((product) => product.author))])
   runtimeTranslatorColumns = makeWriterColumns([...new Set(mapped.flatMap((product) => product.translators))])
+  runtimeIllustratorColumns = makeWriterColumns([...new Set(mapped.flatMap((product) => product.illustrators))])
   sections = [
     { title: 'NEW & UPCOMING', items: byModule('new-upcoming') },
     { title: 'LINERY PRESS', items: byModule('linery-press') },
@@ -574,11 +584,10 @@ function ShopMenu({ isOpen, onAllBooks, onCollection, language }: { isOpen: bool
       <div className="shop-menu-columns menu-navigation-list">
         {desktopShopColumns.map((column, columnIndex) => <div className={`shop-menu-column menu-section menu-branch menu-level-${columnIndex === 0 ? 0 : 1}`} key={column.eyebrow || column.links[0]}>
           {column.eyebrow && <p className="menu-eyebrow menu-section-title">{translatedShopLabel(column.eyebrow, language)}</p>}
-          {column.links.map((link) => {
+          {column.links.filter((link) => link !== 'All books').map((link) => {
             const isCollection = collectionTitles.includes(link as typeof collectionTitles[number])
-            const isAllBooks = link === 'All books'
             const categoryHref = `/all-books?category=${encodeURIComponent(link.toLowerCase().replaceAll(' ', '-'))}`
-            return <a className={`menu-item menu-item-link menu-item-text${isAllBooks ? ' shop-menu-view-all' : ''}`} href={isAllBooks ? '/all-books' : isCollection ? `/collections/${collectionSlug(link)}` : categoryHref} key={link} onClick={isAllBooks ? (event) => { event.preventDefault(); onAllBooks() } : isCollection ? (event) => { event.preventDefault(); onCollection(link) } : undefined}><span>{isAllBooks ? tx(language, 'viewAll') : isCollection ? translatedCollectionTitle(link, language) : translatedShopLabel(link, language)}</span>{isAllBooks && <span aria-hidden="true">→</span>}</a>
+            return <a className="menu-item menu-item-link menu-item-text" href={isCollection ? `/collections/${collectionSlug(link)}` : categoryHref} key={link} onClick={isCollection ? (event) => { event.preventDefault(); onCollection(link) } : undefined}><span>{isCollection ? translatedCollectionTitle(link, language) : translatedShopLabel(link, language)}</span></a>
           })}
           </div>)}
       </div>
@@ -590,7 +599,6 @@ function WritersMenu({ isOpen, onAllWriters, onAuthors, onTranslators, language 
   return <section className={`writers-menu menu-navigation ${isOpen ? 'is-open' : ''}`} aria-label="Writers categories" aria-hidden={!isOpen}>
     <div className="writers-menu-inner menu-navigation-inner">
       <div className="writers-menu-list">
-        <a className="writers-menu-view-all shop-menu-view-all menu-item menu-item-link menu-item-text" href="/creators" onClick={(event) => { event.preventDefault(); onAllWriters() }}><span>{tx(language, 'viewAll')}</span><span aria-hidden="true">→</span></a>
         <div className="writers-menu-grid">
           {writerMenuGroups.map((group) => <div className="writers-menu-group menu-section menu-branch" key={group.eyebrow}>
             <p className="menu-eyebrow menu-section-title">{translatedWriterGroup(group.eyebrow, language)}</p>
@@ -652,15 +660,12 @@ function MobileMenu({ isOpen, onClose, onCategory, onAllBooks, onCollection, onA
       </form>
     </div>
     <section className="mobile-menu-section menu-section" aria-labelledby="mobile-shop-heading">
-      <h2 id="mobile-shop-heading" className="mobile-menu-section-title menu-section-title">{tx(language, 'books')}</h2>
+      <button id="mobile-shop-heading" className="mobile-menu-section-title mobile-menu-section-link menu-section-title" type="button" onClick={onAllBooks}>{tx(language, 'books')}</button>
       <div className="mobile-menu-tree">
         {desktopShopColumns.map((column, columnIndex) => {
           if (columnIndex === 0) {
             return <div className="mobile-menu-column-group" key="shop-links">
-              {column.links.map((link) => {
-                const isAllBooks = link === 'All books'
-                return <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" key={link} onClick={() => isAllBooks ? onAllBooks() : onCollection(link)}><span className="mobile-menu-text menu-item-text">{isAllBooks ? tx(language, 'viewAll') : translatedCollectionTitle(link, language)}</span>{isAllBooks && <span aria-hidden="true">→</span>}</button>
-              })}
+              {column.links.filter((link) => link !== 'All books').map((link) => <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" key={link} onClick={() => onCollection(link)}><span className="mobile-menu-text menu-item-text">{translatedCollectionTitle(link, language)}</span></button>)}
             </div>
           }
           const categoryOpen = openBranches[column.eyebrow] ?? true
@@ -674,8 +679,7 @@ function MobileMenu({ isOpen, onClose, onCategory, onAllBooks, onCollection, onA
       </div>
     </section>
     <section className="mobile-menu-section menu-section mobile-menu-authors" aria-labelledby="mobile-authors-heading">
-      <h2 id="mobile-authors-heading" className="mobile-menu-section-title menu-section-title">{tx(language, 'writers')}</h2>
-      <button className="mobile-menu-item mobile-menu-level-1 menu-item menu-level-1" onClick={onAllWriters}><span className="mobile-menu-text menu-item-text">{tx(language, 'viewAll')}</span><span aria-hidden="true">→</span></button>
+      <button id="mobile-authors-heading" className="mobile-menu-section-title mobile-menu-section-link menu-section-title" type="button" onClick={onAllWriters}>{tx(language, 'writers')}</button>
       {writerMenuGroups.map((group) => {
         const groupOpen = openBranches[group.eyebrow] ?? true
         return <div className="mobile-writer-group" key={group.eyebrow}>
@@ -697,15 +701,51 @@ function MobileMenu({ isOpen, onClose, onCategory, onAllBooks, onCollection, onA
 }
 
 function AuthorsDirectory({ filter }: { filter: WriterDirectoryFilter }) {
+  const [query, setQuery] = useState('')
+  const [activeLetter, setActiveLetter] = useState('all')
+  useEffect(() => setActiveLetter('all'), [filter])
+  const sourceColumns = filter === 'authors' ? runtimeAuthorColumns : filter === 'translators' ? runtimeTranslatorColumns : filter === 'illustrators' ? runtimeIllustratorColumns : [...runtimeAuthorColumns, ...runtimeTranslatorColumns, ...runtimeIllustratorColumns]
+  const names = [...new Set(sourceColumns.flatMap((column) => column.links))].sort((first, second) => first.localeCompare(second, undefined, { sensitivity: 'base' }))
+  const getLetter = (name: string) => {
+    const letter = name.trim().charAt(0).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+    return /^[A-Z]$/.test(letter) ? letter : '#'
+  }
+  const availableLetters = [...new Set(names.map(getLetter))].sort((first, second) => first === '#' ? -1 : second === '#' ? 1 : first.localeCompare(second))
+  const filteredNames = names.filter((name) => name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).filter((name) => activeLetter === 'all' || getLetter(name) === activeLetter)
+  const groupedNames = availableLetters.filter((letter) => filteredNames.some((name) => getLetter(name) === letter)).map((letter) => ({ letter, names: filteredNames.filter((name) => getLetter(name) === letter) }))
+  const pageTitle = filter === 'authors' ? 'AUTHORS' : filter === 'translators' ? 'TRANSLATORS' : filter === 'illustrators' ? 'ILLUSTRATORS' : 'CREATORS'
+  const resultLabel = filter === 'authors' ? 'authors' : filter === 'translators' ? 'translators' : filter === 'illustrators' ? 'illustrators' : 'creators'
   return <main className="directory-page">
-    {(filter === 'all' || filter === 'authors') && <section className="directory-section" aria-labelledby="authors-title">
-      <p className="directory-kicker" id="authors-title">Authors</p>
-      <div className="directory-grid"><MenuColumns columns={runtimeAuthorColumns} /></div>
-    </section>}
-    {(filter === 'all' || filter === 'translators') && <section className="directory-section translators" aria-labelledby="translators-title">
-      <p className="directory-kicker" id="translators-title">Translators</p>
-      <div className="directory-grid"><MenuColumns columns={runtimeTranslatorColumns} /></div>
-    </section>}
+    <div className="directory-shell">
+      <header className="directory-header">
+        <div className="directory-heading">
+          <p className="directory-kicker">DIRECTORY</p>
+          <div className="directory-title-row">
+            <h1>{pageTitle}</h1>
+            <div className="directory-role-filters" aria-label="Filter creators by role">
+              <button className={`directory-role-filter ${filter === 'all' ? 'is-active' : ''}`} type="button" onClick={() => { window.history.pushState({}, '', '/creators'); window.dispatchEvent(new PopStateEvent('popstate')) }}>ALL</button>
+              {(['authors', 'translators', 'illustrators'] as const).map((role) => <button className={`directory-role-filter ${filter === role ? 'is-active' : ''}`} type="button" key={role} onClick={() => { window.history.pushState({}, '', `/creators?type=${role}`); window.dispatchEvent(new PopStateEvent('popstate')) }}>{role.toUpperCase()}</button>)}
+            </div>
+          </div>
+        </div>
+        <label className="directory-search">
+          <span className="sr-only">Search creators</span>
+          <i className="bi bi-search" aria-hidden="true" />
+          <input value={query} onChange={(event) => { setQuery(event.target.value); setActiveLetter('all') }} placeholder="Search creators" type="search" />
+        </label>
+      </header>
+      <nav className="directory-alphabet" aria-label="Filter creators by alphabet">
+        <button className={activeLetter === 'all' ? 'is-active' : ''} type="button" onClick={() => setActiveLetter('all')}>All</button>
+        {availableLetters.map((letter) => <button className={activeLetter === letter ? 'is-active' : ''} type="button" key={letter} onClick={() => setActiveLetter(letter)}>{letter}</button>)}
+      </nav>
+      <section className="directory-results" aria-live="polite">
+        <p className="directory-result-count">{filteredNames.length} {resultLabel}</p>
+        {groupedNames.length > 0 ? <div className="directory-groups">{groupedNames.map(({ letter, names: letterNames }) => <section className="directory-letter-group" aria-labelledby={`directory-letter-${letter}`} key={letter}>
+          <h2 className="directory-letter" id={`directory-letter-${letter}`}>{letter}</h2>
+          <div className="directory-name-columns"><div className="directory-name-column">{letterNames.map((name) => <a href={`/creators/${authorSlug(name)}`} key={name}>{name}</a>)}</div></div>
+        </section>)}</div> : <p className="directory-empty">No creators match your search.</p>}
+      </section>
+    </div>
   </main>
 }
 
@@ -718,25 +758,19 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
   const [authorLightboxOpen, setAuthorLightboxOpen] = useState(false)
   const authorLightboxTrackRef = useRef<HTMLDivElement>(null)
   const liveProfile = runtimeAuthorProfiles[author]
-  const profile = liveProfile ? {
-    image: liveProfile.images[0] ?? PUBLIC_AUTHOR_AVATAR_FALLBACK,
-    images: liveProfile.images,
-    born: liveProfile.born || '—',
-    died: liveProfile.died || '—',
+  const localProfile = authorProfiles[author]
+  const hostedCreatorImage = localCreatorImageMap[authorSlug(author) as keyof typeof localCreatorImageMap]
+  const fallbackImages = localProfile?.images?.length ? localProfile.images : hostedCreatorImage ? [hostedCreatorImage] : []
+  const profile = {
+    image: liveProfile?.images[0] ?? fallbackImages[0] ?? PUBLIC_AUTHOR_AVATAR_FALLBACK,
+    images: liveProfile?.images.length ? liveProfile.images : fallbackImages,
+    born: liveProfile?.born || localProfile?.born || '—',
+    died: liveProfile?.died || localProfile?.died || '—',
     bornPlace: 'Linery catalogue',
     diedPlace: 'Linery catalogue',
-    awards: liveProfile.awards,
-    academicTitle: liveProfile.academicTitle,
-    bio: liveProfile.bio || `${author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.`,
-  } : {
-    image: PUBLIC_AUTHOR_AVATAR_FALLBACK,
-    born: '—',
-    died: '—',
-    bornPlace: 'Linery catalogue',
-    diedPlace: 'Linery catalogue',
-    awards: 0,
-    academicTitle: '—',
-    bio: '',
+    awards: liveProfile?.awards?.length ? liveProfile.awards : normalizeProfileList(localProfile?.awards),
+    academicTitle: liveProfile?.academicTitle?.length ? liveProfile.academicTitle : normalizeProfileList(localProfile?.academicTitle),
+    bio: liveProfile?.bio || localProfile?.bio || `${author} is part of the Linery catalogue, a curated selection of literary voices and essential works for curious readers.`,
   }
   const authorImages = profile.images?.length ? profile.images : [profile.image || PUBLIC_AUTHOR_AVATAR_FALLBACK]
   const hasBirthDate = Boolean(profile.born && profile.born !== '—')
@@ -782,7 +816,7 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
       <section className="author-profile-hero" aria-labelledby="author-profile-title">
         <figure className="author-portrait-frame">
           <button className="detail-mobile-back" type="button" aria-label="Back to authors" onClick={onBack}><i className="bi bi-arrow-left" aria-hidden="true" /></button>
-          {authorImages[activeAuthorImage] ? <button className="author-portrait-trigger" type="button" aria-label={`Open portrait ${activeAuthorImage + 1} of ${author}`} onClick={() => setAuthorLightboxOpen(true)}><img src={authorImages[activeAuthorImage]} alt={`${author} portrait ${activeAuthorImage + 1}`} className="author-portrait" /></button> : <i className="bi bi-person" aria-hidden="true" />}
+          {authorImages[activeAuthorImage] ? <button className="author-portrait-trigger" type="button" aria-label={`Open portrait ${activeAuthorImage + 1} of ${author}`} onClick={() => setAuthorLightboxOpen(true)}><img src={authorImages[activeAuthorImage]} alt={`${author} portrait ${activeAuthorImage + 1}`} className="author-portrait" onError={(event) => { event.currentTarget.src = fallbackImages[0] || PUBLIC_AUTHOR_AVATAR_FALLBACK }} /></button> : <i className="bi bi-person" aria-hidden="true" />}
           {authorImages.length > 1 && <div className="author-portrait-dots" aria-label="Author photos">
             {authorImages.map((image, index) => <button key={image} type="button" className={index === activeAuthorImage ? 'is-active' : ''} aria-label={`Show author photo ${index + 1}`} aria-pressed={index === activeAuthorImage} onClick={() => setActiveAuthorImage(index)} />)}
           </div>}
@@ -801,12 +835,12 @@ function AuthorProfile({ author, onBack, ...actions }: { author: string; onBack:
           <div className="author-profile-bio-wrap"><p className={`author-profile-bio ${authorBioOpen ? 'is-expanded' : ''}`}>{profile.bio}</p><button className="author-bio-toggle" type="button" aria-expanded={authorBioOpen} onClick={() => setAuthorBioOpen((open) => !open)}>{authorBioOpen ? 'View less' : 'View more'}</button></div>
           <section className="author-collapsible-section author-details-section" aria-labelledby="author-facts-title">
             <button className="author-section-toggle" type="button" aria-expanded={authorFactsOpen} aria-controls="author-facts-content" onClick={() => setAuthorFactsOpen((open) => !open)}>
-              <span id="author-facts-title">AWARD</span>
+              <span id="author-facts-title">AWARDS &amp; ACADEMIC TITLE</span>
               <i className={`bi bi-${authorFactsOpen ? 'dash' : 'plus'}-lg`} aria-hidden="true" />
             </button>
             {authorFactsOpen && <dl className="author-profile-facts" id="author-facts-content">
-              <div><dt>Awards received</dt><dd>{profile.awards} {profile.awards === 1 ? 'award' : 'awards'}</dd></div>
-              <div><dt>Academic title</dt><dd className="author-academic-title">{profile.academicTitle}</dd></div>
+              <div><dt>Awards received</dt><dd>{profile.awards.length ? <ul className="author-fact-list">{profile.awards.map((award) => <li key={award}>{award}</li>)}</ul> : '—'}</dd></div>
+              <div><dt>Academic title</dt><dd className="author-academic-title">{profile.academicTitle.length ? <ul className="author-fact-list">{profile.academicTitle.map((title) => <li key={title}>{title}</li>)}</ul> : '—'}</dd></div>
             </dl>}
           </section>
           <section className="author-books" aria-labelledby="author-books-title">
@@ -1051,21 +1085,69 @@ const getProductSearchScore = (product: Product, query: string) => {
 }
 
 function SearchResultsPage({ query, loading, ...actions }: { query: string; loading: boolean } & ProductCardActions) {
+  const searchPageSize = 12
+  const [visibleCreatorCount, setVisibleCreatorCount] = useState(searchPageSize)
+  const [visibleBookCount, setVisibleBookCount] = useState(searchPageSize)
+  const [creatorRevealFrom, setCreatorRevealFrom] = useState(0)
+  const [bookRevealFrom, setBookRevealFrom] = useState(0)
   const normalizedQuery = normalizeSearchText(query)
   const results = products
     .map((product) => ({ product, score: getProductSearchScore(product, normalizedQuery) }))
     .filter(({ score }) => score > 0)
     .sort((first, second) => second.score - first.score)
     .map(({ product }) => product)
+  const creatorResults = [...new Map([
+    ...products.map((product) => [product.author, {
+      name: product.author,
+      slug: authorSlug(product.author),
+      roles: ['author'] as PublicCreatorProfile['roles'],
+      images: authorProfiles[product.author]?.images ?? (authorProfiles[product.author]?.image ? [authorProfiles[product.author].image] : []),
+      born: '',
+      died: '',
+      awards: [],
+      academicTitle: [],
+      bio: '',
+    } satisfies PublicCreatorProfile] as const),
+    ...Object.values(runtimeAuthorProfiles).map((profile) => [profile.name, profile] as const),
+  ])].map(([, profile]) => ({
+    profile,
+    score: getSearchFieldScore(profile.name, normalizedQuery),
+  })).filter(({ score }) => score > 0).sort((first, second) => second.score - first.score).map(({ profile }) => profile)
   const hasQuery = normalizedQuery.length > 0
+  const hasResults = creatorResults.length > 0 || results.length > 0
+  useEffect(() => {
+    setVisibleCreatorCount(searchPageSize)
+    setVisibleBookCount(searchPageSize)
+    setCreatorRevealFrom(0)
+    setBookRevealFrom(0)
+  }, [normalizedQuery])
+  const revealMoreCreators = () => {
+    setCreatorRevealFrom(visibleCreatorCount)
+    setVisibleCreatorCount((count) => count + searchPageSize)
+  }
+  const revealMoreBooks = () => {
+    setBookRevealFrom(visibleBookCount)
+    setVisibleBookCount((count) => count + searchPageSize)
+  }
 
   return <main className="search-page">
     <div className="search-page-content">
       <p className="search-page-kicker">Search</p>
       <h1>Search results for <span>“{query || 'all books'}”</span></h1>
-      {loading ? <section className="search-loading" aria-live="polite"><span className="search-loading-spinner" aria-hidden="true" /><p>Loading books…</p></section> : hasQuery && results.length > 0 ? <>
-        <p className="search-page-summary">{results.length} {results.length === 1 ? 'book' : 'books'} found</p>
-        <div className="search-results-grid">{results.map((product) => <ProductCard key={product.title} product={product} {...actions} />)}</div>
+      {loading ? <section className="search-loading" aria-live="polite"><span className="search-loading-spinner" aria-hidden="true" /><p>Loading results…</p></section> : hasQuery && hasResults ? <>
+        {creatorResults.length > 0 && <section className="search-results-section" aria-labelledby="search-creators-title">
+          <div className="search-results-section-heading"><h2 id="search-creators-title">Creators ({creatorResults.length})</h2></div>
+          <div className="search-creators-grid">{creatorResults.slice(0, visibleCreatorCount).map((profile, index) => <a className={`search-creator-card ${index >= creatorRevealFrom && index < visibleCreatorCount ? 'search-result-item-new' : ''}`} href={`/creators/${profile.slug}`} key={profile.slug}>
+            <img src={profile.images[0] || PUBLIC_AUTHOR_AVATAR_FALLBACK} alt={profile.name} loading="lazy" decoding="async" onError={(event) => { event.currentTarget.src = PUBLIC_AUTHOR_AVATAR_FALLBACK }} />
+            <span className="search-creator-card-copy"><strong>{profile.name}</strong><small>{profile.roles.map((role) => role === 'author' ? 'Author' : role === 'translator' ? 'Translator' : 'Illustrator').join(' · ')}</small></span>
+          </a>)}</div>
+          {creatorResults.length > visibleCreatorCount && <button className="search-load-more" type="button" onClick={revealMoreCreators}>Xem thêm <i className="search-load-more-icon bi bi-chevron-down" aria-hidden="true" /></button>}
+        </section>}
+        {results.length > 0 && <section className="search-results-section" aria-labelledby="search-books-title">
+          <div className="search-results-section-heading"><h2 id="search-books-title">Books ({results.length})</h2></div>
+          <div className="search-results-grid">{results.slice(0, visibleBookCount).map((product, index) => <div className={index >= bookRevealFrom && index < visibleBookCount ? 'search-result-item-new' : ''} key={product.title}><ProductCard product={product} {...actions} /></div>)}</div>
+          {results.length > visibleBookCount && <button className="search-load-more" type="button" onClick={revealMoreBooks}>Xem thêm <i className="search-load-more-icon bi bi-chevron-down" aria-hidden="true" /></button>}
+        </section>}
       </> : <section className="search-empty" aria-live="polite">
         <img src="/assets/icon-search.svg" alt="" aria-hidden="true" />
         <h2>No books found</h2>
@@ -1148,14 +1230,64 @@ function NewsDetailPage({ item, language, onBack }: { item: NewsItem; language: 
 }
 
 function EmagazinePage({ item, language, onBack }: { item: NewsItem; language: 'en' | 'vi'; onBack: () => void }) {
+  const shareRef = useRef<HTMLDivElement | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareMessage, setShareMessage] = useState('')
   const title = language === 'vi' ? item.titleVi : item.title
   const lead = language === 'vi' ? item.excerptVi : item.excerpt
   const blocks = (language === 'vi' ? item.blocksVi : item.blocks) ?? []
   const fallbackBlocks: PublicNewsBlock[] = (language === 'vi' ? item.bodyVi : item.body).map((content, index) => ({ id: `fallback-${index}`, type: 'paragraph', content, image: '', alt: '', caption: '', fullBleed: false }))
   const articleBlocks = blocks.length > 0 ? blocks : fallbackBlocks
+  const shareUrl = typeof window === 'undefined' ? '' : window.location.href
+
+  useEffect(() => {
+    if (!shareOpen) return undefined
+    const closeOnOutsideShare = (event: PointerEvent) => {
+      if (event.target instanceof Node && !shareRef.current?.contains(event.target)) setShareOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsideShare)
+    return () => document.removeEventListener('pointerdown', closeOnOutsideShare)
+  }, [shareOpen])
+
+  const copyShareUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setShareMessage(language === 'vi' ? 'Đã sao chép liên kết' : 'Link copied')
+    } catch {
+      setShareMessage(language === 'vi' ? 'Hãy sao chép đường dẫn bài viết' : 'Copy the article link to share')
+    }
+  }
+
+  const handleShareChoice = async (platform: 'instagram' | 'facebook' | 'tiktok' | 'threads' | 'zalo') => {
+    if (!shareUrl) return
+    const directShareUrls = {
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      zalo: `https://zalo.me/share?url=${encodeURIComponent(shareUrl)}`,
+    }
+    const platformUrls = {
+      instagram: 'https://www.instagram.com/',
+      tiktok: 'https://www.tiktok.com/',
+      threads: 'https://www.threads.net/',
+    }
+    if (platform === 'facebook' || platform === 'zalo') {
+      window.open(directShareUrls[platform], '_blank', 'noopener,noreferrer')
+      setShareOpen(false)
+      return
+    }
+    await copyShareUrl()
+    window.open(platformUrls[platform], '_blank', 'noopener,noreferrer')
+  }
+
+  const shareOptions = [
+    { id: 'instagram' as const, label: 'Instagram', icon: 'bi-instagram' },
+    { id: 'facebook' as const, label: 'Facebook', icon: 'bi-facebook' },
+    { id: 'tiktok' as const, label: 'TikTok', icon: 'bi-tiktok' },
+    { id: 'threads' as const, label: 'Threads', icon: 'bi-threads' },
+    { id: 'zalo' as const, label: 'Zalo', icon: 'bi-zalo' },
+  ]
   return <main className="emagazine-page">
     <article className="emagazine-story" aria-labelledby="emagazine-title">
-      <div className="emagazine-topbar"><button type="button" aria-label="Quay lại" onClick={onBack}><i className="bi bi-arrow-left" aria-hidden="true" /></button><span>eMagazine</span><button type="button" aria-label="Chia sẻ"><i className="bi bi-share" aria-hidden="true" /></button></div>
+      <div className="emagazine-topbar"><button type="button" aria-label="Quay lại" onClick={onBack}><i className="bi bi-arrow-left" aria-hidden="true" /></button><span>eMagazine</span><div className="emagazine-share" ref={shareRef}><button className={`emagazine-share-trigger ${shareOpen ? 'is-open' : ''}`} type="button" aria-label="Chia sẻ" aria-expanded={shareOpen} aria-controls="emagazine-share-menu" onClick={() => { setShareOpen((open) => !open); setShareMessage('') }}><i className="bi bi-share" aria-hidden="true" /></button>{shareOpen && <div className="emagazine-share-menu" id="emagazine-share-menu" role="menu" aria-label={language === 'vi' ? 'Chia sẻ bài viết' : 'Share article'}>{shareOptions.map((option) => <button className="emagazine-share-option" key={option.id} type="button" role="menuitem" onClick={() => void handleShareChoice(option.id)}><span className={`emagazine-share-icon ${option.id === 'zalo' ? 'is-zalo' : ''}`} aria-hidden="true">{option.id === 'zalo' ? <img src="/assets/icon-zalo.svg" alt="" /> : <i className={`bi ${option.icon}`} />}</span><span>{option.label}</span></button>)}{shareMessage && <p className="emagazine-share-message" role="status">{shareMessage}</p>}</div>}</div></div>
       <div className="emagazine-intro">
         <p className="news-detail-kicker">{item.kicker}</p>
         <h1 id="emagazine-title">{title}</h1>
@@ -1194,7 +1326,7 @@ function Header({ cartCount, cartPulse, menuOpen, onMenu, onHome, onLogin, onLog
   return <header ref={headerRef} className={`site-header ${menuOpen ? 'is-menu-open' : ''} ${activeView === 'account' ? 'is-account-view' : ''}`} onMouseLeave={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(false) }}>
     <div className="header-inner">
       <button className="menu-button" aria-label="Mở menu" onClick={onMenu}><HamburgerIcon /></button>
-      <nav className="desktop-nav" aria-label="Điều hướng chính"><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(false) }} onFocus={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(false) }} onClick={(event) => { event.preventDefault(); onHome() }}>Home</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onShop} onMouseEnter={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} aria-expanded={shopOpen}>Books<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onClick={(event) => { event.preventDefault(); onWritersHover(!writersOpen); onShopHover(false); onDesktopMenuHover(!writersOpen) }} aria-expanded={writersOpen}>{tx(language, 'writers')}<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
+      <nav className="desktop-nav" aria-label="Điều hướng chính"><a className={`nav-link ${activeView === 'home' ? 'is-active' : ''}`} href="/#home" onMouseEnter={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(false) }} onFocus={() => { onShopHover(false); onWritersHover(false); onDesktopMenuHover(false) }} onClick={(event) => { event.preventDefault(); onHome() }}>HOME</a><button className={`nav-link shop-nav-link ${shopOpen ? 'is-open' : ''}`} onClick={onAllBooks} onMouseEnter={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(true); onWritersHover(false); onDesktopMenuHover(true) }} aria-expanded={shopOpen}>BOOKS<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button><button className={`nav-link ${activeView === 'authors' ? 'is-active' : ''} ${writersOpen ? 'is-open' : ''}`} onMouseEnter={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onFocus={() => { onShopHover(false); onWritersHover(true); onDesktopMenuHover(true) }} onClick={onAllWriters} aria-expanded={writersOpen}>CREATORS<i className="bi bi-chevron-down nav-chevron" aria-hidden="true" /></button></nav>
       <a className="brand" href="/" aria-label="Linery Bookstore home">LINERY BOOKSTORE</a>
       <div className="header-actions">
         <form className={`search-control desktop-search-control ${searchOpen ? 'is-open' : ''}`} onSubmit={submitSearch}>
@@ -2079,18 +2211,28 @@ function BankTransferPayment({ subtotal, onConfirm, onHome, onBackToCart }: { su
   </main>
 }
 
-function CheckoutPage({ items, onHome, onBackToCart }: { items: CartItem[]; onHome: () => void; onBackToCart: () => void }) {
+function CheckoutPage({ items, onHome, onBackToCart, onCreateOrder }: { items: CartItem[]; onHome: () => void; onBackToCart: () => void; onCreateOrder: (input: { fulfillmentMethod: FulfillmentMethod; paymentMethod: PaymentMethod; shippingAddress: Record<string, string>; deliveryNotes: string; guestEmail: string }) => Promise<void> }) {
   const [submitted, setSubmitted] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('pending')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('vnpay')
   const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod>('delivery')
   const [voucherCode, setVoucherCode] = useState('')
   const subtotal = items.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0)
-  const handleCheckoutSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleCheckoutSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
-    addStorefrontOrder({ name: String(data.get('name') ?? ''), email: String(data.get('email') ?? ''), phone: String(data.get('phone') ?? ''), total: subtotal })
-    setSubmitted(true)
+    try {
+      await onCreateOrder({
+        fulfillmentMethod,
+        paymentMethod,
+        guestEmail: String(data.get('email') ?? ''),
+        deliveryNotes: String(data.get('deliveryNotes') ?? ''),
+        shippingAddress: { name: String(data.get('name') ?? ''), email: String(data.get('email') ?? ''), phone: String(data.get('phone') ?? ''), address: String(data.get('address') ?? ''), city: String(data.get('city') ?? ''), postalCode: String(data.get('postalCode') ?? '') },
+      })
+      setSubmitted(true)
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Unable to create order.')
+    }
   }
 
   if (submitted && paymentMethod === 'bank' && paymentStatus === 'pending') return <BankTransferPayment subtotal={subtotal} onConfirm={() => setPaymentStatus('paid')} onHome={onHome} onBackToCart={onBackToCart} />
@@ -2144,7 +2286,7 @@ function AccountPage({ onHome, onLogout, activeTab, onTabChange }: { onHome: () 
   </main>
 }
 
-function LoginPage({ onHome, onRegister, onForgotPassword, onLoginSuccess }: { onHome: () => void; onRegister: () => void; onForgotPassword: () => void; onLoginSuccess: () => void }) {
+function LoginPage({ onHome, onRegister, onForgotPassword, onLoginSuccess }: { onHome: () => void; onRegister: () => void; onForgotPassword: () => void; onLoginSuccess: (email: string, password: string) => Promise<void> }) {
   const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [activeSlide, setActiveSlide] = useState(0)
@@ -2154,9 +2296,14 @@ function LoginPage({ onHome, onRegister, onForgotPassword, onLoginSuccess }: { o
     return () => window.clearInterval(timer)
   }, [])
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    onLoginSuccess()
+    const data = new FormData(event.currentTarget)
+    try {
+      await onLoginSuccess(String(data.get('email') ?? ''), String(data.get('password') ?? ''))
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to sign in.')
+    }
   }
 
   const handleSso = (provider: string) => {
@@ -2184,12 +2331,16 @@ function LoginPage({ onHome, onRegister, onForgotPassword, onLoginSuccess }: { o
             <p className="login-welcome-subtitle">Sign in to discover your next read.</p>
           </div>
           <form className="login-form" onSubmit={handleSubmit}>
-            <label htmlFor="login-email">Email Address <span className="required-mark" aria-hidden="true">*</span></label>
-            <input id="login-email" name="email" type="text" placeholder="Enter Email" autoComplete="username" required />
-            <label htmlFor="login-password">Password <span className="required-mark" aria-hidden="true">*</span></label>
-            <div className="login-password-field">
-              <input id="login-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter Password" autoComplete="current-password" required />
-              <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button>
+            <div className="login-field login-field-email">
+              <label htmlFor="login-email">Email Address <span className="required-mark" aria-hidden="true">*</span></label>
+              <input id="login-email" name="email" type="text" placeholder="Enter Email" autoComplete="username" required />
+            </div>
+            <div className="login-field login-field-password">
+              <label htmlFor="login-password">Password <span className="required-mark" aria-hidden="true">*</span></label>
+              <div className="login-password-field">
+                <input id="login-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter Password" autoComplete="current-password" required />
+                <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button>
+              </div>
             </div>
             <div className="login-options">
               <label className="login-remember"><input type="checkbox" name="remember" /> <span>Remember me</span></label>
@@ -2253,7 +2404,7 @@ function PasswordRecoveryPage({ mode, onHome, onLogin, onEmailSent, onResetPassw
   </main>
 }
 
-function RegisterPage({ onHome, onLogin, language }: { onHome: () => void; onLogin: () => void; language: 'en' | 'vi' }) {
+function RegisterPage({ onHome, onLogin, onRegisterSuccess, language }: { onHome: () => void; onLogin: () => void; onRegisterSuccess: (email: string, password: string, username: string) => Promise<void>; language: 'en' | 'vi' }) {
   const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
@@ -2264,11 +2415,18 @@ function RegisterPage({ onHome, onLogin, language }: { onHome: () => void; onLog
     return () => window.clearInterval(timer)
   }, [])
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
-    upsertStorefrontCustomer({ name: String(data.get('username') ?? ''), email: String(data.get('email') ?? '') })
-    setMessage('Account creation is ready for connection to your account service.')
+    const password = String(data.get('password') ?? '')
+    const confirmation = String(data.get('confirmPassword') ?? '')
+    if (password !== confirmation) { setMessage('Passwords do not match.'); return }
+    try {
+      await onRegisterSuccess(String(data.get('email') ?? ''), password, String(data.get('username') ?? ''))
+      setMessage('Account created. Check your email if confirmation is required.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to create account.')
+    }
   }
 
   const handleSso = (provider: string) => {
@@ -2294,19 +2452,27 @@ function RegisterPage({ onHome, onLogin, language }: { onHome: () => void; onLog
           <h1 id="register-title">Create account</h1>
           <p className="login-intro">Create your account to save books and manage your orders.</p>
           <form className="login-form" onSubmit={handleSubmit}>
-            <label htmlFor="register-name">{language === 'vi' ? 'Tên đăng nhập' : 'Username'} <span className="required-mark" aria-hidden="true">*</span></label>
-            <input id="register-name" name="username" type="text" placeholder={language === 'vi' ? 'Tên đăng nhập của bạn' : 'Enter Username'} autoComplete="username" required />
-            <label htmlFor="register-email">Email Address <span className="required-mark" aria-hidden="true">*</span></label>
-            <input id="register-email" name="email" type="email" placeholder="Enter Email" autoComplete="email" required />
-            <label htmlFor="register-password">Password <span className="required-mark" aria-hidden="true">*</span></label>
-            <div className="login-password-field">
-              <input id="register-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter Password" autoComplete="new-password" required />
-              <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button>
+            <div className="login-field login-field-username">
+              <label htmlFor="register-name">{language === 'vi' ? 'Tên đăng nhập' : 'Username'} <span className="required-mark" aria-hidden="true">*</span></label>
+              <input id="register-name" name="username" type="text" placeholder={language === 'vi' ? 'Tên đăng nhập của bạn' : 'Enter Username'} autoComplete="username" required />
             </div>
-            <label htmlFor="register-confirm-password">Confirm Password <span className="required-mark" aria-hidden="true">*</span></label>
-            <div className="login-password-field">
-              <input id="register-confirm-password" name="confirmPassword" type={showConfirmation ? 'text' : 'password'} placeholder="Enter Password" autoComplete="new-password" required />
-              <button type="button" aria-label={showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'} onClick={() => setShowConfirmation((visible) => !visible)}><i className={`bi ${showConfirmation ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button>
+            <div className="login-field login-field-email">
+              <label htmlFor="register-email">Email Address <span className="required-mark" aria-hidden="true">*</span></label>
+              <input id="register-email" name="email" type="email" placeholder="Enter Email" autoComplete="email" required />
+            </div>
+            <div className="login-field login-field-password">
+              <label htmlFor="register-password">Password <span className="required-mark" aria-hidden="true">*</span></label>
+              <div className="login-password-field">
+                <input id="register-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter Password" autoComplete="new-password" required />
+                <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button>
+              </div>
+            </div>
+            <div className="login-field login-field-confirm">
+              <label htmlFor="register-confirm-password">Confirm Password <span className="required-mark" aria-hidden="true">*</span></label>
+              <div className="login-password-field">
+                <input id="register-confirm-password" name="confirmPassword" type={showConfirmation ? 'text' : 'password'} placeholder="Enter Password" autoComplete="new-password" required />
+                <button type="button" aria-label={showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'} onClick={() => setShowConfirmation((visible) => !visible)}><i className={`bi ${showConfirmation ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button>
+              </div>
             </div>
             <label className="login-remember register-consent"><input type="checkbox" name="terms" required /> <span>{language === 'vi' ? <>Tôi đồng ý với <a className="login-consent-link" href="#terms">các điều khoản</a> và <a className="login-consent-link" href="#privacy-policy">chính sách bảo mật</a></> : <>I agree to the <a className="login-consent-link" href="#terms">terms</a> and <a className="login-consent-link" href="#privacy-policy">privacy policy</a></>}</span></label>
             <button className="login-submit" type="submit">Create account</button>
@@ -2629,14 +2795,21 @@ const adminAuthorRecords: AdminAuthorRecord[] = [
 
 function AdminAuthorCreatePage({ pathname }: { pathname: string }) {
   const [form, setForm] = useState<AdminAuthorForm>(emptyAdminAuthorForm)
-  const [saved, setSaved] = useState<'draft' | 'saved' | ''>('')
+  const [saved, setSaved] = useState<'draft' | 'saved' | 'error' | ''>('')
   const [authorImages, setAuthorImages] = useState<AdminImageAsset[]>([])
   const update = (key: keyof AdminAuthorForm, value: string) => setForm((current) => ({ ...current, [key]: value }))
   const addAuthorImages = (files: File[], replacePrimary = false) => setAuthorImages((current) => { const assets = files.map((file) => ({ preview: URL.createObjectURL(file), name: file.name })); return replacePrimary ? [assets[0], ...current.slice(1)] : [...current, ...assets] })
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const intent = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'draft' ? 'draft' : 'saved'
-    setSaved(intent)
+    if (intent === 'draft') { setSaved('draft'); return }
+    try {
+      const slug = form.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      await upsertCreatorProfile({ displayName: form.name, slug, birthYear: form.birthYear ? Number(form.birthYear) : undefined, deathYear: form.deathYear ? Number(form.deathYear) : undefined, awards: form.awards, academicTitle: form.academicTitle, bioHtml: form.bio })
+      setSaved('saved')
+    } catch {
+      setSaved('error')
+    }
   }
   return <AdminSimpleCreateShell title="Thêm nhà sáng tạo nội dung" backHref="/admin/authors" section="NỘI DUNG" description="Nhập hồ sơ nhà sáng tạo nội dung theo dữ liệu Linery đã chuẩn hóa từ Google Sheets." tabs={[{ id: 'creator-profile', label: 'Thông tin hồ sơ' }, { id: 'creator-works', label: 'Tác phẩm và giải thưởng' }, { id: 'creator-bio', label: 'Tiểu sử và liên kết' }]} headerActions={<AdminCreateHeaderActions formId="admin-author-create-form" cancelHref="/admin/authors" saveLabel="Lưu nhà sáng tạo" />}>
     <form id="admin-author-create-form" className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]" onSubmit={submit}>
@@ -2645,16 +2818,16 @@ function AdminAuthorCreatePage({ pathname }: { pathname: string }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block sm:col-span-2"><span className="mb-1.5 block font-body text-sm font-medium">Tên nhà sáng tạo<span className="ml-1 text-[var(--color-olive-dark)]">*</span></span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" required value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="Nhập tên hiển thị" /></label>
             <label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Phân loại<span className="ml-1 text-[var(--color-olive-dark)]">*</span></span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" required value={form.classification} onChange={(event) => update('classification', event.target.value as AdminAuthorForm['classification'])}><option value="">Chọn phân loại</option><option value="Tác giả">Tác giả</option><option value="Dịch giả">Dịch giả</option><option value="Họa sĩ minh họa">Họa sĩ minh họa</option></select></label>
-            {adminAuthorFormFields.filter((field) => field.key !== 'name' && !['representativeWorks', 'awards', 'bio', 'imageLink', 'englishLink'].includes(field.key)).map((field) => <label className="block" key={field.key}><span className="mb-1.5 block font-body text-sm font-medium">{field.label}{field.required && <span className="ml-1 text-[var(--color-olive-dark)]">*</span>}</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type={field.input ?? 'text'} required={field.required} value={form[field.key]} onChange={(event) => update(field.key, event.target.value)} />{field.help && <span className="mt-1 block font-body text-xs text-[#8b8d86]">{field.help}</span>}</label>)}
+            {adminAuthorFormFields.filter((field) => field.key !== 'name' && !['representativeWorks', 'awards', 'academicTitle', 'bio', 'imageLink', 'englishLink'].includes(field.key)).map((field) => <label className="block" key={field.key}><span className="mb-1.5 block font-body text-sm font-medium">{field.label}{field.required && <span className="ml-1 text-[var(--color-olive-dark)]">*</span>}</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type={field.input ?? 'text'} required={field.required} value={form[field.key]} onChange={(event) => update(field.key, event.target.value)} />{field.help && <span className="mt-1 block font-body text-xs text-[#8b8d86]">{field.help}</span>}</label>)}
           </div>
         </AdminCreatePanel>
         <AdminCreatePanel id="creator-works" title="Tác phẩm và giải thưởng">
-          <div className="grid gap-5"><AdminRichTextEditor label="Tác phẩm tiêu biểu" value={form.representativeWorks} onChange={(value) => update('representativeWorks', value)} placeholder="Nhập các tác phẩm tiêu biểu..." /><AdminRichTextEditor label="Giải thưởng / danh hiệu" value={form.awards} onChange={(value) => update('awards', value)} placeholder="Nhập tên từng giải thưởng, năm và đơn vị trao giải..." /></div>
+          <div className="grid gap-5"><AdminRichTextEditor label="Tác phẩm tiêu biểu" value={form.representativeWorks} onChange={(value) => update('representativeWorks', value)} placeholder="Nhập các tác phẩm tiêu biểu..." /><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Awards received</span><textarea className="min-h-28 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 py-3 font-body text-sm" value={form.awards} onChange={(event) => update('awards', event.target.value)} placeholder="Mỗi giải thưởng một dòng, ví dụ: National Book Critics Circle Award (1978)" /><span className="mt-1 block font-body text-xs text-[#8b8d86]">Mỗi dòng là một giải thưởng. Hệ thống sẽ hiển thị thành danh sách trên trang chi tiết.</span></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Academic title</span><textarea className="min-h-24 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 py-3 font-body text-sm" value={form.academicTitle} onChange={(event) => update('academicTitle', event.target.value)} placeholder="Mỗi danh hiệu học thuật một dòng" /><span className="mt-1 block font-body text-xs text-[#8b8d86]">Có thể nhập nhiều dòng nếu hồ sơ có nhiều học hàm hoặc danh hiệu.</span></label></div>
         </AdminCreatePanel>
         <AdminCreatePanel id="creator-bio" title="Tiểu sử và liên kết">
           <div className="grid gap-4"><AdminRichTextEditor label="Giới thiệu nhà sáng tạo nội dung" value={form.bio} onChange={(value) => update('bio', value)} placeholder="Nhập giới thiệu, lĩnh vực hoạt động và ghi chú biên tập..." /><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Link giới thiệu tiếng Anh</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type="url" value={form.englishLink} onChange={(event) => update('englishLink', event.target.value)} placeholder="https://..." /></label></div>
         </AdminCreatePanel>
-        {saved && <p className="rounded-xl border border-[#cfe5d1] bg-[#f1f8f1] p-3 font-body text-sm text-[#39733e]" role="status">{saved === 'draft' ? 'Đã lưu bản nháp nhà sáng tạo nội dung.' : 'Đã lưu nhà sáng tạo nội dung.'} Bản ghi sẽ được đồng bộ vào danh mục khi kết nối backend.</p>}
+        {saved && <p className={`rounded-xl border p-3 font-body text-sm ${saved === 'error' ? 'border-[#ebc4bd] bg-[#fff5f2] text-[#a33d32]' : 'border-[#cfe5d1] bg-[#f1f8f1] text-[#39733e]'}`} role="status">{saved === 'draft' ? 'Đã lưu bản nháp nhà sáng tạo nội dung.' : saved === 'error' ? 'Chưa lưu được. Kiểm tra kết nối Supabase và migration creators.' : 'Đã lưu nhà sáng tạo nội dung vào Supabase.'}</p>}
       </div>
       <aside className="admin-create-aside grid content-start gap-4">
         <AdminCreatePanel title="Ảnh đại diện"><AdminImageUploadWithExtras label="Ảnh nhà sáng tạo nội dung" showLabel={false} preview={authorImages[0]?.preview ?? ''} fileName={authorImages[0]?.name} extraItems={authorImages.slice(1)} onPrimaryFileChange={(file) => { update('imageLink', file.name); addAuthorImages([file], true) }} onPrimaryClear={() => { const next = authorImages.slice(1); setAuthorImages(next); update('imageLink', next[0]?.name ?? '') }} onExtraFilesChange={(files) => { if (files[0] && !form.imageLink) update('imageLink', files[0].name); addAuthorImages(files) }} onRemoveExtra={(index) => setAuthorImages((current) => current.filter((_, itemIndex) => itemIndex !== index + 1))} /></AdminCreatePanel>
@@ -4002,10 +4175,39 @@ export function App() {
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [catalogError, setCatalogError] = useState<string | null>(null)
-  const [, refreshPublicCatalog] = useState(0)
+  const [catalogVersion, refreshPublicCatalog] = useState(0)
   const previewCloseTimer = useRef<number | null>(null)
   const cartPulseTimer = useRef<number | null>(null)
   const edgeSwipeStart = useRef<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    if (!supabase) return undefined
+    let mounted = true
+    void supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setIsAuthenticated(Boolean(data.session?.user))
+    })
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) setIsAuthenticated(Boolean(session?.user))
+    })
+    return () => { mounted = false; listener.subscription.unsubscribe() }
+  }, [])
+
+  useEffect(() => {
+    if (!supabase || !isAuthenticated) return undefined
+    let cancelled = false
+    void loadRemoteCart().then((remoteItems) => {
+      if (cancelled || !remoteItems) return
+      const byId = new Map(products.map((product) => [product.id, product]))
+      const restored = remoteItems.flatMap((item) => {
+        const product = byId.get(item.bookId)
+        return product ? [{ product, quantity: item.quantity }] : []
+      })
+      // The remote cart is authoritative for signed-in customers, including
+      // the empty state after the last item was removed on another device.
+      setCartItems(restored)
+    }).catch((error) => console.warn('Supabase cart unavailable.', error))
+    return () => { cancelled = true }
+  }, [catalogVersion, isAuthenticated])
 
   useEffect(() => {
     let cancelled = false
@@ -4061,7 +4263,7 @@ export function App() {
     // request path avoids the previous homepage-then-catalog waterfall.
     void loadFullCatalog().catch(() => undefined)
 
-    const needsCreators = path === '/authors' || path.startsWith('/authors/') || path === '/creators' || path.startsWith('/creators/')
+    const needsCreators = path === '/search' || path === '/authors' || path.startsWith('/authors/') || path === '/creators' || path.startsWith('/creators/')
     if (needsCreators) loadPublicCreatorProfiles().then((profiles) => {
       if (cancelled || !profiles) return
       runtimeAuthorProfiles = Object.fromEntries(profiles.map((profile) => [profile.name, profile]))
@@ -4075,6 +4277,7 @@ export function App() {
       }
       runtimeAuthorColumns = makeWriterColumns(profiles.filter((profile) => profile.roles.includes('author')).map((profile) => profile.name))
       runtimeTranslatorColumns = makeWriterColumns(profiles.filter((profile) => profile.roles.includes('translator')).map((profile) => profile.name))
+      runtimeIllustratorColumns = makeWriterColumns(profiles.filter((profile) => profile.roles.includes('illustrator')).map((profile) => profile.name))
       if (path.startsWith('/authors/') || path.startsWith('/creators/')) {
         const slug = path.split('/').pop() ?? ''
         const matchedProfile = profiles.find((profile) => profile.slug === slug)
@@ -4228,12 +4431,27 @@ export function App() {
     setMenuOpen(false)
   }
 
-  const completeLogin = () => {
+  const completeLogin = async (email: string, password: string) => {
+    if (supabase) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw new Error(error.message)
+    }
     setIsAuthenticated(true)
     showAccount()
   }
 
+  const completeRegister = async (email: string, password: string, username: string) => {
+    if (supabase) {
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username, display_name: username } } })
+      if (error) throw new Error(error.message)
+      if (data.session) { setIsAuthenticated(true); showAccount() }
+      return
+    }
+    upsertStorefrontCustomer({ name: username, email })
+  }
+
   const logout = () => {
+    void supabase?.auth.signOut()
     setIsAuthenticated(false)
     showHome()
   }
@@ -4381,7 +4599,9 @@ export function App() {
     if (product.available === false) return
     setCartItems((items) => {
       const existing = items.find((item) => item.product.title === product.title)
-      return existing ? items.map((item) => item.product.title === product.title ? { ...item, quantity: item.quantity + 1 } : item) : [...items, { product, quantity: 1 }]
+      const quantity = (existing?.quantity ?? 0) + 1
+      if (product.id) void saveRemoteCartItem(product.id, quantity).catch((error) => console.warn('Could not save cart item.', error))
+      return existing ? items.map((item) => item.product.title === product.title ? { ...item, quantity } : item) : [...items, { product, quantity: 1 }]
     })
     animateProductToCart(product, source)
   }
@@ -4389,12 +4609,33 @@ export function App() {
     setWishlistTitles((titles) => {
       const nextTitles = titles.includes(product.title) ? titles.filter((title) => title !== product.title) : [...titles, product.title]
       window.localStorage.setItem('linery-wishlist', JSON.stringify(nextTitles))
+      if (product.id && isAuthenticated) void toggleRemoteWishlist(product.id).catch((error) => console.warn('Could not save wishlist item.', error))
       return nextTitles
     })
   }
   const isWishlisted = (product: Product) => wishlistTitles.includes(product.title)
-  const removeFromCart = (title: string) => setCartItems((items) => items.filter((item) => item.product.title !== title))
-  const changeCartQuantity = (title: string, delta: number) => setCartItems((items) => items.map((item) => item.product.title === title ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))
+  const removeFromCart = (title: string) => setCartItems((items) => {
+    const item = items.find((entry) => entry.product.title === title)
+    if (item?.product.id) void saveRemoteCartItem(item.product.id, 0).catch((error) => console.warn('Could not remove cart item.', error))
+    return items.filter((entry) => entry.product.title !== title)
+  })
+  const changeCartQuantity = (title: string, delta: number) => setCartItems((items) => items.map((item) => {
+    if (item.product.title !== title) return item
+    const quantity = Math.max(1, item.quantity + delta)
+    if (item.product.id) void saveRemoteCartItem(item.product.id, quantity).catch((error) => console.warn('Could not update cart item.', error))
+    return { ...item, quantity }
+  }))
+  const createOrder = async (input: { fulfillmentMethod: FulfillmentMethod; paymentMethod: PaymentMethod; shippingAddress: Record<string, string>; deliveryNotes: string; guestEmail: string }) => {
+    if (supabase) {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session?.user) throw new Error('Please sign in before placing an order.')
+      const result = await createRemoteOrder(input)
+      if (!result) throw new Error('The order service is not configured.')
+      setCartItems([])
+      return
+    }
+    addStorefrontOrder({ name: input.shippingAddress.name ?? '', email: input.guestEmail, phone: input.shippingAddress.phone ?? '', total: cartItems.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0) })
+  }
   const buyNow = (product: Product) => {
     if (product.available === false) return
     addToCart(product)
@@ -4443,7 +4684,7 @@ export function App() {
     {catalogError && !['login', 'register', 'forgot-password', 'password-reset-sent', 'reset-password', 'password-reset-complete'].includes(view) && <div className="catalog-backend-notice" role="status">{catalogError}</div>}
     {!isEmagazineView && <Header cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)} cartPulse={cartPulse} menuOpen={menuOpen} onMenu={() => setMenuOpen(!menuOpen)} onHome={showHome} onLogin={view === 'account' || isAuthenticated ? () => { showAccount(); setAccountMenuOpen((open) => !open) } : showLogin} onLogout={logout} onShop={showShop} onShopHover={(open) => setShopOpen(open)} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onAllBooks={showAllBooks} onCollection={showCollection} onSearch={showSearch} onQuickView={toggleQuickView} onCart={showCart} quickViewOpen={quickViewOpen} quickViewAvailable={quickViewAvailable} activeView={view} shopOpen={shopOpen} writersOpen={writersOpen} onWritersHover={(open) => setWritersOpen(open)} onDesktopMenuHover={(open) => setHeroMotionOpen(open)} accountMenuOpen={accountMenuOpen} onAccountMenuToggle={() => setAccountMenuOpen(false)} accountTab={accountTab} onAccountTabChange={(tab) => { setAccountTab(tab); showAccount() }} accountMenuEnabled={isAuthenticated || view === 'account'} language={language} />}
     {!isEmagazineView && <><button className={`mobile-backdrop ${menuOpen ? 'is-open' : ''}`} aria-label="Close menu" aria-hidden={!menuOpen} onClick={() => setMenuOpen(false)} />{!menuOpen && <span className="mobile-menu-edge-swipe" aria-hidden="true" onPointerDown={handleEdgePointerDown} onPointerMove={handleEdgePointerMove} onPointerUp={handleEdgePointerUp} onPointerCancel={() => { edgeSwipeStart.current = null }} />}<MobileMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} onCategory={showCategory} onAllBooks={showAllBooks} onCollection={showCollection} onAllWriters={() => showAuthors('all')} onAuthors={() => showAuthors('authors')} onTranslators={() => showAuthors('translators')} onSearch={showSearch} language={language} onSelectLanguage={selectLanguage} /></>}
-     {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage heroMotionOpen={heroMotionOpen} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'collection' ? <AllBooksPage heroMotionOpen={heroMotionOpen} collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'search' ? <SearchResultsPage query={searchQuery} loading={catalogLoading} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} />) : <main>
+     {view === 'account' ? <AccountPage onHome={showHome} onLogout={logout} activeTab={accountTab} onTabChange={(tab) => { setAccountTab(tab); setAccountMenuOpen(false) }} /> : view === 'authors' ? <AuthorsDirectory filter={writerFilter} /> : view === 'all-books' ? <AllBooksPage heroMotionOpen={heroMotionOpen} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'collection' ? <AllBooksPage heroMotionOpen={heroMotionOpen} collectionTitle={selectedCollection ?? collectionTitles[0]} onHome={showHome} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'search' ? <SearchResultsPage query={searchQuery} loading={catalogLoading} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'author' ? <AuthorProfile author={selectedAuthor || 'Edward W. Said'} onBack={showAuthors} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'detail' ? <BookDetail product={selectedProduct ?? products[0]} onBack={showHome} onAuthor={showAuthor} onOpenDetail={showDetail} onAddToCart={addToCart} onBuyNow={buyNow} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} /> : view === 'cart' ? <CartPage onHome={showHome} onCheckout={showCheckout} items={cartItems} onRemove={removeFromCart} onChangeQuantity={changeCartQuantity} /> : view === 'checkout' ? <CheckoutPage items={cartItems} onHome={showHome} onBackToCart={showCart} onCreateOrder={createOrder} /> : view === 'news' ? <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} /> : view === 'news-detail' ? (selectedNews ? <NewsDetailPage item={selectedNews} language={language} onBack={showNews} /> : <NewsPage language={language} onOpen={showNewsDetail} heroMotionOpen={heroMotionOpen} />) : <main>
      <section className={`hero scroll-section ${heroMotionOpen ? 'is-shop-open' : ''}`} aria-label="Linery bookstore illustration"><HeroBanner motionOpen={heroMotionOpen} /></section>
       <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} language={language} onCollection={showCollection} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} />)}</div>
     <LineryNewsSection language={language} onOpen={showNewsDetail} onSeeMore={showNews} />
@@ -4455,7 +4696,7 @@ export function App() {
     </button>}
     </div>
     {view === 'login' && <LoginPage onHome={showHome} onRegister={showRegister} onForgotPassword={showForgotPassword} onLoginSuccess={completeLogin} />}
-    {view === 'register' && <RegisterPage onHome={showHome} onLogin={showLogin} language={language} />}
+    {view === 'register' && <RegisterPage onHome={showHome} onLogin={showLogin} onRegisterSuccess={completeRegister} language={language} />}
     {(view === 'forgot-password' || view === 'password-reset-sent' || view === 'reset-password' || view === 'password-reset-complete') && <PasswordRecoveryPage mode={view} onHome={showHome} onLogin={showLogin} onEmailSent={showPasswordResetSent} onResetPassword={showResetPassword} onComplete={showPasswordResetComplete} />}
     {quickViewAvailable && quickViewOpen && <UtilityPanel product={previewProduct} onClose={closePreview} onOpenDetail={showDetail} onAuthor={showAuthor} onAddToCart={addToCart} onBuyNow={buyNow} onToggleWishlist={toggleWishlist} isWishlisted={isWishlisted} />}
   </>

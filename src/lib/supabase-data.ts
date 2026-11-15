@@ -36,8 +36,8 @@ export type PublicCreatorProfile = {
   images: string[]
   born: string
   died: string
-  awards: number
-  academicTitle: string
+  awards: string[]
+  academicTitle: string[]
   bio: string
 }
 
@@ -87,6 +87,41 @@ export type NewsPostWritePayload = {
   blocksVi?: Array<Omit<PublicNewsBlock, 'id'>>
 }
 
+export type CreatorWritePayload = {
+  displayName: string
+  slug: string
+  birthYear?: number
+  deathYear?: number
+  awards?: string
+  academicTitle?: string
+  bioHtml?: string
+}
+
+export type RemoteCartItem = {
+  id: string
+  bookId: string
+  quantity: number
+  unitPriceVnd: number
+}
+
+export type RemoteOrderInput = {
+  fulfillmentMethod: 'pickup' | 'delivery'
+  paymentMethod: string
+  shippingAddress: Record<string, string>
+  deliveryNotes?: string
+  guestEmail?: string
+}
+
+export type PublicMenuItem = {
+  id: string
+  menuKey: string
+  parentId: string | null
+  label: string
+  href: string
+  itemType: string
+  sortOrder: number
+}
+
 const publicMediaUrl = (storagePath: string) => {
   if (/^https?:\/\//i.test(storagePath)) return storagePath
   if (storagePath.startsWith('/assets/')) return storagePath
@@ -95,6 +130,12 @@ const publicMediaUrl = (storagePath: string) => {
 
 const unique = (values: string[]) => [...new Set(values.filter(Boolean))]
 const asArray = <T,>(value: T | T[] | null | undefined): T[] => value == null ? [] : Array.isArray(value) ? value : [value]
+const parseTextList = (value: unknown): string[] => {
+  if (Array.isArray(value)) return unique(value.flatMap((item) => parseTextList(item)))
+  const text = String(value ?? '').replace(/<\/?(?:p|div|li|br\s*\/?)>/gi, '\n').replace(/<[^>]+>/g, '').trim()
+  if (!text || text === '-') return []
+  return unique(text.split(/[;\n]+/).map((item) => item.replace(/^[-•*]\s*/, '').trim()).filter(Boolean))
+}
 
 let publicCatalogPromise: Promise<PublicCatalogProduct[] | null> | null = null
 let publicBookSamplePromise = new Map<string, Promise<{ url?: string; pageCount?: number; fileType?: 'pdf' | 'epub' } | null>>()
@@ -268,8 +309,11 @@ export async function loadPublicCreatorProfiles(): Promise<PublicCreatorProfile[
   if (!supabase) return null
   if (publicCreatorsPromise) return publicCreatorsPromise
   publicCreatorsPromise = (async () => {
-    const [creators, images, creatorRoles] = await Promise.all([
-    supabase.from('creators').select('id,display_name,slug,bio_html,birth_year,death_year,awards').eq('is_active', true).order('sort_order', { ascending: true }),
+    const creatorsWithAcademicTitle = await supabase.from('creators').select('id,display_name,slug,bio_html,birth_year,death_year,awards,academic_title').eq('is_active', true).order('sort_order', { ascending: true })
+    const creators = creatorsWithAcademicTitle.error && /academic_title|column/i.test(creatorsWithAcademicTitle.error.message ?? '')
+      ? await supabase.from('creators').select('id,display_name,slug,bio_html,birth_year,death_year,awards').eq('is_active', true).order('sort_order', { ascending: true })
+      : creatorsWithAcademicTitle
+    const [images, creatorRoles] = await Promise.all([
     supabase.from('creator_images').select('creator_id,storage_path,sort_order,is_primary').order('sort_order', { ascending: true }),
     supabase.from('book_creators').select('creator_id,role,sort_order').order('sort_order', { ascending: true }),
     ])
@@ -296,8 +340,6 @@ export async function loadPublicCreatorProfiles(): Promise<PublicCreatorProfile[
       : creatorImages
     const birthYear = creator.birth_year == null ? '' : String(creator.birth_year)
     const deathYear = creator.death_year == null ? '' : String(creator.death_year)
-    const awardsText = String(creator.awards ?? '').trim()
-    const awardCount = awardsText && awardsText !== '-' ? awardsText.split(';').map((award) => award.trim()).filter(Boolean).length : 0
     return {
       name: String(creator.display_name ?? ''),
       slug,
@@ -305,8 +347,8 @@ export async function loadPublicCreatorProfiles(): Promise<PublicCreatorProfile[
       images: resolvedCreatorImages,
       born: birthYear,
       died: deathYear,
-      awards: awardCount,
-      academicTitle: '—',
+      awards: parseTextList(creator.awards),
+      academicTitle: parseTextList(creator.academic_title),
       bio: String(creator.bio_html ?? '').trim(),
     }
     }).filter((creator) => creator.name)
@@ -419,6 +461,93 @@ export async function upsertNewsPost(payload: NewsPostWritePayload): Promise<{ i
   }
   publicNewsPromise = null
   return post
+}
+
+export async function upsertCreatorProfile(payload: CreatorWritePayload): Promise<{ id: string; slug: string }> {
+  const client = supabase
+  if (!client) throw new Error('Supabase chưa được cấu hình.')
+  const creatorRow = {
+    display_name: payload.displayName.trim(),
+    slug: payload.slug,
+    birth_year: payload.birthYear ?? null,
+    death_year: payload.deathYear ?? null,
+    awards: payload.awards?.trim() || null,
+    bio_html: payload.bioHtml?.trim() || null,
+    is_active: true,
+  }
+  const withAcademicTitle = await client.from('creators').upsert({
+    ...creatorRow,
+    academic_title: payload.academicTitle?.trim() || null,
+  }, { onConflict: 'slug' }).select('id,slug').single()
+  const legacyWrite = withAcademicTitle.error && /academic_title|column/i.test(withAcademicTitle.error.message ?? '')
+    ? await client.from('creators').upsert(creatorRow, { onConflict: 'slug' }).select('id,slug').single()
+    : withAcademicTitle
+  const { data, error } = legacyWrite
+  if (error) throw error
+  publicCreatorsPromise = null
+  return data as { id: string; slug: string }
+}
+
+export async function loadPublicMenuItems(): Promise<PublicMenuItem[] | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase.from('site_menu_items').select('id,parent_id,label,href,item_type,sort_order,site_menus!inner(menu_key)').eq('is_active', true).eq('site_menus.is_active', true).order('sort_order', { ascending: true })
+  if (error) throw error
+  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
+    const menu = row.site_menus as { menu_key?: string } | { menu_key?: string }[] | null
+    const menuKey = Array.isArray(menu) ? menu[0]?.menu_key : menu?.menu_key
+    return { id: String(row.id), menuKey: String(menuKey ?? ''), parentId: row.parent_id ? String(row.parent_id) : null, label: String(row.label ?? ''), href: String(row.href ?? ''), itemType: String(row.item_type ?? 'link'), sortOrder: Number(row.sort_order ?? 0) }
+  }).filter((item) => item.menuKey && item.label)
+}
+
+export async function loadRemoteCart(): Promise<RemoteCartItem[] | null> {
+  if (!supabase) return null
+  const { data: session } = await supabase.auth.getSession()
+  if (!session.session?.user) return null
+  const { data: cart, error: cartError } = await supabase.from('carts').select('id').eq('user_id', session.session.user.id).maybeSingle()
+  if (cartError) throw cartError
+  if (!cart) return []
+  const { data, error } = await supabase.from('cart_items').select('id,book_id,quantity,unit_price_vnd').eq('cart_id', cart.id).order('created_at', { ascending: true })
+  if (error) throw error
+  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({ id: String(row.id), bookId: String(row.book_id), quantity: Number(row.quantity), unitPriceVnd: Number(row.unit_price_vnd) }))
+}
+
+export async function saveRemoteCartItem(bookId: string, quantity: number): Promise<void> {
+  if (!supabase) return
+  const { data: session } = await supabase.auth.getSession()
+  const userId = session.session?.user?.id
+  if (!userId) return
+  const { data: cart, error: cartError } = await supabase.from('carts').upsert({ user_id: userId }, { onConflict: 'user_id' }).select('id').single()
+  if (cartError) throw cartError
+  if (quantity <= 0) {
+    const { error } = await supabase.from('cart_items').delete().eq('cart_id', cart.id).eq('book_id', bookId)
+    if (error) throw error
+    return
+  }
+  const { error } = await supabase.from('cart_items').upsert({ cart_id: cart.id, book_id: bookId, quantity, unit_price_vnd: 0 }, { onConflict: 'cart_id,book_id' })
+  if (error) throw error
+}
+
+export async function createRemoteOrder(input: RemoteOrderInput): Promise<{ orderId: string; orderNumber: string } | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase.rpc('create_order_from_cart', { p_fulfillment_method: input.fulfillmentMethod, p_payment_method: input.paymentMethod, p_shipping_address: input.shippingAddress, p_delivery_notes: input.deliveryNotes ?? '', p_guest_email: input.guestEmail ?? null })
+  if (error) throw error
+  const result = (Array.isArray(data) ? data[0] : data) as { order_id?: string; order_number?: string } | null
+  return result?.order_id ? { orderId: result.order_id, orderNumber: result.order_number ?? '' } : null
+}
+
+export async function toggleRemoteWishlist(bookId: string): Promise<void> {
+  if (!supabase) return
+  const { data: session } = await supabase.auth.getSession()
+  const userId = session.session?.user?.id
+  if (!userId) throw new Error('Vui lòng đăng nhập để lưu sách vào wishlist.')
+  const { data: wishlist, error: wishlistError } = await supabase.from('wishlists').upsert({ user_id: userId, name: 'My wishlist' }, { onConflict: 'user_id,name' }).select('id').single()
+  if (wishlistError) throw wishlistError
+  const { data: existing, error: existingError } = await supabase.from('wishlist_items').select('book_id').eq('wishlist_id', wishlist.id).eq('book_id', bookId).maybeSingle()
+  if (existingError) throw existingError
+  const result = existing
+    ? await supabase.from('wishlist_items').delete().eq('wishlist_id', wishlist.id).eq('book_id', bookId)
+    : await supabase.from('wishlist_items').insert({ wishlist_id: wishlist.id, book_id: bookId })
+  if (result.error) throw result.error
 }
 
 export async function loadSupabaseCatalogSnapshot(): Promise<SupabaseCatalogSnapshot | null> {
