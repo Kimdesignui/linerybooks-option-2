@@ -10,6 +10,14 @@ create table if not exists public.admin_users (
 
 alter table public.admin_users enable row level security;
 
+-- Bootstrap the requested owner account by email. The password remains managed
+-- by Supabase Auth and is never stored in this migration.
+insert into public.admin_users (user_id, role)
+select id, 'owner'
+from auth.users
+where lower(email) = 'pt.thietke@gmail.com'
+on conflict (user_id) do update set role = 'owner';
+
 create or replace function public.admin_list_admin_users()
 returns table(user_id uuid, email text, role text, created_at timestamptz)
 language plpgsql
