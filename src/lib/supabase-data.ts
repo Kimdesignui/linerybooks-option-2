@@ -667,12 +667,15 @@ export async function loadAdminCustomers(): Promise<AdminCustomerRow[]> {
 
 export async function loadAdminCreators(): Promise<AdminCreatorRow[]> {
   if (!supabase) return []
-  const [creators, roles, links, images] = await Promise.all([
+  const [creatorWithAcademicTitle, roles, links, images] = await Promise.all([
     supabase.from('creators').select('id,display_name,slug,is_active,bio_html,awards,academic_title,birth_year,death_year,updated_at').order('display_name', { ascending: true }),
     supabase.from('creator_roles').select('creator_id,role'),
     supabase.from('book_creators').select('creator_id,book_id'),
     supabase.from('creator_images').select('creator_id,storage_path,sort_order,is_primary').order('sort_order', { ascending: true }),
   ])
+  const creators = creatorWithAcademicTitle.error && /academic_title|column/i.test(creatorWithAcademicTitle.error.message ?? '')
+    ? await supabase.from('creators').select('id,display_name,slug,is_active,bio_html,awards,birth_year,death_year,updated_at').order('display_name', { ascending: true })
+    : creatorWithAcademicTitle
   const error = creators.error ?? roles.error ?? links.error ?? images.error
   if (error) throw error
   const roleMap = new Map<string, AdminCreatorRow['roles']>()
