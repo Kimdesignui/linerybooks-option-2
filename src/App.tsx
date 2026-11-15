@@ -70,7 +70,7 @@ const describeSaveError = (reason: unknown, fallback: string) => {
   if (reason instanceof Error && reason.message) return reason.message
   if (reason && typeof reason === 'object') {
     const error = reason as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown }
-    const parts = [error.message, error.details, error.hint, error.code].filter((part): part is string => typeof part === 'string' && part.trim())
+    const parts = [error.message, error.details, error.hint, error.code].filter((part): part is string => typeof part === 'string' && Boolean(part.trim()))
     if (parts.length) return parts.join(' · ')
   }
   return fallback
