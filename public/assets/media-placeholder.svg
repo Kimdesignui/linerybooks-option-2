@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title desc">
+  <title id="title">Media unavailable</title>
+  <desc id="desc">The media asset has not been uploaded to the website yet.</desc>
+  <rect width="640" height="400" fill="#f4f2e9"/>
+  <path d="M160 300 260 200l75 75 55-60 90 85H160Z" fill="#d6d0b1"/>
+  <circle cx="245" cy="145" r="28" fill="#b8b07b"/>
+  <text x="320" y="350" fill="#716f61" font-family="Georgia, serif" font-size="24" text-anchor="middle">Ảnh chưa được tải lên hệ thống</text>
+</svg>

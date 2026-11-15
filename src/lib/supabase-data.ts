@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase, supabaseConfig } from './supabase'
 import localCreatorImageMap from '../data/creator-image-map.json'
 
 export type SupabaseCatalogSnapshot = {
@@ -976,11 +976,14 @@ export async function deleteAdminBook(id: string): Promise<void> {
 const publicMediaUrl = (storagePath: string) => {
   const legacyHostedAsset = storagePath.match(/\/media\/assets\/([^/?#]+)$/i)
   if (legacyHostedAsset) return `/assets/catalog-covers/${legacyHostedAsset[1]}`
-  if (/^https?:\/\//i.test(storagePath)) return storagePath
+  if (/^https?:\/\//i.test(storagePath)) {
+    const isSupabaseStorageUrl = Boolean(supabaseConfig.url) && storagePath.startsWith(`${supabaseConfig.url}/storage/v1/object/public/`)
+    return isSupabaseStorageUrl ? storagePath : '/assets/media-placeholder.svg'
+  }
   if (storagePath.startsWith('/assets/')) return storagePath
   if (supabase && storagePath) return supabase.storage.from('site-media').getPublicUrl(storagePath).data.publicUrl
   if (/^[^/]+\.(?:avif|jpe?g|png|webp)$/i.test(storagePath)) return `/assets/catalog-covers/${storagePath}`
-  return `https://linerybooks.vn${storagePath.startsWith('/') ? '' : '/'}${storagePath}`
+  return '/assets/media-placeholder.svg'
 }
 
 const unique = (values: string[]) => [...new Set(values.filter(Boolean))]
