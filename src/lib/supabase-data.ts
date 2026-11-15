@@ -316,6 +316,7 @@ export type AdminTaxonomyRow = { id: string; name: string; slug: string; kind: A
 export type AdminHomepageModuleRow = { id: string; name: string; slug: string; sortOrder: number; isActive: boolean; bookCount: number }
 export type AdminPaymentMethodRow = { id: string; code: string; name: string; description: string; provider: string; logoStoragePath: string; sortOrder: number; isActive: boolean }
 export type AdminSiteSettingRow = { id: string; settingKey: string; language: 'en' | 'vi' | 'all'; valueJson: Record<string, unknown>; isPublic: boolean; updatedAt: string }
+export type AdminUserRow = { userId: string; email: string; role: 'owner' | 'editor'; createdAt: string }
 export type AdminMediaAssetRow = { id: string; storagePath: string; publicUrl: string; fileName: string; mimeType: string; sizeBytes: number; altText: string; assetType: string; isActive: boolean; createdAt: string }
 export type AdminStoreLocationRow = { id: string; code: string; name: string; locationType: string; address: string; city: string; sortOrder: number; isActive: boolean }
 export type AdminDeliveryZoneRow = { id: string; name: string; level: string; feeVnd: number; sortOrder: number; isActive: boolean }
@@ -526,6 +527,35 @@ export async function upsertAdminSiteSetting(input: { settingKey: string; langua
 export async function deleteAdminSiteSetting(id: string): Promise<void> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { error } = await supabase.from('site_settings').delete().eq('id', id)
+  if (error) throw error
+}
+
+const mapAdminUserRow = (row: Record<string, unknown>): AdminUserRow => ({
+  userId: String(row.user_id ?? ''),
+  email: String(row.email ?? ''),
+  role: String(row.role ?? 'editor') as AdminUserRow['role'],
+  createdAt: String(row.created_at ?? ''),
+})
+
+export async function loadAdminUsers(): Promise<AdminUserRow[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('admin_list_admin_users')
+  if (error) throw error
+  return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminUserRow)
+}
+
+export async function grantAdminUser(email: string, role: AdminUserRow['role']): Promise<AdminUserRow> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { data, error } = await supabase.rpc('admin_grant_admin', { p_email: email.trim(), p_role: role })
+  if (error) throw error
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) throw new Error('Không nhận được bản ghi quản trị viên sau khi cấp quyền.')
+  return mapAdminUserRow(row as Record<string, unknown>)
+}
+
+export async function revokeAdminUser(userId: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { error } = await supabase.rpc('admin_revoke_admin', { p_user_id: userId })
   if (error) throw error
 }
 
