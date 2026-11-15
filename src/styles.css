@@ -2129,3 +2129,62 @@ body.login-open { overflow: hidden; }
 
 @media (max-width: 786px) {
 }
+
+.floating-notice-region {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: grid;
+  width: min(380px, calc(100vw - 32px));
+  gap: 10px;
+  pointer-events: none;
+}
+
+.floating-notice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 12px 12px 12px 15px;
+  border: 1px solid #d9d6c8;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(31, 42, 36, .16);
+  color: var(--color-ink);
+  font: 500 14px/1.4 var(--font-body);
+  pointer-events: auto;
+  animation: floating-notice-in .26s ease-out both;
+}
+
+.floating-notice > i { font-size: 18px; }
+.floating-notice.is-success { border-color: #b9dec1; }
+.floating-notice.is-success > i { color: #39733e; }
+.floating-notice.is-error { border-color: #e8bbb1; }
+.floating-notice.is-error > i { color: #a33d32; }
+.floating-notice button { display: inline-flex; width: 26px; height: 26px; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: transparent; color: #8b8d86; cursor: pointer; font-size: 18px; }
+.floating-notice button:hover { background: #f5f3ec; color: var(--color-ink); }
+
+.admin-dashboard-metric-icon {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 18px;
+}
+.admin-dashboard-metric-icon.is-books { background: #eef6ff; color: #2680d9; }
+.admin-dashboard-metric-icon.is-orders { background: #fff5e8; color: #b76b16; }
+.admin-dashboard-metric-icon.is-creators { background: #f1edff; color: #7254bf; }
+.admin-dashboard-metric-icon.is-news { background: #e9f8ef; color: #1fa85b; }
+
+@keyframes floating-notice-in {
+  from { opacity: 0; transform: translate3d(20px, -8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@media (max-width: 600px) {
+  .floating-notice-region { top: 12px; right: 16px; left: 16px; width: auto; }
+}

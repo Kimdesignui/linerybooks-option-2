@@ -56,6 +56,40 @@ const adminAuthorFormFields: AdminCatalogFormField[] = [
 const siteName = 'Linery Bookstore'
 const siteDescription = 'Linery — hiệu sách tuyển chọn và independent press được xây dựng tại Hà Nội.'
 const publicSeoViews: View[] = ['home', 'authors', 'author', 'all-books', 'collection', 'detail', 'news', 'news-detail']
+type FloatingNoticeTone = 'success' | 'error'
+type FloatingNoticeDetail = { tone: FloatingNoticeTone; message: string }
+const floatingNoticeEvent = 'linery:floating-notice'
+const floatingNoticeStorageKey = 'linery-floating-notice'
+const emitFloatingNotice = (tone: FloatingNoticeTone, message: string) => {
+  window.dispatchEvent(new CustomEvent<FloatingNoticeDetail>(floatingNoticeEvent, { detail: { tone, message } }))
+}
+const queueFloatingNotice = (tone: FloatingNoticeTone, message: string) => {
+  try { window.sessionStorage.setItem(floatingNoticeStorageKey, JSON.stringify({ tone, message })) } catch { /* storage may be unavailable */ }
+}
+
+function FloatingNoticeHost() {
+  const [notices, setNotices] = useState<Array<FloatingNoticeDetail & { id: number }>>([])
+  useEffect(() => {
+    try {
+      const pending = window.sessionStorage.getItem(floatingNoticeStorageKey)
+      if (pending) {
+        window.sessionStorage.removeItem(floatingNoticeStorageKey)
+        const detail = JSON.parse(pending) as FloatingNoticeDetail
+        if (detail.message) window.setTimeout(() => window.dispatchEvent(new CustomEvent<FloatingNoticeDetail>(floatingNoticeEvent, { detail })), 0)
+      }
+    } catch { /* storage may be unavailable */ }
+    const handleNotice = (event: Event) => {
+      const detail = (event as CustomEvent<FloatingNoticeDetail>).detail
+      if (!detail?.message) return
+      const id = Date.now() + Math.random()
+      setNotices((current) => [...current, { ...detail, id }].slice(-3))
+      window.setTimeout(() => setNotices((current) => current.filter((notice) => notice.id !== id)), 4200)
+    }
+    window.addEventListener(floatingNoticeEvent, handleNotice)
+    return () => window.removeEventListener(floatingNoticeEvent, handleNotice)
+  }, [])
+  return <div className="floating-notice-region" aria-live="polite" aria-atomic="true">{notices.map((notice) => <div className={`floating-notice is-${notice.tone}`} key={notice.id} role={notice.tone === 'error' ? 'alert' : 'status'}><i className={`bi ${notice.tone === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}`} aria-hidden="true" /><span>{notice.message}</span><button type="button" aria-label="Đóng thông báo" onClick={() => setNotices((current) => current.filter((item) => item.id !== notice.id))}><i className="bi bi-x" aria-hidden="true" /></button></div>)}</div>
+}
 
 const LazyCkEditor = lazy(async () => {
   const [{ CKEditor }, { default: ClassicEditor }] = await Promise.all([
@@ -3887,9 +3921,12 @@ function AdminBookCreatePageV2() {
     const input: AdminBookInput = { isbn: normalizeAdminIsbn(values.isbn), title: values.title.trim() || 'Sách chưa đặt tên', slug, descriptionHtml: values.description.trim(), coverPriceUsd: values.coverPriceUsd ? Number(values.coverPriceUsd) : null, salePriceVnd: Number(values.salePrice) || 0, comparePriceVnd: values.comparePrice ? Number(values.comparePrice) : null, pageCount: values.pages ? Number(values.pages) : null, bookSize: values.bookSize.trim(), publicationDate: values.publicationDate, weight: values.weight.trim(), inventoryQuantity: 0, isVisibleWebsite: published, authors: values.author, translators: values.translator, illustrators: values.illustrator, categories: values.category, genres: values.genre, topics: values.topic, formats: values.format ? [values.format] : [], lines: values.line ? [values.line] : [], publishers: values.publisher ? [values.publisher] : [], imprints: values.imprint ? [values.imprint] : [], languages: values.language, homepageModules: published ? homeModules : [] }
     try {
       await createAdminBook(input, coverImages.map((image) => image.file).filter((file): file is File => Boolean(file)))
+      queueFloatingNotice('success', 'Đã lưu sách và các liên kết vào Supabase.')
       window.location.assign('/admin/books')
     } catch (reason) {
-      setSaveError(reason instanceof Error ? reason.message : 'Không lưu được sách vào Supabase.')
+      const message = reason instanceof Error ? reason.message : 'Không lưu được sách vào Supabase.'
+      setSaveError(message)
+      emitFloatingNotice('error', `Không thể lưu sách: ${message}`)
     }
   }
   const readCoverFile = (file: File, replacePrimary = false) => { const preview = URL.createObjectURL(file); const reader = new FileReader(); reader.onload = () => setCoverImages((current) => { const asset = { preview, dataUrl: typeof reader.result === 'string' ? reader.result : '', name: file.name, file }; return replacePrimary ? [asset, ...current.slice(1)] : [...current, asset] }); reader.readAsDataURL(file) }
@@ -4820,7 +4857,7 @@ function AdminDashboard() {
           </div>
         </section>
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Store metrics">
-          {[['Tổng số sách','0','Thêm dữ liệu sách','bi-book'],['Đơn hàng','0','Chưa có đơn hàng','bi-bag'],['Tác giả','0','Thêm hồ sơ tác giả','bi-people'],['Bài viết tin tức','0','Tạo nội dung biên tập','bi-newspaper']].map(([label,value,meta,icon]) => <article className="rounded-2xl border border-[#e6e2d7] bg-white p-5" key={label}><div className="flex items-start justify-between"><div><p className={`font-body text-sm ${label === 'Đơn hàng' ? 'font-semibold text-[var(--color-ink)]' : 'text-[#74776f]'}`}>{label}</p><p className="mt-3 font-display text-2xl font-semibold tracking-tight">{value}</p></div><span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(155,148,47,.12)] text-lg text-[var(--color-olive)]"><i className={`bi ${icon}`} aria-hidden="true" /></span></div><p className="admin-metric-meta mt-4 font-body text-sm text-[#74776f]">{meta}</p></article>)}
+          {[['Tổng số sách','0','Thêm dữ liệu sách','bi-book','books'],['Đơn hàng','0','Chưa có đơn hàng','bi-bag','orders'],['Tác giả','0','Thêm hồ sơ tác giả','bi-people','creators'],['Bài viết tin tức','0','Tạo nội dung biên tập','bi-newspaper','news']].map(([label,value,meta,icon,tone]) => <article className="rounded-2xl border border-[#e6e2d7] bg-white p-5" key={label}><div className="flex items-start justify-between"><div><p className={`font-body text-sm ${label === 'Đơn hàng' ? 'font-semibold text-[var(--color-ink)]' : 'text-[#74776f]'}`}>{label}</p><p className="mt-3 font-display text-2xl font-semibold tracking-tight">{value}</p></div><span className={`admin-dashboard-metric-icon is-${tone}`}><i className={`bi ${icon}`} aria-hidden="true" /></span></div><p className="admin-metric-meta mt-4 font-body text-sm text-[#74776f]">{meta}</p></article>)}
         </section>
         <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,.85fr)]">
           <article className="rounded-2xl border border-[#e6e2d7] bg-white p-5 sm:p-6"><div className="flex items-center justify-between gap-4"><div><h2 className="font-display text-lg font-semibold">Đơn hàng gần đây</h2><p className="mt-1 font-body text-sm text-[#8b8d86]">Đơn hàng sẽ xuất hiện tại đây sau khi kết nối Supabase.</p></div><button className="font-body text-sm text-[var(--color-olive)]" type="button">Xem tất cả</button></div><div className="mt-6 rounded-xl border border-dashed border-[#d9d6c9] bg-[#fcfbf7] px-5 py-10 text-center"><i className="bi bi-inbox text-3xl text-[var(--color-olive)]" aria-hidden="true" /><h3 className="mt-3 font-display text-lg font-semibold">Chưa có đơn hàng</h3><p className="mx-auto mt-2 max-w-sm font-body text-sm leading-6 text-[#85877f]">Khi khách đặt hàng, thông tin thanh toán, giao nhận và khách hàng sẽ được hiển thị tại đây.</p></div></article>
@@ -5319,7 +5356,7 @@ export function App() {
   }
 
   const addToCart = (product: Product, source?: HTMLElement) => {
-    if (product.available === false) return
+    if (product.available === false) { emitFloatingNotice('error', 'Sách hiện đã hết hàng.'); return }
     setCartItems((items) => {
       const key = productKey(product)
       const existing = items.find((item) => productKey(item.product) === key)
@@ -5328,6 +5365,7 @@ export function App() {
       return existing ? items.map((item) => productKey(item.product) === key ? { ...item, quantity } : item) : [...items, { product, quantity: 1 }]
     })
     animateProductToCart(product, source)
+    emitFloatingNotice('success', `Đã thêm “${product.title}” vào giỏ hàng.`)
   }
   const toggleWishlist = (product: Product) => {
     setWishlistTitles((titles) => {
@@ -5356,9 +5394,11 @@ export function App() {
       const result = await createRemoteOrder(input)
       if (!result) throw new Error('The order service is not configured.')
       setCartItems([])
+      emitFloatingNotice('success', 'Đặt hàng thành công. Cảm ơn bạn đã mua sách.')
       return
     }
     addStorefrontOrder({ name: input.shippingAddress.name ?? '', email: input.guestEmail, phone: input.shippingAddress.phone ?? '', total: cartItems.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0) })
+    emitFloatingNotice('success', 'Đặt hàng thành công.')
   }
   const buyNow = (product: Product) => {
     if (product.available === false) return
@@ -5394,7 +5434,7 @@ export function App() {
 
   const isEmagazineView = view === 'news-detail' && selectedNews?.contentType === 'emagazine'
 
-  if (view === 'admin') return <><SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} /><AdminAuthGate>{window.location.pathname === '/admin' ? <AdminSalesDashboardRemote /> : <AdminDashboard />}{window.location.pathname !== '/admin/chatbot' && <ChatbotWidget adminMode />}</AdminAuthGate></>
+  if (view === 'admin') return <><FloatingNoticeHost /><SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} /><AdminAuthGate>{window.location.pathname === '/admin' ? <AdminSalesDashboardRemote /> : <AdminDashboard />}{window.location.pathname !== '/admin/chatbot' && <ChatbotWidget adminMode />}</AdminAuthGate></>
 
   if (view === 'book-reader') {
     return <>
@@ -5404,6 +5444,7 @@ export function App() {
   }
 
   return <>
+    <FloatingNoticeHost />
     <SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} />
     {isEnhancedVariant && welcomeOpen && <WelcomeScreen onSelectLanguage={selectLanguage} />}
     <div id="top" className={`page-shell ${quickViewAvailable && quickViewOpen ? 'utility-panel-active' : ''}`}>
