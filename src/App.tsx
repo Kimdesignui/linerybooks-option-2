@@ -2333,7 +2333,7 @@ function CheckoutPage({ items, onHome, onBackToCart, onCreateOrder }: { items: C
       })
       setSubmitted(true)
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : 'Unable to create order.')
+      emitFloatingNotice('error', error instanceof Error ? error.message : 'Không thể tạo đơn hàng.')
     }
   }
 
@@ -4438,9 +4438,10 @@ function AdminNewsCreatePageV2({ editSlug }: { editSlug?: string }) {
       await upsertNewsPost({ slug: savedItem.slug, contentType: savedItem.contentType ?? 'news', title: savedItem.title, titleVi: savedItem.titleVi, kicker: savedItem.kicker, kickerVi: savedItem.kicker, excerpt: savedItem.excerpt, excerptVi: savedItem.excerptVi, body: savedItem.body, bodyVi: savedItem.bodyVi, image: savedItem.image, byline: savedItem.byline, blocks: parsedBlocks.map(({ id: _id, ...block }) => block), blocksVi: parsedBlocks.map(({ id: _id, ...block }) => block), seoTitle: seoFields[0]?.value.trim(), seoKeywords: seoFields[1]?.value.split(',').map((value) => value.trim()).filter(Boolean), seoDescription: seoFields[2]?.value.trim(), showOnHomepage: Boolean(visibilityChecks[1]?.checked), isFeatured: Boolean(visibilityChecks[2]?.checked), isPublished: Boolean(visibilityChecks[0]?.checked), categorySlugs: categoryLabels.filter((_, index) => visibilityChecks[index + 3]?.checked), displayFormat: format === 'video' ? 'video' : 'standard' })
       runtimeNewsItems = [savedItem, ...runtimeNewsItems.filter((item) => item.slug !== savedItem.slug)]
       setSaved(true)
+      emitFloatingNotice('success', 'Đã lưu bài viết vào Supabase.')
     } catch (error) {
       setSaved(false)
-      window.alert(`Không thể lưu bài vào Supabase: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`)
+      emitFloatingNotice('error', `Không thể lưu bài vào Supabase: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`)
     }
   }
   if (loading) return <AdminSimpleCreateShell title="Đang tải bài viết" backHref="/admin/news" section="NỘI DUNG" description="Đang đọc nội dung thật từ Supabase…"><div className="rounded-xl border border-[#e6e2d7] bg-white p-6 font-body text-sm text-[#74776f]">Đang tải dữ liệu bài viết…</div></AdminSimpleCreateShell>
