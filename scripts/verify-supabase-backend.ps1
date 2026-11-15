@@ -19,6 +19,7 @@ $tableNames = @(
   'site_banners', 'payment_methods', 'carts', 'cart_items', 'orders', 'order_items',
   'order_payments', 'order_status_history', 'inventory_transactions', 'promotions',
   'store_locations', 'delivery_zones', 'chatbot_quick_prompts', 'book_import_batches'
+  'admin_users'
 )
 
 $results = foreach ($table in $tableNames) {
@@ -57,6 +58,9 @@ $rpcBodies = [ordered]@{
     p_note = 'verification-only'
   }
   admin_list_customers = @{}
+  admin_list_admin_users = @{}
+  admin_grant_admin = @{ p_email = 'verification-only@example.invalid'; p_role = 'editor' }
+  admin_revoke_admin = @{ p_user_id = '00000000-0000-0000-0000-000000000000' }
 }
 $rpcNames = @($rpcBodies.Keys)
 $rpcResults = foreach ($rpc in $rpcNames) {
