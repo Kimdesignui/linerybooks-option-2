@@ -19,6 +19,7 @@ $tableNames = @(
   'site_banners', 'site_settings', 'payment_methods', 'carts', 'cart_items', 'orders', 'order_items',
   'order_payments', 'order_status_history', 'inventory_transactions', 'promotions',
   'store_locations', 'delivery_zones', 'chatbot_quick_prompts', 'book_import_batches',
+  'site_banner_positions',
   'admin_users', 'admin_roles', 'admin_permissions', 'admin_role_permissions', 'admin_notifications'
 )
 

@@ -11,6 +11,17 @@ function Slugify([string]$Value) {
   return (($normalized.ToLowerInvariant() -replace '[^a-z0-9]+', '-') -replace '(^-|-$)', '')
 }
 
+function RepairMojibake([string]$Value) {
+  if ([string]::IsNullOrWhiteSpace($Value) -or $Value -notmatch 'Ã|Â|�') { return $Value }
+  try {
+    $repaired = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(1252).GetBytes($Value))
+    if ($repaired -notmatch '�') { return $repaired }
+  } catch {
+    # Keep the source value when the repair cannot be decoded safely.
+  }
+  return $Value
+}
+
 $items = @()
 $page = 1
 $cursor = $null
@@ -25,7 +36,7 @@ do {
 
 $items = @($items | Group-Object isbn | ForEach-Object { $_.Group | Select-Object -First 1 })
 $creators = @($items | Where-Object { $_.vendor } | Group-Object vendor | ForEach-Object {
-  $name = $_.Name
+  $name = RepairMojibake $_.Name
   [pscustomobject]@{ name = $name; slug = (Slugify $name) }
 })
 $terms = @{}

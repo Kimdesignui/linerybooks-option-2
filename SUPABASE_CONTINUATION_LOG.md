@@ -30,8 +30,8 @@ Các file sau đã có trong repo nhưng chưa được xác nhận đã chạy 
 
 Migration quan trọng còn thiếu theo kiểm tra live:
 
-- Bảng `site_banner_positions` đang trả HTTP `404`.
-- Đây là lý do verifier (bộ kiểm tra tự động) vẫn báo backend chưa đủ.
+- Bảng `site_banner_positions` đang trả HTTP `404` ở lần kiểm tra gần nhất.
+- Bộ kiểm tra đã được bổ sung bảng này để không bỏ sót khi đối soát lần tiếp theo.
 
 ## 4. Kết quả kiểm tra gần nhất
 
@@ -44,7 +44,7 @@ Migration quan trọng còn thiếu theo kiểm tra live:
 
 Còn lỗi:
 
-- `npm run verify:supabase-backend` — còn thiếu `site_banner_positions`.
+- `npm run verify:supabase-backend` — còn thiếu `site_banner_positions` ở lần kiểm tra gần nhất.
 - `npm run verify:creator-data` — live database (cơ sở dữ liệu thật) còn 3 tên người sáng tạo bị lỗi mã hóa và 3 bản ghi rác; migration sửa dữ liệu đã có nhưng chưa xác nhận đã chạy live.
 
 ## 5. Vì sao chưa tự chạy được migration
@@ -71,7 +71,7 @@ npm run verify:news-metadata
 npm run build:enhanced
 ```
 
-5. Nếu `verify:creator-data` còn báo lỗi, kiểm tra trực tiếp bảng `creators` và `book_creators`; không sửa bằng cách che lỗi ở giao diện.
+5. Nếu `verify:creator-data` còn báo lỗi, kiểm tra trực tiếp bảng `creators` và `book_creators`; không sửa bằng cách che lỗi ở giao diện. Migration sửa 3 bản ghi trùng mã hóa có thao tác xóa bản ghi lỗi, nên phải xác nhận trước khi chạy.
 6. Kiểm tra admin bằng tài khoản thật: thêm sách, chuyển sang màn khác, quay lại, lưu bản ghi; sau đó kiểm tra sách xuất hiện trong danh sách admin và website theo trạng thái đã chọn.
 7. Chỉ sau khi các bước trên đạt mới commit và đẩy Git/Cloudflare.
 
