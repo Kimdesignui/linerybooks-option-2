@@ -212,3 +212,5 @@ Kết quả sau cùng:
 - `build`: đạt; chỉ còn cảnh báo chunk lớn do runtime PDF/TTS.
 - `test:qa`: đạt 9 đường dẫn × 2 kích thước màn hình, không lỗi shell, runtime, console hoặc tràn ngang.
 
+Sau đó đã xác minh `agb` là bản ghi không có sách liên kết và đã chuyển sang `is_active = false` trên Supabase, không xóa dữ liệu. Kết quả mới: `Active unused creators: 0`, `Known import artefacts: 0`, `Mojibake names: 0`; còn 18 hồ sơ thật chưa có ảnh nguồn.
+
