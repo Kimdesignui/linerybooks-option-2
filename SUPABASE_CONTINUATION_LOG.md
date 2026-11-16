@@ -218,3 +218,20 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 
 Đã kiểm tra trực tiếp trang quản trị `/admin/authors`: các hồ sơ này hiện thực sự trỏ tới `/assets/author-avatar-placeholder.png`, không phải ảnh lưu trên Supabase. Không tự gán ảnh không xác minh được danh tính.
 
+## 14. Bổ sung ảnh tác giả thật và kiểm thử nhập liệu — 17/11/2026
+
+- Đã dùng màn quản trị đang đăng nhập để upload (tải lên) ảnh thật cho `Bao Ninh` và `Carmen Maria Machado`.
+- Cả hai ảnh sau khi lưu đều trả về URL công khai trong Supabase Storage (kho lưu trữ tệp), không còn trỏ tới ảnh mặc định.
+- Lượt upload `Josh Malerman` bị trình duyệt hết thời gian chờ khi bấm lưu; chưa tính là thành công và chưa ghi nhận ảnh này.
+- `verify:creator-data` sau lượt này: 188 creators, 173 creator images, còn 16 hồ sơ thiếu ảnh; không còn tên lỗi mã hóa, hồ sơ rác hoặc creator hoạt động không có sách.
+
+Đã chạy một lượt nhập sách thật từ `/admin/books/new`:
+
+- ISBN `9781234567893`, tên `Kiểm thử lưu thủ công 20261116 D`.
+- Giá bìa USD `14.75`, giá bán `495000`, giá so sánh `535000`, tồn kho `18`, ngày xuất bản `2026-11-16`.
+- Đã chọn thật `Bao Ninh`, `Carmen Maria Machado`, `Josh Malerman`, `Picador`, `English`, `Paperback`, `Nonfiction`, `Poetry & Drama`, `Fiction`, `International Literature`, `Penguin Random House` và ghi mô tả.
+- Bản ghi đã xuất hiện trong danh sách quản trị và Supabase xác nhận: giá, tồn kho, mô tả, 3 liên kết creator và 7 liên kết phân loại đều đúng.
+- Không chọn mô-đun trang chủ ở lượt D, nên `homepageModuleLinks = 0`; lượt ISBN `9781234567890` trước đó vẫn xác nhận đủ mô-đun trang chủ và toàn bộ điều kiện kiểm tra đều đạt.
+
+Đã sửa tiện ích `scripts/verify-admin-book-save.mjs`: không còn cố định giá USD mẫu `12.50`, mà kiểm tra giá dương và quan hệ giá so sánh lớn hơn giá bán. Đây là sửa công cụ kiểm tra, không thay đổi dữ liệu sách.
+

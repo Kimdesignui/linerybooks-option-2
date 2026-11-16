@@ -12,4 +12,5 @@ qa-*.png
 output/
 .playwright-cli/
 public/tts-runtime/
+.tmp-creator-images/
 
