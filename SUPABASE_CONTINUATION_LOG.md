@@ -189,3 +189,26 @@ Kết luận: trước tiên máy B phải dùng đúng commit mới và chạy 
 
 Sau commit `f8ef1e2`, màn đăng nhập quản trị sẽ hiển thị rõ tên môi trường đang chạy nếu Supabase chưa được cấu hình, thay vì chỉ báo lỗi chung. Nhờ đó có thể nhận biết ngay máy B đang chạy nhầm `classic` hay chưa.
 
+## 13. Kiểm thử nhập sách thật và đối soát live — 16/11/2026
+
+Đã dùng giao diện quản trị đang đăng nhập để nhập và lưu hai bản ghi sách thật vào Supabase, không gọi dữ liệu giả:
+
+- ISBN `9781234567890`: giá bìa USD `12.50`, giá bán `460000`, tồn kho `12`.
+- ISBN `9781234567891`: giá bìa USD `12.50`, giá bán `470000`, tồn kho `8`.
+- Cả hai bản ghi đều có tác giả, 8 liên kết phân loại, mô-đun trang chủ, mô tả và trạng thái hiển thị.
+- Bộ kiểm tra `verify:admin-book-save` xác nhận toàn bộ điều kiện đều `true` cho cả hai ISBN.
+
+Đã sửa lỗi giá USD bị biến `12.50` thành `1,250`; nay giữ đúng phần thập phân. Giá VND vẫn chỉ nhận số nguyên dương và tự định dạng dấu phân cách.
+
+Đã chạy trực tiếp trên Supabase:
+
+- Tạo bảng `site_banner_positions`, nạp các vị trí banner hiện có và bật chính sách đọc công khai/quản trị có kiểm soát.
+- Dọn 3 tên tác giả lỗi mã hóa và chuyển liên kết sách sang bản ghi đúng; vô hiệu hóa các bản ghi rác không có sách.
+
+Kết quả sau cùng:
+
+- `verify:supabase-backend`: toàn bộ bảng/cột/RPC chính khả dụng; `site_banner_positions` đã từ `404` thành `200`.
+- `verify:creator-data`: `Mojibake names: 0`, `Known import artefacts: 0`; còn 18 tác giả chưa có ảnh và 1 tác giả đang hoạt động chưa gắn sách, cần quyết định dữ liệu riêng.
+- `build`: đạt; chỉ còn cảnh báo chunk lớn do runtime PDF/TTS.
+- `test:qa`: đạt 9 đường dẫn × 2 kích thước màn hình, không lỗi shell, runtime, console hoặc tràn ngang.
+
