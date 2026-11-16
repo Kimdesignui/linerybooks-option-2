@@ -100,6 +100,22 @@ Trạng thái hiện tại:
 - Cần kiểm thử cuối trên giao diện: đăng xuất/đăng nhập lại, tạo một sách mới, lưu, rồi kiểm tra bản ghi trong danh sách quản trị.
 - Chưa kết luận hoàn tất backend live cho đến khi bước lưu sách thật đạt.
 
+## 10. Khắc phục lệch môi trường giữa máy A và máy B
+
+Nguyên nhân đã xác định: lệnh `npm run dev` trước đây chạy Vite không chỉ định `enhanced`, trong khi `.env.enhanced` mới chứa cấu hình Supabase cho bản backend thật. Máy dùng lệnh mặc định có thể rơi vào bản không kết nối Supabase.
+
+Đã chỉnh `package.json`:
+
+- `npm run dev` mặc định chạy `vite --mode enhanced` trên cổng `5174`.
+- `npm run build` mặc định build với `--mode enhanced`.
+- Bản giao diện cũ vẫn dùng riêng `npm run dev:classic` trên cổng `5173`.
+
+## 11. Thông báo quản trị
+
+Đã thêm migration `supabase/migrations/20261116_admin_notifications.sql` để tạo bảng thông báo quản trị, chính sách đọc/cập nhật theo người nhận và trigger (cơ chế tự chạy khi có dữ liệu mới) cho đơn hàng và đánh giá mới.
+
+Migration này chưa được xác nhận trên Supabase thật. Sau khi chạy, cần kiểm tra bảng `admin_notifications`, tạo một đơn hàng/đánh giá thử và xác nhận nút chuông trong admin đọc được thông báo.
+
 ## 7. Quy tắc bàn giao
 
 - Không coi build (biên dịch mã nguồn) đạt là đồng nghĩa với backend live đã đạt.
