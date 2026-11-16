@@ -11,5 +11,6 @@ export const supabase = supabaseUrl && supabasePublishableKey
 
 export const supabaseConfig = {
   configured: Boolean(supabase),
+  mode: String(import.meta.env.MODE ?? 'unknown'),
   url: supabaseUrl ?? '',
 }

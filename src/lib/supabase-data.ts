@@ -728,7 +728,7 @@ export async function markAdminNotificationRead(id: string): Promise<void> { if 
 export async function markAllAdminNotificationsRead(): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('admin_notifications').update({ read_at: new Date().toISOString() }).is('read_at', null); if (error) throw error }
 
 export async function checkRemoteAdminAccess(): Promise<{ allowed: boolean; email?: string; access?: AdminAccess | null; error?: string }> {
-  if (!supabase) return { allowed: false, error: 'Supabase chưa được cấu hình.' }
+  if (!supabase) return { allowed: false, error: `Supabase chưa được cấu hình cho môi trường “${supabaseConfig.mode}”. Hãy chạy “npm run dev” để dùng môi trường enhanced (bản có dữ liệu thật) trên cổng 5174.` }
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
   if (sessionError) return { allowed: false, error: sessionError.message }
   const user = sessionData.session?.user
