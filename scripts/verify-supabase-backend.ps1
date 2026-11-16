@@ -37,7 +37,7 @@ $results = foreach ($table in $tableNames) {
     }
     if (-not $detail) { $detail = $caught.Exception.Message }
   }
-  [pscustomobject]@{ Resource = "table:$table"; Http = $status; Status = if ($status -eq 200) { 'AVAILABLE' } else { 'MISSING_OR_BLOCKED' }; Detail = $detail }
+  [pscustomobject]@{ Resource = "table:$table"; Http = $status; Status = if ($status -eq 200) { 'AVAILABLE' } elseif ($status -eq 404) { 'MISSING' } else { 'EXISTS_OR_AUTH_REQUIRED' }; Detail = $detail }
 }
 
 $columnChecks = @(
@@ -62,7 +62,7 @@ $columnResults = foreach ($check in $columnChecks) {
   [pscustomobject]@{
     Resource = "columns:$($check.Table)[$($check.Columns)]"
     Http = $status
-    Status = if ($status -eq 200) { 'AVAILABLE' } else { 'MISSING_OR_BLOCKED' }
+    Status = if ($status -eq 200) { 'AVAILABLE' } elseif ($status -eq 400 -or $status -eq 404) { 'MISSING' } else { 'EXISTS_OR_AUTH_REQUIRED' }
     Detail = if ($status -eq 200) { $check.Columns } else { $detail }
   }
 }

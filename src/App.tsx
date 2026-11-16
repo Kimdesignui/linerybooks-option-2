@@ -4191,7 +4191,7 @@ function AdminBookCreatePageV2() {
     }
   }
   const readCoverFile = (file: File, replacePrimary = false) => { const asset = { preview: URL.createObjectURL(file), name: file.name, file }; setCoverImages((current) => replacePrimary ? [asset, ...current.slice(1)] : [...current, asset]) }
-  return <AdminSimpleCreateShell title="Thêm sách" backHref="/admin/books" section="SÁCH" description="Tạo sách từ các trường đã chuẩn hóa theo bốn sheet Picador, Penguin UK, Penguin US và NYRB." tabs={[{ id: 'book-information', label: 'Thông tin sách' }, { id: 'book-cover', label: 'Ảnh bìa' }, { id: 'book-description', label: 'Mô tả' }]} headerActions={<AdminCreateHeaderActions formId="admin-book-create-form" cancelHref="/admin/books" saveLabel="Lưu sách" saving={saving} />}>
+  return <AdminSimpleCreateShell title="Thêm sách" backHref="/admin/books" section="SÁCH" description="Tạo sách từ các trường đã chuẩn hóa theo bốn sheet Picador, Penguin UK, Penguin US và NYRB." headerActions={<AdminCreateHeaderActions formId="admin-book-create-form" cancelHref="/admin/books" saveLabel="Lưu sách" saving={saving} />}>
     <form id="admin-book-create-form" noValidate className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" onSubmit={(event) => { void submit(event) }}>
       {saveError && <p className="rounded-xl bg-[#fff4ec] px-4 py-3 font-body text-sm leading-6 text-[#9a4c2d] lg:col-span-2" role="alert">{saveError}</p>}
       <div className="min-w-0 space-y-5">

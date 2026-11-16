@@ -114,7 +114,9 @@ Nguyên nhân đã xác định: lệnh `npm run dev` trước đây chạy Vite
 
 Đã thêm migration `supabase/migrations/20261116_admin_notifications.sql` để tạo bảng thông báo quản trị, chính sách đọc/cập nhật theo người nhận và trigger (cơ chế tự chạy khi có dữ liệu mới) cho đơn hàng và đánh giá mới.
 
-Migration này chưa được xác nhận trên Supabase thật. Sau khi chạy, cần kiểm tra bảng `admin_notifications`, tạo một đơn hàng/đánh giá thử và xác nhận nút chuông trong admin đọc được thông báo.
+Đã xác nhận migration trên Supabase thật: REST (giao diện gọi dữ liệu) trả `401` cho `admin_notifications`, nghĩa là bảng đã tồn tại nhưng bị bảo vệ khi chưa có phiên đăng nhập hợp lệ; đây không còn là lỗi `404` thiếu bảng. Bộ kiểm tra đã được cập nhật để phân biệt `MISSING` (thiếu thật) với `EXISTS_OR_AUTH_REQUIRED` (đã tồn tại hoặc cần đăng nhập).
+
+Nút chuông quản trị vẫn cần được kiểm tra tiếp bằng phiên admin thật sau khi đăng nhập, rồi tạo một đơn hàng/đánh giá thử để xác nhận trigger (cơ chế tự chạy khi có dữ liệu mới) ghi thông báo.
 
 ## 7. Quy tắc bàn giao
 
@@ -128,6 +130,7 @@ Migration này chưa được xác nhận trên Supabase thật. Sau khi chạy,
 ### Đã cập nhật frontend
 
 - `src/App.tsx`:
+  - Trang thêm sách không còn thẻ điều hướng ba tab “Thông tin sách”, “Ảnh bìa”, “Mô tả”; các phần nhập liệu vẫn giữ nguyên trong một luồng liên tục, bớt một lớp giao diện trung gian.
   - Nút `Lưu sách` có trạng thái `Đang lưu…` trong lúc upload ảnh/PDF và ghi dữ liệu.
   - Khóa nút lưu và nút nháp trong lúc đang xử lý để tránh gửi trùng bản ghi.
   - Sau khi `createAdminBook` hoàn tất, xóa bản nháp local, ghi thông báo thành công vào `sessionStorage`, rồi chuyển bằng `window.location.replace('/admin/books')`.
