@@ -1,5 +1,9 @@
 # LineryBooks project checks
 
+## Language and terminology
+
+- When responding in Vietnamese, explain every English word, technical term, acronym, or product/process jargon in Vietnamese in parentheses at its first use. Prefer the Vietnamese term when one is clear; keep exact code identifiers, filenames, commands, URLs, and API names unchanged when they must remain exact.
+
 ## Excel and catalog data import
 
 - Treat every Excel import as UTF-8 data validation work, not only a copy operation.
