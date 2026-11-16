@@ -87,6 +87,19 @@ Mã frontend đã được cập nhật để hiển thị rõ:
 
 Sau khi migration quyền ghi đã chạy, cần thử lại cả ba bước: tạo sách, tạo liên kết phân loại và kiểm tra sách xuất hiện trong danh sách quản trị.
 
+## 9. Cập nhật quyền quản trị live
+
+Ngày 16/11/2026, migration `20261116_allow_admin_book_writes.sql` đã được chạy trên Supabase thật.
+
+Tài khoản `pt.thietke@gmail.com` đã được xác nhận trong `public.admin_users` với vai trò `owner` (chủ sở hữu quản trị). Không lưu mật khẩu hoặc mã truy cập vào repo.
+
+Trạng thái hiện tại:
+
+- Đã xác nhận quyền quản trị trong cơ sở dữ liệu thật.
+- Đã xác nhận các chính sách ghi cho nhóm bảng sách được tạo lại theo `public.is_admin()` (hàm kiểm tra quyền quản trị).
+- Cần kiểm thử cuối trên giao diện: đăng xuất/đăng nhập lại, tạo một sách mới, lưu, rồi kiểm tra bản ghi trong danh sách quản trị.
+- Chưa kết luận hoàn tất backend live cho đến khi bước lưu sách thật đạt.
+
 ## 7. Quy tắc bàn giao
 
 - Không coi build (biên dịch mã nguồn) đạt là đồng nghĩa với backend live đã đạt.
