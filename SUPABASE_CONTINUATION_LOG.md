@@ -175,3 +175,5 @@ Migration này chưa được xác nhận trên Supabase thật. Sau khi chạy,
 
 Kết luận: trước tiên máy B phải dùng đúng commit mới và chạy `npm run dev` để mặc định vào `enhanced` trên cổng `5174`. Nếu vẫn không lưu được sau bước này, cần đối chiếu tài khoản đăng nhập của máy B với quyền `books.create` (quyền tạo sách) trong Supabase; đó là lớp kiểm tra quyền riêng theo tài khoản, không phải lỗi giao diện.
 
+Sau commit `f8ef1e2`, màn đăng nhập quản trị sẽ hiển thị rõ tên môi trường đang chạy nếu Supabase chưa được cấu hình, thay vì chỉ báo lỗi chung. Nhờ đó có thể nhận biết ngay máy B đang chạy nhầm `classic` hay chưa.
+
