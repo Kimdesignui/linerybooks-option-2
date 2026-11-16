@@ -261,3 +261,11 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Sửa màn `/admin/books/new`: truyền cấu hình `showTabs={false}` để thanh tab điều hướng không thể xuất hiện lại trên màn thêm sách.
 - Kiểm tra sau thay đổi: `build`, `test:qa`, `verify:supabase-backend`, `verify:hosted-images`, `verify:homepage-modules` và `verify:admin-book-save` đều đạt.
 - Còn 15 hồ sơ thiếu ảnh thật; chưa tự gán ảnh không xác minh được danh tính.
+
+## 18. Sửa lưu metadata tin tức — 17/11/2026
+
+- Phát hiện biểu mẫu tin tức trước đây dò trực tiếp các ô nhập trong DOM (cấu trúc giao diện), nên khi sửa bài có thể ghi đè SEO, trạng thái hiển thị, danh mục và định dạng bằng giá trị rỗng hoặc mặc định.
+- Đã chuyển các trường SEO Title, SEO Keywords, SEO Description, hiển thị website, hiển thị trang chủ, tin nổi bật, danh mục và định dạng sang trạng thái biểu mẫu có kiểm soát; khi mở bài cũ sẽ nạp lại dữ liệu thật từ Supabase và khi lưu sẽ gửi đúng dữ liệu đó.
+- Bổ sung trạng thái `isPublished` vào dữ liệu tin tức để phân biệt rõ bài đang xuất bản với bản nháp ở màn sửa.
+- `build`, `test:qa`, `git diff --check` đều đạt. Kiểm tra backend Supabase vẫn đạt.
+- Chưa thể hoàn tất thao tác nhập/lưu qua giao diện trong tab thử nghiệm riêng vì phiên đăng nhập cục bộ trả `Invalid login credentials`; không đoán hoặc thay đổi mật khẩu. Cần dùng phiên Chrome đang đăng nhập sẵn hoặc triển khai bản này rồi kiểm tra lại trên môi trường đã đăng nhập.

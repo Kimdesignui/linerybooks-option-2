@@ -74,6 +74,7 @@ export type PublicNewsPost = {
   blocksVi: PublicNewsBlock[]
   isFeatured?: boolean
   showOnHomepage?: boolean
+  isPublished?: boolean
   displayFormat?: 'standard' | 'video'
   seoTitle?: string
   seoTitleVi?: string
@@ -1435,6 +1436,7 @@ export async function loadPublicNewsPosts(): Promise<PublicNewsPost[] | null> {
     categorySlugs: Array.isArray(post.category_slugs) ? post.category_slugs.map(String) : [],
     isFeatured: Boolean(post.is_featured),
     showOnHomepage: Boolean(post.show_on_homepage),
+    isPublished: true,
     displayFormat: (post.display_format === 'video' ? 'video' : 'standard') as PublicNewsPost['displayFormat'],
   }
     }).filter((post) => post.slug && post.title)
@@ -1499,6 +1501,7 @@ export async function loadAdminNewsPosts(): Promise<AdminNewsPost[]> {
       categorySlugs: Array.isArray(post.category_slugs) ? post.category_slugs.map(String) : [],
       isFeatured: Boolean(post.is_featured),
       showOnHomepage: Boolean(post.show_on_homepage),
+      isPublished: String(post.status ?? 'draft') === 'active',
       displayFormat: (post.display_format === 'video' ? 'video' : 'standard') as PublicNewsPost['displayFormat'],
     }
   }).filter((post) => post.slug && post.title)
