@@ -1,6 +1,6 @@
 # LineryBooks — Nhật ký bàn giao tiếp tục trên máy A
 
-> Cập nhật: 16/11/2026 (múi giờ Asia/Bangkok)
+> Cập nhật: 17/11/2026 (múi giờ Asia/Bangkok)
 >
 > File này ghi lại trạng thái triển khai backend (phần xử lý dữ liệu phía máy chủ), các việc chưa hoàn thành và cách kiểm tra. Không ghi mật khẩu, mã truy cập hoặc khóa bí mật vào đây.
 
@@ -231,7 +231,13 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Giá bìa USD `14.75`, giá bán `495000`, giá so sánh `535000`, tồn kho `18`, ngày xuất bản `2026-11-16`.
 - Đã chọn thật `Bao Ninh`, `Carmen Maria Machado`, `Josh Malerman`, `Picador`, `English`, `Paperback`, `Nonfiction`, `Poetry & Drama`, `Fiction`, `International Literature`, `Penguin Random House` và ghi mô tả.
 - Bản ghi đã xuất hiện trong danh sách quản trị và Supabase xác nhận: giá, tồn kho, mô tả, 3 liên kết creator và 7 liên kết phân loại đều đúng.
-- Không chọn mô-đun trang chủ ở lượt D, nên `homepageModuleLinks = 0`; lượt ISBN `9781234567890` trước đó vẫn xác nhận đủ mô-đun trang chủ và toàn bộ điều kiện kiểm tra đều đạt.
+- Không chọn mô-đun trang chủ ở lượt D, nên `homepageModuleLinks = 0`; lượt ISBN `9781234567890` trước khi dọn dữ liệu kiểm thử đã xác nhận đủ mô-đun trang chủ và toàn bộ điều kiện kiểm tra đều đạt.
 
 Đã sửa tiện ích `scripts/verify-admin-book-save.mjs`: không còn cố định giá USD mẫu `12.50`, mà kiểm tra giá dương và quan hệ giá so sánh lớn hơn giá bán. Đây là sửa công cụ kiểm tra, không thay đổi dữ liệu sách.
 
+## 15. Sửa số lượng sách trong mô-đun trang chủ — 17/11/2026
+
+- Kiểm tra live phát hiện `New & Upcoming` có 26 liên kết thay vì 24; hai liên kết dư là hai bản ghi kiểm thử ISBN `9781234567890` và `9781234567891`.
+- Đã xóa riêng hai liên kết khỏi `book_homepage_modules`, không xóa bản ghi sách.
+- Kiểm tra lại: `New & Upcoming`, `Linery Press`, `Linery Picks` và `Grab & Save` đều có đúng 24 sách, không trùng thứ tự, không có sách ẩn.
+- Kiểm tra workbook (tệp Excel nguồn) thật `D:\AI-project\linery-books-google.xlsx`: có 227 dòng, nhưng cột Link đều là trang sản phẩm, không phải URL ảnh; vì vậy không dùng trực tiếp cột này làm ảnh Storage.
