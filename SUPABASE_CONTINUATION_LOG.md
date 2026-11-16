@@ -75,6 +75,18 @@ npm run build:enhanced
 6. Kiểm tra admin bằng tài khoản thật: thêm sách, chuyển sang màn khác, quay lại, lưu bản ghi; sau đó kiểm tra sách xuất hiện trong danh sách admin và website theo trạng thái đã chọn.
 7. Chỉ sau khi các bước trên đạt mới commit và đẩy Git/Cloudflare.
 
+## 8. Lỗi mới phát hiện sau khi thử lưu sách
+
+Ngày 16/11/2026, màn **Thêm sách** đã gửi được dữ liệu nhưng Supabase trả lỗi `42501: new row violates row-level security policy for table "books"`.
+
+Ý nghĩa: tài khoản đã vào được khu vực quản trị, nhưng phiên hiện tại chưa được chính sách RLS (cơ chế giới hạn dữ liệu theo quyền) cho phép ghi vào bảng `books`. Không được xử lý bằng cách tắt RLS toàn bảng.
+
+Mã frontend đã được cập nhật để hiển thị rõ:
+
+> Tài khoản đã đăng nhập nhưng chưa có quyền ghi sách trên Supabase. Hãy chạy migration `20261116_allow_admin_book_writes.sql` và đăng nhập quản trị lại.
+
+Sau khi migration quyền ghi đã chạy, cần thử lại cả ba bước: tạo sách, tạo liên kết phân loại và kiểm tra sách xuất hiện trong danh sách quản trị.
+
 ## 7. Quy tắc bàn giao
 
 - Không coi build (biên dịch mã nguồn) đạt là đồng nghĩa với backend live đã đạt.
