@@ -2,6 +2,7 @@ import fs from 'node:fs'
 
 const isbn = process.argv[2] ?? process.env.LINERY_TEST_BOOK_ISBN
 if (!isbn) throw new Error('Cần truyền ISBN kiểm thử, ví dụ: node scripts/verify-admin-book-save.mjs 9781234567891')
+const expectsHomepageModule = process.argv.includes('--expect-home-module') || process.env.LINERY_EXPECT_HOMEPAGE_MODULE === '1'
 
 const env = Object.fromEntries(
   fs.readFileSync('.env.enhanced', 'utf8')
@@ -43,7 +44,7 @@ const checks = {
   visible: book.is_visible_website === true,
   creatorLink: creators.some((row) => row.role === 'author'),
   taxonomyLinks: taxonomy.length >= 5,
-  homepageModuleLink: modules.length >= 1,
+  homepageModuleLink: !expectsHomepageModule || modules.length >= 1,
 }
-console.log(JSON.stringify({ isbn, id: book.id, title: book.title, checks, creatorLinks: creators.length, taxonomyLinks: taxonomy.length, homepageModuleLinks: modules.length }, null, 2))
+console.log(JSON.stringify({ isbn, id: book.id, title: book.title, checks, creatorLinks: creators.length, taxonomyLinks: taxonomy.length, homepageModuleLinks: modules.length, expectsHomepageModule }, null, 2))
 if (Object.values(checks).some((value) => !value)) process.exitCode = 1

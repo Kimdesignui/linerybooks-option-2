@@ -241,3 +241,14 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Đã xóa riêng hai liên kết khỏi `book_homepage_modules`, không xóa bản ghi sách.
 - Kiểm tra lại: `New & Upcoming`, `Linery Press`, `Linery Picks` và `Grab & Save` đều có đúng 24 sách, không trùng thứ tự, không có sách ẩn.
 - Kiểm tra workbook (tệp Excel nguồn) thật `D:\AI-project\linery-books-google.xlsx`: có 227 dòng, nhưng cột Link đều là trang sản phẩm, không phải URL ảnh; vì vậy không dùng trực tiếp cột này làm ảnh Storage.
+
+## 16. Kiểm thử nhập sách thật lần tiếp theo — 17/11/2026
+
+- Đã tự điền và lưu qua giao diện `/admin/books/new` một bản ghi mới trong Supabase:
+  - ISBN `9781234567894`, tên `Kiểm thử nhập liệu thật Linery 20261117`.
+  - Giá bìa USD `15.75`, giá bán `510000`, giá so sánh `560000`, tồn kho `7`, số trang `320`.
+  - Đã chọn `Bao Ninh`, `Carmen Maria Machado`, `Josh Malerman`, `English`, `Paperback`, `Nonfiction`, `Poetry & Drama`, `Fiction`, `International Literature`, `Penguin Random House`.
+  - Lưu thành công, giao diện chuyển về `/admin/books` và hiện thông báo `Đã lưu sách và các liên kết vào Supabase.`
+- Đối soát trực tiếp bản ghi theo ISBN xác nhận: giá, tồn kho, mô tả, 3 liên kết creator (người sáng tạo) và 7 liên kết phân loại đều đúng; không chọn mô-đun trang chủ nên không tạo liên kết mô-đun.
+- Sửa `scripts/verify-admin-book-save.mjs`: mặc định chỉ kiểm tra mô-đun khi bản kiểm thử có yêu cầu; dùng cờ `--expect-home-module` nếu cần bắt buộc sách phải được gắn vào mô-đun trang chủ.
+- Chạy lại sau sửa: `verify:admin-book-save`, `verify:supabase-backend`, `verify:hosted-images`, `verify:homepage-modules` và `build` đều đạt. Cảnh báo duy nhất là kích thước gói runtime PDF/TTS lớn, không làm hỏng build.
