@@ -5823,17 +5823,13 @@ export function App() {
     return { ...item, quantity }
   }))
   const createOrder = async (input: { fulfillmentMethod: FulfillmentMethod; paymentMethod: PaymentMethod; shippingAddress: Record<string, string>; deliveryNotes: string; guestEmail: string; promotionCode?: string }) => {
-    if (supabase) {
-      const { data } = await supabase.auth.getSession()
-      if (!data.session?.user) throw new Error('Please sign in before placing an order.')
-      const result = await createRemoteOrder(input)
-      if (!result) throw new Error('The order service is not configured.')
-      setCartItems([])
-      emitFloatingNotice('success', 'Đặt hàng thành công. Cảm ơn bạn đã mua sách.')
-      return
-    }
-    addStorefrontOrder({ name: input.shippingAddress.name ?? '', email: input.guestEmail, phone: input.shippingAddress.phone ?? '', total: cartItems.reduce((sum, item) => sum + getPriceValue(item.product.price) * item.quantity, 0) })
-    emitFloatingNotice('success', 'Đặt hàng thành công.')
+    if (!supabase) throw new Error('Hệ thống đặt hàng chưa kết nối Supabase. Vui lòng thử lại sau khi backend sẵn sàng.')
+    const { data } = await supabase.auth.getSession()
+    if (!data.session?.user) throw new Error('Vui lòng đăng nhập trước khi đặt hàng.')
+    const result = await createRemoteOrder(input)
+    if (!result) throw new Error('Dịch vụ đặt hàng chưa được cấu hình.')
+    setCartItems([])
+    emitFloatingNotice('success', 'Đặt hàng thành công. Cảm ơn bạn đã mua sách.')
   }
   const buyNow = (product: Product) => {
     if (product.available === false) return
