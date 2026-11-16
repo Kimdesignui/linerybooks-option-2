@@ -1,14 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ClipboardEvent, type ElementType, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type SyntheticEvent } from 'react'
 import 'bootstrap-icons/font/bootstrap-icons.css'
-import { createEpubSource, createFlipview, createPdfSource, type FlipviewHandle } from 'flipview'
-import 'flipview/flipview.css'
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-import { checkRemoteAdminAccess, createAdminBook, createAdminChatbotPrompt, createAdminHomepageModule, createAdminMediaAsset, createAdminPaymentMethod, createAdminPromotion, createAdminStoreLocation, createAdminTaxonomyTerm, createAdminDeliveryZone, createRemoteOrder, deleteAdminBook, deleteAdminChatbotPrompt, deleteAdminDeliveryZone, deleteAdminHomepageModule, deleteAdminMediaAsset, deleteAdminPaymentMethod, deleteAdminSiteSetting, deleteAdminStoreLocation, deleteAdminTaxonomyTerm, ensureAdminHomepageModuleBooks, getCachedPublicCatalogProducts, grantAdminUser, loadAdminChatbotPrompts, loadAdminCustomers, loadAdminCreators, loadAdminDeliveryZones, loadAdminHomepageModules, loadAdminImportBatches, loadAdminInventory, loadAdminMediaAssets, loadAdminMenuItems, loadAdminNewsPosts, loadAdminOrders, loadAdminPaymentMethods, loadAdminPromotions, loadAdminReviews, loadAdminSiteSettings, loadAdminStoreLocations, loadAdminTaxonomy, loadAdminTopBooks, loadAdminUsers, loadMyOrders, loadMyProfile, loadMyTransactions, loadPublicBanners, loadPublicBookSample, loadPublicCatalogProducts, loadPublicCreatorProfiles, loadPublicDeliveryZones, loadPublicMenuItems, loadPublicNewsPosts, loadPublicStoreLocations, loadRemoteCart, loadRemoteWishlist, revokeAdminUser, saveAdminCreatorImages, saveMyProfile, saveRemoteCartItem, toggleRemoteWishlist, updateAdminChatbotPrompt, updateAdminDeliveryZone, updateAdminHomepageModule, updateAdminMenuItem, updateAdminMediaAsset, updateAdminOrderStatus, updateAdminPaymentMethod, updateAdminPromotionStatus, updateAdminReviewStatus, updateAdminStoreLocation, updateAdminTaxonomyTerm, updateMyPassword, upsertAdminSiteSetting, upsertCreatorProfile, upsertNewsPost, type AccountOrderRow, type AccountProfileRow, type AccountTransactionRow, type AdminBookInput, type AdminChatbotPromptRow, type AdminCreatorRow, type AdminCustomerRow, type AdminDeliveryZoneRow, type AdminHomepageModuleRow, type AdminImportBatchRow, type AdminInventoryRow, type AdminMediaAssetRow, type AdminMenuItemRow, type AdminNewsPost, type AdminOrderRow, type AdminPaymentMethodRow, type AdminPromotionInput, type AdminPromotionRow, type AdminReviewRow, type AdminSiteSettingRow, type AdminStoreLocationRow, type AdminTaxonomyKind, type AdminTaxonomyRow, type AdminTopBookRow, type AdminUserRow, type PublicBanner, type PublicCatalogProduct, type PublicCreatorProfile, type PublicDeliveryZone, type PublicMenuItem, type PublicNewsPost, type PublicNewsBlock, type PublicStoreLocation } from './lib/supabase-data'
+import type { FlipviewHandle } from 'flipview'
+import { checkRemoteAdminAccess, createAdminBook, createAdminChatbotPrompt, createAdminHomepageModule, createAdminMediaAsset, createAdminPaymentMethod, createAdminPromotion, createAdminStoreLocation, createAdminTaxonomyTerm, createAdminDeliveryZone, createRemoteOrder, deleteAdminBook, deleteAdminChatbotPrompt, deleteAdminDeliveryZone, deleteAdminHomepageModule, deleteAdminMediaAsset, deleteAdminPaymentMethod, deleteAdminSiteSetting, deleteAdminStoreLocation, deleteAdminTaxonomyTerm, ensureAdminHomepageModuleBooks, getCachedPublicCatalogProducts, grantAdminUser, loadAdminChatbotPrompts, loadAdminCustomers, loadAdminCreators, loadAdminDeliveryZones, loadAdminHomepageModules, loadAdminImportBatches, loadAdminInventory, loadAdminMediaAssets, loadAdminMenuItems, loadAdminNewsPosts, loadAdminOrders, loadAdminPaymentMethods, loadAdminPermissionMatrix, loadAdminPromotions, loadAdminRoles, loadAdminReviews, loadAdminSiteSettings, loadAdminStoreLocations, loadAdminTaxonomy, loadAdminTopBooks, loadAdminUsers, loadMyOrders, loadMyProfile, loadMyTransactions, loadPublicBanners, loadPublicBookSample, loadPublicCatalogProducts, loadPublicCreatorProfiles, loadPublicDeliveryZones, loadPublicMenuItems, loadPublicNewsPosts, loadPublicSiteSettings, loadPublicStoreLocations, loadRemoteCart, loadRemoteWishlist, revokeAdminUser, saveAdminCreatorImages, saveMyProfile, saveRemoteCartItem, setAdminUserRole, toggleRemoteWishlist, updateAdminChatbotPrompt, updateAdminDeliveryZone, updateAdminHomepageModule, updateAdminMenuItem, updateAdminMediaAsset, updateAdminOrderStatus, updateAdminPaymentMethod, updateAdminPromotionStatus, updateAdminReviewStatus, updateAdminStoreLocation, updateAdminTaxonomyTerm, updateMyPassword, upsertAdminSiteSetting, upsertCreatorProfile, upsertNewsPost, type AccountOrderRow, type AccountProfileRow, type AccountTransactionRow, type AdminAccess, type AdminBookInput, type AdminChatbotPromptRow, type AdminCreatorRow, type AdminCustomerRow, type AdminDeliveryZoneRow, type AdminHomepageModuleRow, type AdminImportBatchRow, type AdminInventoryRow, type AdminMediaAssetRow, type AdminMenuItemRow, type AdminNewsPost, type AdminOrderRow, type AdminPaymentMethodRow, type AdminPermissionRow, type AdminPromotionInput, type AdminPromotionRow, type AdminReviewRow, type AdminRoleKey, type AdminRoleRow, type AdminSiteSettingRow, type AdminStoreLocationRow, type AdminTaxonomyKind, type AdminTaxonomyRow, type AdminTopBookRow, type AdminUserRow, type PublicBanner, type PublicCatalogProduct, type PublicCreatorProfile, type PublicDeliveryZone, type PublicMenuItem, type PublicNewsPost, type PublicNewsBlock, type PublicSiteSettings, type PublicStoreLocation } from './lib/supabase-data'
 import { supabase } from './lib/supabase'
 import hueEmagazine from './data/emagazine-hue.json'
 import localCreatorImageMap from './data/creator-image-map.json'
 
-type Product = { id?: string; slug?: string; isbn?: string; image: string; gallery?: string[]; title: string; author: string; translators?: string[]; illustrators?: string[]; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean; limited?: boolean; moduleSlugs?: string[]; moduleSortOrders?: Record<string, number>; samplePdfUrl?: string; samplePdfPageCount?: number; sampleFileType?: 'pdf' | 'epub' }
+type Product = { id?: string; slug?: string; isbn?: string; image: string; gallery?: string[]; title: string; author: string; translators?: string[]; illustrators?: string[]; price: string; categories: string[]; publisher: string; writerType: 'Authors' | 'Translators'; year?: number; available?: boolean; limited?: boolean; moduleSlugs?: string[]; moduleSortOrders?: Record<string, number>; samplePdfUrl?: string; samplePdfPageCount?: number; sampleFileType?: 'pdf' | 'epub'; description?: string; coverPriceUsd?: number | null; comparePriceVnd?: number | null; pageCount?: number | null; bookSize?: string; publicationDate?: string; weight?: string; format?: string; line?: string; imprint?: string; languages?: string[]; genres?: string[]; topics?: string[] }
 type CartItem = { product: Product; quantity: number }
 type PaymentMethod = 'vnpay' | 'bank' | 'momo' | 'apple' | 'zalopay'
 type FulfillmentMethod = 'pickup' | 'delivery'
@@ -67,12 +65,13 @@ const queueFloatingNotice = (tone: FloatingNoticeTone, message: string) => {
   try { window.sessionStorage.setItem(floatingNoticeStorageKey, JSON.stringify({ tone, message })) } catch { /* storage may be unavailable */ }
 }
 const describeSaveError = (reason: unknown, fallback: string) => {
-  if (reason instanceof Error && reason.message) return reason.message
   if (reason && typeof reason === 'object') {
     const error = reason as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown }
+    if (error.code === '42501') return 'Tài khoản quản trị chưa được cấp quyền ghi dữ liệu. Hãy áp dụng migration cấp quyền admin trên Supabase rồi đăng nhập lại.'
     const parts = [error.message, error.details, error.hint, error.code].filter((part): part is string => typeof part === 'string' && Boolean(part.trim()))
     if (parts.length) return parts.join(' · ')
   }
+  if (reason instanceof Error && reason.message) return reason.message
   return fallback
 }
 
@@ -276,7 +275,7 @@ const readAdminBooks = (): AdminBook[] => {
       unitPrice: null,
       salePrice: parseDemoPrice(product.price),
       link: '',
-      format: 'Paperback',
+      format: product.format ?? '',
       line: product.publisher,
       category: product.categories[0] ?? '',
       cover: product.image,
@@ -291,7 +290,7 @@ const readAdminBooks = (): AdminBook[] => {
       unitPrice: null,
       salePrice: parseDemoPrice(product.price),
       link: '',
-      format: 'Paperback',
+      format: product.format ?? '',
       line: product.publisher,
       category: product.categories[0] ?? '',
       cover: product.image,
@@ -380,10 +379,10 @@ const newsItems: NewsItem[] = [
     image: '/assets/news-instagram-04.jpg', title: 'Điều khoản sử dụng', titleVi: 'Điều khoản sử dụng', date: 'Policies', kicker: 'Policies', slug: 'dieu-khoan', excerpt: 'Điều khoản sử dụng website và các dịch vụ của LineryBooks.', excerptVi: 'Điều khoản sử dụng website và các dịch vụ của LineryBooks.', body: ['Nội dung điều khoản sẽ được cập nhật từ khu vực quản trị và hiển thị thống nhất trên website.'], bodyVi: ['Nội dung điều khoản sẽ được cập nhật từ khu vực quản trị và hiển thị thống nhất trên website.'],
   },
 ]
-// Render the editorial module immediately while the public query is still in
-// flight. Once the query returns, Supabase is the only source of truth for
-// public news; checked-in content is not silently mixed into live data.
-let runtimeNewsItems: NewsItem[] = [...newsItems]
+// Enhanced storefront news is backend-only. Keep the classic visual variant
+// compatible with its checked-in fixture data, but never flash those fixtures
+// into the Supabase-backed storefront while the query is in flight or empty.
+let runtimeNewsItems: NewsItem[] = isEnhancedVariant ? [] : [...newsItems]
 const getNewsFromPath = (pathname: string) => {
   const slug = pathname.split('/').pop() ?? ''
   const legacySlug = slug === 'ong-troi-ba-troi-trong-tranh-lac-long-quan-au-co'
@@ -1640,38 +1639,41 @@ function BookReaderPage({ product, onBack }: { product: Product; onBack: () => v
     let cancelled = false
     setLoading(true)
     setError('')
-    const createSource = fileType === 'epub'
-      ? createEpubSource({ url: readerUrl })
-      : createPdfSource({ url: readerUrl, workerSrc: pdfWorkerUrl })
-    createSource.then((source) => {
+    void import('./book-reader-runtime').then(({ createEpubSource, createFlipview, createPdfSource, pdfWorkerUrl }) => {
       if (cancelled || !readerHostRef.current) return
-      const book = createFlipview(readerHostRef.current, source, {
-        mode: 'auto',
-        showCover: true,
-        hardCovers: false,
-        flippingTime: 700,
-        textLayer: true,
-        search: true,
-        panel: true,
-        zoom: true,
-        keyboard: true,
-        deepLink: true,
-        downloadUrl: readerUrl,
-        share: true,
-        onReady: (handle) => {
-          flipviewRef.current = handle
-          void waitForReaderPaint().then((painted) => {
-            if (cancelled) return
-            setLoading(false)
-            if (!painted) setError(`Không thể vẽ trang của file ${fileType.toUpperCase()}. Hãy tải lại trình đọc.`)
-            window.setTimeout(() => setHasReadableText(getVisibleText().length > 1), 120)
-          })
-        },
-        onPageChange: () => { window.setTimeout(() => setHasReadableText(getVisibleText().length > 1), 120) },
-        onError: () => { if (!cancelled) setError(`Không thể hiển thị trang của file ${fileType.toUpperCase()}.`) },
+      const createSource = fileType === 'epub'
+        ? createEpubSource({ url: readerUrl })
+        : createPdfSource({ url: readerUrl, workerSrc: pdfWorkerUrl })
+      return createSource.then((source) => {
+        if (cancelled || !readerHostRef.current) return
+        const book = createFlipview(readerHostRef.current, source, {
+          mode: 'auto',
+          showCover: true,
+          hardCovers: false,
+          flippingTime: 700,
+          textLayer: true,
+          search: true,
+          panel: true,
+          zoom: true,
+          keyboard: true,
+          deepLink: true,
+          downloadUrl: readerUrl,
+          share: true,
+          onReady: (handle) => {
+            flipviewRef.current = handle
+            void waitForReaderPaint().then((painted) => {
+              if (cancelled) return
+              setLoading(false)
+              if (!painted) setError(`Không thể vẽ trang của file ${fileType.toUpperCase()}. Hãy tải lại trình đọc.`)
+              window.setTimeout(() => setHasReadableText(getVisibleText().length > 1), 120)
+            })
+          },
+          onPageChange: () => { window.setTimeout(() => setHasReadableText(getVisibleText().length > 1), 120) },
+          onError: () => { if (!cancelled) setError(`Không thể hiển thị trang của file ${fileType.toUpperCase()}.`) },
+        })
+        flipviewRef.current = book
+        setLoading(false)
       })
-      flipviewRef.current = book
-      setLoading(false)
     }).catch(() => { if (!cancelled) { setError(`Không thể mở file ${fileType.toUpperCase()} đọc thử.`); setLoading(false) } })
     return () => { cancelled = true; flipviewRef.current?.destroy(); flipviewRef.current = null }
   }, [readerUrl, fileType])
@@ -1793,7 +1795,7 @@ function BookReaderPage({ product, onBack }: { product: Product; onBack: () => v
 }
 
 function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBuyNow, onPreview, onPreviewLeave, onSelectQuickView, quickViewOpen }: { product: Product; onBack: () => void; onAuthor: (author: string) => void; onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onBuyNow: (product: Product) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }) {
-  const galleryImages = [product.image]
+  const galleryImages = product.gallery?.length ? product.gallery : [product.image]
   const normalizedCategories = product.categories.map(normalizeProductCategory)
   const subjectCategories = normalizedCategories.filter((category) => !/^(fiction|non fiction)$/.test(category))
   const categoriesToMatch = subjectCategories.length > 0 ? subjectCategories : normalizedCategories
@@ -1877,8 +1879,7 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
         <section className="book-detail-inline-description" aria-labelledby="book-description-title">
           <h2 id="book-description-title">Description</h2>
           <div id="book-description-copy" className={`book-description-content ${descriptionExpanded ? 'is-expanded' : ''}`}>
-            <p>Explore a carefully selected title from the Linery collection, where thoughtful writing, distinctive voices and beautifully made books meet. This temporary product page follows the editorial structure of the reference bookstore layout.</p>
-            <p>Discover the ideas, stories and conversations inside this edition, and return to the shop to explore more books from our independent collection.</p>
+            {product.description ? <div dangerouslySetInnerHTML={{ __html: product.description }} /> : <p>Chưa có mô tả cho sách này.</p>}
           </div>
           <button className="book-detail-read-more" type="button" aria-expanded={descriptionExpanded} aria-controls="book-description-copy" onClick={() => setDescriptionExpanded((expanded) => !expanded)}>
             <span>{descriptionExpanded ? 'Read less' : 'Read more'}</span>
@@ -1887,7 +1888,7 @@ function BookDetail({ product, onBack, onAuthor, onOpenDetail, onAddToCart, onBu
         </section>
         <section className="book-details-grid book-detail-inline-details" aria-labelledby="details-title">
           <h2 id="details-title">Details</h2>
-          <dl><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>ISBN</dt><dd>9780000000000</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Publisher</dt><dd>{product.publisher}</dd></div></dl>
+          <dl><div><dt>Format</dt><dd>{product.format || '—'}</dd></div><div><dt>ISBN</dt><dd>{product.isbn || '—'}</dd></div><div><dt>Pages</dt><dd>{product.pageCount ? `${product.pageCount} pages` : '—'}</dd></div><div><dt>Language</dt><dd>{product.languages?.join(', ') || '—'}</dd></div><div><dt>Publisher</dt><dd>{product.publisher || '—'}</dd></div>{product.line && <div><dt>Line</dt><dd>{product.line}</dd></div>}{product.imprint && <div><dt>Imprint</dt><dd>{product.imprint}</dd></div>}{product.bookSize && <div><dt>Book size</dt><dd>{product.bookSize}</dd></div>}{product.weight && <div><dt>Weight</dt><dd>{product.weight}</dd></div>}{product.publicationDate && <div><dt>Publication date</dt><dd>{product.publicationDate}</dd></div>}</dl>
         </section>
         {relatedProducts.length > 0 && <RelatedBooksPanel items={relatedProducts} onOpenDetail={onOpenDetail} />}
       </div>
@@ -1952,10 +1953,10 @@ function BookPreview({ product, onClose, onOpenDetail }: { product: Product | nu
       </div>
       <dl className="book-preview-details">
         <div><dt>Publisher</dt><dd>{publisher}</dd></div>
-        <div><dt>ISBN</dt><dd>978-0-00-000000-0</dd></div>
-        <div><dt>Format</dt><dd>Paperback</dd></div>
-        <div><dt>Language</dt><dd>English</dd></div>
-        <div><dt>Pages</dt><dd>320 pages</dd></div>
+        <div><dt>ISBN</dt><dd>{product.isbn || '—'}</dd></div>
+        <div><dt>Format</dt><dd>{product.format || '—'}</dd></div>
+        <div><dt>Language</dt><dd>{product.languages?.join(', ') || '—'}</dd></div>
+        <div><dt>Pages</dt><dd>{product.pageCount ? `${product.pageCount} pages` : '—'}</dd></div>
       </dl>
       <a className="book-preview-link" href="#a" onClick={(event) => { event.preventDefault(); onOpenDetail(product) }}>View full details <span aria-hidden="true">→</span></a>
     </> : <div className="book-preview-empty">
@@ -1986,7 +1987,7 @@ function UtilityPanel({ product, onClose, onOpenDetail, onAuthor, onAddToCart, o
           <img className="book-preview-cover" src={product.image || BOOK_COVER_FALLBACK} alt={product.title} loading="lazy" decoding="async" onError={handleBookCoverError} />
           <div className="book-preview-copy"><h2>{product.title}</h2><p className="book-preview-author"><a className="book-preview-author-link" href={`/creators/${authorSlug(product.author)}`} onClick={(event) => { event.preventDefault(); onAuthor(product.author) }}>{product.author}</a></p><p className="book-preview-price">{product.price}</p></div>
           <div className="book-preview-section-divider" aria-hidden="true" />
-          <dl className="book-preview-details"><div><dt>Publisher</dt><dd>{publisher}</dd></div><div><dt>ISBN</dt><dd>978-0-00-000000-0</dd></div><div><dt>Format</dt><dd>Paperback</dd></div><div><dt>Language</dt><dd>English</dd></div><div><dt>Pages</dt><dd>320 pages</dd></div></dl>
+          <dl className="book-preview-details"><div><dt>Publisher</dt><dd>{publisher}</dd></div><div><dt>ISBN</dt><dd>{product.isbn || '—'}</dd></div><div><dt>Format</dt><dd>{product.format || '—'}</dd></div><div><dt>Language</dt><dd>{product.languages?.join(', ') || '—'}</dd></div><div><dt>Pages</dt><dd>{product.pageCount ? `${product.pageCount} pages` : '—'}</dd></div></dl>
           <a className="book-preview-link" href="#a" onClick={(event) => { event.preventDefault(); onOpenDetail(product) }}>View full details <span aria-hidden="true">→</span></a>
           </div>
         </div>
@@ -1996,7 +1997,7 @@ function UtilityPanel({ product, onClose, onOpenDetail, onAuthor, onAddToCart, o
   </div>
 }
 
-function Footer({ menuItems = [] }: { menuItems?: PublicMenuItem[] }) {
+function Footer({ menuItems = [], siteSettings = {} }: { menuItems?: PublicMenuItem[]; siteSettings?: PublicSiteSettings }) {
   const footerColumns = [
     { title: 'About Us', links: [['About Us', '/news/gioi-thieu'], ['Contact', '/news/lien-he']] },
     { title: 'Policies & Terms', links: [['Policies', '/news/chinh-sach'], ['Terms', '/news/dieu-khoan']] },
@@ -2008,7 +2009,7 @@ function Footer({ menuItems = [] }: { menuItems?: PublicMenuItem[] }) {
   ].filter((column) => column.links.length > 0) : footerColumns
   return <footer className="site-footer scroll-section" id="about">
     <div className="footer-copy">
-      <h2 className="footer-brand"><img src="/assets/linerybooks-favicon-round.svg" alt="LineryBooks" /> <span>LINERY</span></h2>
+      <h2 className="footer-brand"><img src={String(siteSettings.site_logo?.publicUrl ?? '/assets/linerybooks-favicon-round.svg')} alt="LineryBooks" /> <span>LINERY</span></h2>
       <p className="footer-quote">(pn.) /'lınəri/<br />a curated bookstore &amp; independent press, crafted in Hanoi</p>
       <div className="footer-contact"><i className="bi bi-telephone-fill" aria-hidden="true" /><a href="tel:+840946936039">+84 0946936039</a></div>
       <div className="footer-contact"><i className="bi bi-geo-alt-fill" aria-hidden="true" /><span>Hanoi Book Street, Cua Nam Ward, Hanoi</span></div>
@@ -2491,19 +2492,54 @@ function LoginPage({ onHome, onRegister, onForgotPassword, onLoginSuccess }: { o
   </main>
 }
 
-function AdminAuthGate({ children }: { children: ReactNode }) {
+const adminRoutePermissions: Array<[string, string]> = [
+  ['/admin/settings/admin-users', 'admin_users.manage'],
+  ['/admin/books/categories/new', 'taxonomy.manage'],
+  ['/admin/books/categories', 'taxonomy.manage'],
+  ['/admin/books/new', 'books.create'],
+  ['/admin/books/report/', 'books.view'],
+  ['/admin/books', 'books.view'],
+  ['/admin/import-history', 'imports.manage'],
+  ['/admin/collections', 'homepage.manage'],
+  ['/admin/orders', 'orders.manage'],
+  ['/admin/reports', 'reports.view'],
+  ['/admin/customers', 'customers.view'],
+  ['/admin/stores', 'locations.manage'],
+  ['/admin/locations', 'locations.manage'],
+  ['/admin/inventory', 'inventory.manage'],
+  ['/admin/promotions', 'promotions.manage'],
+  ['/admin/authors', 'authors.manage'],
+  ['/admin/publishers', 'taxonomy.manage'],
+  ['/admin/news', 'news.manage'],
+  ['/admin/reviews', 'reviews.moderate'],
+  ['/admin/media', 'media.manage'],
+  ['/admin/menus', 'website.manage'],
+  ['/admin/website', 'website.manage'],
+  ['/admin/locations', 'locations.manage'],
+  ['/admin/payments', 'payments.manage'],
+  ['/admin/chatbot', 'chatbot.manage'],
+  ['/admin/settings/site-data', 'website.manage'],
+  ['/admin/settings', 'website.manage'],
+  ['/admin', 'dashboard.view'],
+]
+const getAdminPermissionForPath = (pathname: string) => adminRoutePermissions.find(([prefix]) => pathname === prefix || pathname.startsWith(prefix))?.[1]
+
+function AdminAuthGate({ children, requiredPermission }: { children: ReactNode; requiredPermission?: string }) {
   const [checking, setChecking] = useState(true)
   const [allowed, setAllowed] = useState(false)
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
+  const [access, setAccess] = useState<AdminAccess | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   const checkAccess = async () => {
     setChecking(true)
     const result = await checkRemoteAdminAccess()
-    setAllowed(result.allowed)
+    setAccess(result.access ?? null)
+    const hasPermission = !requiredPermission || Boolean(result.access?.permissions.includes(requiredPermission))
+    setAllowed(result.allowed && hasPermission)
     setEmail(result.email ?? '')
-    setMessage(result.error ?? '')
+    setMessage(result.error ?? (result.allowed && !hasPermission ? `Vai trò ${result.access?.roleName ?? 'hiện tại'} chưa được cấp quyền này.` : ''))
     setChecking(false)
   }
 
@@ -2532,7 +2568,7 @@ function AdminAuthGate({ children }: { children: ReactNode }) {
   if (checking) return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-8 text-center shadow-[0_10px_30px_rgba(31,42,36,.04)]"><p className="font-body text-sm text-[#74776f]">Đang kiểm tra quyền quản trị…</p></section></main>
   if (allowed) return <>{children}</>
 
-  return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-6 shadow-[0_10px_30px_rgba(31,42,36,.04)] sm:p-8"><div className="mb-8"><p className="font-body text-xs font-semibold uppercase tracking-[.14em] text-[var(--color-olive)]">LINERY QUẢN TRỊ</p><h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">Đăng nhập quản trị</h1><p className="mt-2 font-body text-sm leading-6 text-[#74776f]">Chỉ tài khoản đã được cấp trong bảng <code>admin_users</code> mới có thể mở khu vực này.</p></div><form className="grid gap-4" onSubmit={signIn}><label className="grid gap-1.5 font-body text-sm font-medium">Email<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="email" type="email" autoComplete="username" required /></label><label className="grid gap-1.5 font-body text-sm font-medium">Mật khẩu<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="password" type="password" autoComplete="current-password" required /></label><button className="admin-primary-action inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-60" type="submit" disabled={submitting}>{submitting ? 'Đang xác thực…' : 'Đăng nhập quản trị'}</button></form><a className="mt-4 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#forgot-password">Quên mật khẩu?</a>{email && <p className="mt-4 font-body text-xs text-[#74776f]">Tài khoản hiện tại: {email}</p>}{message && <p className="mt-4 rounded-xl bg-[#fff4ec] px-4 py-3 font-body text-sm leading-6 text-[#9a4c2d]" role="alert">{message}</p>}<a className="mt-6 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#home">← Quay lại website</a></section></main>
+  return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-6 shadow-[0_10px_30px_rgba(31,42,36,.04)] sm:p-8"><div className="mb-8"><p className="font-body text-xs font-semibold uppercase tracking-[.14em] text-[var(--color-olive)]">LINERY QUẢN TRỊ</p><h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">{access && email ? 'Không đủ quyền truy cập' : 'Đăng nhập quản trị'}</h1><p className="mt-2 font-body text-sm leading-6 text-[#74776f]">{access && email ? `Tài khoản ${email} đang là ${access.roleName}. Hãy liên hệ Super Admin để được cấp thêm nghiệp vụ.` : 'Chỉ tài khoản đã được cấp trong bảng admin_users mới có thể mở khu vực này.'}</p></div>{!access && <form className="grid gap-4" onSubmit={signIn}><label className="grid gap-1.5 font-body text-sm font-medium">Email<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="email" type="email" autoComplete="username" required /></label><label className="grid gap-1.5 font-body text-sm font-medium">Mật khẩu<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="password" type="password" autoComplete="current-password" required /></label><button className="admin-primary-action inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-60" type="submit" disabled={submitting}>{submitting ? 'Đang xác thực…' : 'Đăng nhập quản trị'}</button></form>}{!access && <a className="mt-4 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#forgot-password">Quên mật khẩu?</a>}{email && <p className="mt-4 font-body text-xs text-[#74776f]">Tài khoản hiện tại: {email}</p>}{message && <p className="mt-4 rounded-xl bg-[#fff4ec] px-4 py-3 font-body text-sm leading-6 text-[#9a4c2d]" role="alert">{message}</p>}<a className="mt-6 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#home">← Quay lại website</a></section></main>
 }
 
 type RecoveryMode = 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete'
@@ -3243,6 +3279,16 @@ function AdminImageUpload({ label, preview, fileName, onFileChange, onClear, sho
   return <div className="w-full"><>{showLabel && <span className="mb-1.5 block font-body text-sm font-medium">{label}</span>}</><input id={inputId} className="sr-only" type="file" accept={accept} onChange={(event) => handleFiles(event.target.files)} /><label htmlFor={inputId} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); handleFiles(event.dataTransfer.files) }} className={`group relative flex min-h-48 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed px-5 py-7 text-center transition ${preview ? 'border-[var(--color-olive)] bg-[rgba(155,148,47,.05)]' : 'border-[#d8d5c8] bg-[#fcfbf7] hover:border-[var(--color-olive)] hover:bg-[rgba(155,148,47,.05)]'}`}>{preview ? <><img className="absolute inset-0 h-full w-full object-contain" src={preview} alt={`Xem trước ${label.toLowerCase()}`} /><span className="absolute inset-0 bg-[rgba(31,42,36,.42)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100" aria-hidden="true" /><span className="relative z-10 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 font-body text-xs font-semibold text-[var(--color-ink)] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"><i className="bi bi-arrow-repeat" aria-hidden="true" />Đổi ảnh</span></> : <><span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl text-[var(--color-olive)] shadow-sm ring-1 ring-[#e6e2d7]"><i className="bi bi-cloud-arrow-up" aria-hidden="true" /></span><span className="mt-3 font-body text-sm font-semibold text-[var(--color-ink)]">Kéo thả ảnh vào đây</span><span className="mt-1 font-body text-xs text-[#8b8d86]">hoặc bấm để chọn từ máy tính</span><span className="mt-3 rounded-lg border border-[#dedbd0] bg-white px-3 py-1.5 font-body text-xs font-medium text-[#62655f] group-hover:border-[var(--color-olive)]">Chọn ảnh</span></>}</label>{preview && <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#e6e2d7] bg-white p-3"><div className="min-w-0 flex-1"><p className="truncate font-body text-sm font-medium">{fileName || 'Ảnh đã chọn'}</p><p className="mt-0.5 font-body text-xs text-[#8b8d86]">Bấm vào ảnh để đổi · JPG, PNG hoặc WebP</p></div><button className="inline-flex h-9 items-center justify-center rounded-lg border border-[#dedbd0] px-3 font-body text-xs font-medium text-[#62655f] hover:border-[#a33d32] hover:text-[#a33d32]" type="button" onClick={onClear}>Xóa ảnh</button></div>}<p className="mt-2 font-body text-xs text-[#8b8d86]">Tối đa 5MB · Không nhập URL</p></div>
 }
 
+function AdminSampleUpload({ fileName, onFileChange, onClear }: { fileName?: string; onFileChange: (file: File) => void; onClear: () => void }) {
+  const inputId = 'admin-book-reading-sample'
+  const handleFile = (file: File | undefined) => {
+    if (!file) return
+    const validType = /application\/pdf/i.test(file.type) || /application\/epub\+zip/i.test(file.type) || /\.(pdf|epub)$/i.test(file.name)
+    if (validType && file.size <= 50 * 1024 * 1024) onFileChange(file)
+  }
+  return <div className="w-full"><span className="mb-1.5 block font-body text-sm font-medium">File đọc thử</span><input id={inputId} className="sr-only" type="file" accept="application/pdf,application/epub+zip,.pdf,.epub" onChange={(event) => handleFile(event.target.files?.[0])} /><label htmlFor={inputId} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); handleFile(event.dataTransfer.files?.[0]) }} className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d8d5c8] bg-[#fcfbf7] px-4 py-5 text-center transition hover:border-[var(--color-olive)] hover:bg-[rgba(155,148,47,.05)]"><span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white text-lg text-[var(--color-olive)] shadow-sm ring-1 ring-[#e6e2d7]"><i className="bi bi-file-earmark-pdf" aria-hidden="true" /></span><span className="mt-2 font-body text-sm font-semibold text-[var(--color-ink)]">{fileName || 'Chọn PDF hoặc EPUB'}</span><span className="mt-1 font-body text-xs text-[#8b8d86]">Kéo thả hoặc bấm để chọn · tối đa 50MB</span></label>{fileName && <button className="mt-2 inline-flex min-h-9 items-center justify-center rounded-lg border border-[#dedbd0] px-3 font-body text-xs font-medium text-[#62655f] hover:border-[#a33d32] hover:text-[#a33d32]" type="button" onClick={onClear}>Xóa file đọc thử</button>}</div>
+}
+
 type AdminImageAsset = { preview: string; name: string; dataUrl?: string; file?: File }
 
 function AdminImageGalleryUpload({ label, items, onFilesChange, onRemove, showLabel = true }: { label: string; items: AdminImageAsset[]; onFilesChange: (files: File[]) => void; onRemove: (index: number) => void; showLabel?: boolean }) {
@@ -3367,7 +3413,7 @@ function AdminAuthorsRestoredPage({ pathname }: { pathname: string }) {
       setCreatorSaving(false)
     }
   }
-  const selectedBooks: AdminCatalogBook[] = publicCatalogProducts.filter((book) => book.author === selected.name || book.translators.includes(selected.name) || book.illustrators.includes(selected.name)).map((book) => ({ id: book.id, isbn: book.isbn, title: book.title, author: book.author, cover: book.image, coverImages: book.gallery, quantity: book.available ? 1 : 0, unitPrice: null, salePrice: parseDemoPrice(book.price), link: `/books/${book.slug}`, format: 'Paperback', line: book.publisher, category: book.categories[0] ?? '', series: '', goodreads: '', description: '', status: book.available ? 'Đang bán' : 'Hết hàng', slug: book.slug, publisher: book.publisher, authors: [book.author], translators: book.translators, illustrators: book.illustrators, categories: book.categories }))
+  const selectedBooks: AdminCatalogBook[] = publicCatalogProducts.filter((book) => book.author === selected.name || book.translators.includes(selected.name) || book.illustrators.includes(selected.name)).map((book) => ({ id: book.id, isbn: book.isbn, title: book.title, author: book.author, cover: book.image, coverImages: book.gallery, quantity: book.inventoryQuantity, unitPrice: null, salePrice: parseDemoPrice(book.price), comparePrice: book.comparePriceVnd, link: `/books/${book.slug}`, format: book.format, line: book.line || book.publisher, category: book.categories[0] ?? '', series: '', goodreads: '', description: book.description, status: book.available ? 'Đang bán' : 'Hết hàng', slug: book.slug, pages: book.pageCount, bookSize: book.bookSize, publisher: book.publisher, imprint: book.imprint, publicationDate: book.publicationDate, weight: book.weight, authors: [book.author], translators: book.translators, illustrators: book.illustrators, categories: book.categories, topics: book.topics, languages: book.languages }))
   const bookCount = (authorName: string) => publicCatalogProducts.filter((book) => book.author === authorName || book.translators.includes(authorName) || book.illustrators.includes(authorName)).length
   const openDetail = (id: string) => { setSelectedId(id); setView('detail') }
   const viewButton = (value: 'cards' | 'table' | 'detail', icon: string, label: string) => (
@@ -3812,6 +3858,7 @@ const adminSelectOptions = {
   formats: ['Paperback', 'Hardcover', 'Digital', 'Audiobook'],
   lines: ['Picador', 'Penguin UK', 'Penguin US', 'NYRB'],
   categories: ['Fiction', 'Novels', 'Short stories', 'Poetry & Drama', 'Non-fiction', 'Essays', 'Research & Studies', 'Memoir & Biography'],
+  genres: ['Fiction', 'Non-fiction', 'Short stories', 'Poetry & Drama', 'Essays', 'Memoir & Biography'],
   topics: ['Literary fiction', 'Politics', 'Philosophy', 'History', 'Art & Design', 'Culture', 'Biography'],
   publishers: ['Penguin Books', 'Picador', 'New York Review Books', 'Linery Press'],
   imprints: ['Penguin Classics', 'Picador Classics', 'NYRB Classics', 'Linery Editions'],
@@ -3873,14 +3920,14 @@ function AdminBookReportPage({ bookId }: { bookId: string }) {
         return
       }
       const numericPrice = Number(product.price.replace(/[^0-9]/g, '')) || 0
-      setBook({ id: product.id, isbn: product.isbn, title: product.title, author: product.author, cover: product.image || BOOK_COVER_FALLBACK, coverImages: product.gallery, quantity: product.available ? 1 : 0, unitPrice: null, salePrice: numericPrice, series: '', format: '', line: '', category: product.categories.join(', '), link: `/books/${product.slug}`, goodreads: '', description: '', status: product.available ? 'Đang hoạt động' : 'Hết hàng', slug: product.slug, authors: product.author ? [product.author] : [], translators: product.translators, illustrators: product.illustrators, categories: product.categories, publisher: product.publisher })
+      setBook({ id: product.id, isbn: product.isbn, title: product.title, author: product.author, cover: product.image || BOOK_COVER_FALLBACK, coverImages: product.gallery, quantity: product.inventoryQuantity, unitPrice: null, salePrice: numericPrice, series: '', format: product.format, line: product.line, category: product.categories.join(', '), link: `/books/${product.slug}`, goodreads: '', description: product.description, status: product.available ? 'Đang hoạt động' : 'Hết hàng', slug: product.slug, pages: product.pageCount, bookSize: product.bookSize, publisher: product.publisher, imprint: product.imprint, publicationDate: product.publicationDate, weight: product.weight, language: product.languages.join(', '), authors: product.author ? [product.author] : [], translators: product.translators, illustrators: product.illustrators, categories: product.categories, topics: product.topics, languages: product.languages })
     }).catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : 'Không đọc được sách từ Supabase.') }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [bookId])
   if (loading) return <AdminSimpleCreateShell title="Đang tải báo cáo sách" backHref="/admin/books" section="SÁCH" description="Đang đọc bản ghi thật từ Supabase."><div className="rounded-2xl border border-[#e6e2d7] bg-white p-8 text-center font-body text-sm text-[#74776f]">Đang tải dữ liệu sách…</div></AdminSimpleCreateShell>
   if (error || !book) return <AdminSimpleCreateShell title="Không tìm thấy sách" backHref="/admin/books" section="SÁCH" description="Báo cáo chỉ hiển thị bản ghi thật từ Supabase."><div className="rounded-2xl border border-dashed border-[#d9d6c8] bg-white p-8 text-center font-body text-sm text-[#74776f]"><p role="alert">{error || 'Bản ghi sách không tồn tại trong Supabase.'}</p><a className="mt-4 inline-flex font-semibold text-[var(--color-olive-dark)]" href="/admin/books">Quay lại danh sách sách</a></div></AdminSimpleCreateShell>
-  const fields: Array<[string, string]> = [['ISBN', book.isbn], ['Tác giả', book.author], ['Series', book.series], ['Số lượng', `${book.quantity} quyển`], ['Đơn giá nhập', book.unitPrice === null ? '—' : `${book.unitPrice.toLocaleString('vi-VN')} VNĐ`], ['Giá bán', `${book.salePrice.toLocaleString('vi-VN')} VNĐ`], ['Thể thức', book.format], ['Dòng sách', book.line], ['Thể loại', book.category], ['Trạng thái bản ghi', book.status]]
-  return <AdminSimpleCreateShell title="Báo cáo chi tiết sách" backHref="/admin/books" section="SÁCH" description="Thông tin chi tiết của bản ghi được đọc trực tiếp từ catalog Supabase."><div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]"><aside className="rounded-2xl border border-[#e6e2d7] bg-white p-4"><img className="aspect-[2/3] w-full rounded-xl object-cover" src={book.cover || BOOK_COVER_FALLBACK} alt={book.title} onError={handleBookCoverError} /><a className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-[#dedbd0] font-body text-sm font-medium" href={`/admin/books`}>Về quản lý sách</a></aside><article className="rounded-2xl border border-[#e6e2d7] bg-white p-5 sm:p-6"><div className="border-b border-[#eeeae0] pb-5"><p className="font-body text-sm text-[#8b8d86]">Báo cáo sách</p><h2 className="mt-1 font-display text-2xl font-bold sm:text-3xl">{book.title}</h2></div><dl className="mt-5 grid gap-4 sm:grid-cols-2">{fields.map(([label, value]) => <div className="rounded-xl bg-[#fcfbf7] p-3" key={label}><dt className="font-body text-xs text-[#8b8d86]">{label}</dt><dd className="mt-1 font-body text-sm font-semibold">{value || '—'}</dd></div>)}</dl>{book.description && <div className="mt-5 border-t border-[#eeeae0] pt-5"><h3 className="font-display text-lg font-semibold">Mô tả sách</h3><p className="mt-2 whitespace-pre-wrap font-body text-sm leading-6 text-[#62655f]">{book.description}</p></div>}</article></div></AdminSimpleCreateShell>
+  const fields: Array<[string, string]> = [['ISBN', book.isbn], ['Tác giả', book.author], ['Số lượng', `${book.quantity} quyển`], ['Giá bán', `${book.salePrice.toLocaleString('vi-VN')} VNĐ`], ['Thể thức', book.format], ['Dòng sách', book.line], ['Thể loại / danh mục', book.category], ['Chủ đề', book.topics?.join(', ') ?? ''], ['Ngôn ngữ', book.languages?.join(', ') ?? book.language ?? ''], ['Publisher', book.publisher ?? ''], ['Imprint', book.imprint ?? ''], ['Số trang', book.pages == null ? '' : String(book.pages)], ['Khổ sách', book.bookSize ?? ''], ['Ngày xuất bản', book.publicationDate ?? ''], ['Trọng lượng', book.weight ?? ''], ['Trạng thái bản ghi', book.status]]
+  return <AdminSimpleCreateShell title="Báo cáo chi tiết sách" backHref="/admin/books" section="SÁCH" description="Thông tin chi tiết của bản ghi được đọc trực tiếp từ catalog Supabase."><div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]"><aside className="rounded-2xl border border-[#e6e2d7] bg-white p-4"><img className="aspect-[2/3] w-full rounded-xl object-cover" src={book.cover || BOOK_COVER_FALLBACK} alt={book.title} onError={handleBookCoverError} /><a className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-[#dedbd0] font-body text-sm font-medium" href={`/admin/books`}>Về quản lý sách</a></aside><article className="rounded-2xl border border-[#e6e2d7] bg-white p-5 sm:p-6"><div className="border-b border-[#eeeae0] pb-5"><p className="font-body text-sm text-[#8b8d86]">Báo cáo sách</p><h2 className="mt-1 font-display text-2xl font-bold sm:text-3xl">{book.title}</h2></div><dl className="mt-5 grid gap-4 sm:grid-cols-2">{fields.map(([label, value]) => <div className="rounded-xl bg-[#fcfbf7] p-3" key={label}><dt className="font-body text-xs text-[#8b8d86]">{label}</dt><dd className="mt-1 font-body text-sm font-semibold">{value || '—'}</dd></div>)}</dl>{book.description && <div className="mt-5 border-t border-[#eeeae0] pt-5"><h3 className="font-display text-lg font-semibold">Mô tả sách</h3><div className="mt-2 font-body text-sm leading-6 text-[#62655f]" dangerouslySetInnerHTML={{ __html: book.description }} /></div>}</article></div></AdminSimpleCreateShell>
 }
 
 function AdminInfoTooltip({ label, text }: { label: string; text: string }) {
@@ -3940,13 +3987,16 @@ function AdminQuickCreatorModal({ role, existingNames, onSaved, onClose }: { rol
 }
 
 function AdminBookCreatePageV2() {
-  const [values, setValues] = useState({ isbn: '', title: '', slug: '', coverPriceUsd: '', salePrice: '', comparePrice: '', pages: '', bookSize: '', author: [] as string[], translator: [] as string[], illustrator: [] as string[], format: '', line: '', category: [] as string[], genre: [] as string[], topic: [] as string[], publisher: '', imprint: '', publicationDate: '', weight: '', language: [] as string[], link: '', description: '' })
+  const [values, setValues] = useState({ isbn: '', title: '', slug: '', coverPriceUsd: '', salePrice: '', comparePrice: '', pages: '', inventoryQuantity: '', bookSize: '', author: [] as string[], translator: [] as string[], illustrator: [] as string[], format: '', line: '', category: [] as string[], genre: [] as string[], topic: [] as string[], publisher: '', imprint: '', publicationDate: '', weight: '', language: [] as string[], link: '', description: '' })
   const [coverImages, setCoverImages] = useState<AdminImageAsset[]>([])
+  const [sampleFile, setSampleFile] = useState<File | null>(null)
+  const [samplePageCount, setSamplePageCount] = useState('')
   const [isVisible, setIsVisible] = useState(true)
   const [homeModules, setHomeModules] = useState<string[]>([])
   const [bookOptions, setBookOptions] = useState(adminSelectOptions)
   const [bookModuleOptions, setBookModuleOptions] = useState(homepageModules)
   const [saveError, setSaveError] = useState('')
+  const [optionsError, setOptionsError] = useState('')
   const [fieldWarnings, setFieldWarnings] = useState<Partial<Record<keyof typeof values, string>>>({})
   const [quickCreatorRole, setQuickCreatorRole] = useState<QuickCreatorRole | null>(null)
   useEffect(() => {
@@ -3961,14 +4011,15 @@ function AdminBookCreatePageV2() {
         authors: creatorNames,
         formats: unique(namesFor(['format'])),
         lines: unique(namesFor(['line'])),
-        categories: unique(namesFor(['category', 'genre'])),
+        categories: unique(namesFor(['category'])),
+        genres: unique(namesFor(['genre'])),
         topics: unique(namesFor(['topic'])),
         publishers: unique(namesFor(['publisher'])),
         imprints: unique(namesFor(['imprint'])),
         languages: unique(namesFor(['language'])),
       })
       setBookModuleOptions(modules.filter((module) => module.isActive).map((module) => module.name))
-    }).catch(() => undefined)
+    }).catch((reason: unknown) => setOptionsError(reason instanceof Error ? reason.message : 'Không tải được dữ liệu danh mục từ Supabase.'))
     return () => { active = false }
   }, [])
   const setValue = (key: keyof typeof values, value: string | string[]) => setValues((current) => ({ ...current, [key]: value }))
@@ -4009,12 +4060,18 @@ function AdminBookCreatePageV2() {
   }
   const defaultBookSlug = values.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
   const defaultBookPath = defaultBookSlug ? `/books/${defaultBookSlug}` : ''
-  const textFields: Array<[keyof typeof values, string, string]> = [['title', 'Tên sách', 'text'], ['isbn', 'ISBN', 'text'], ['slug', 'Đường dẫn', 'text'], ['coverPriceUsd', 'Giá bìa (USD)', 'number'], ['salePrice', 'Giá bán (VNĐ)', 'number'], ['comparePrice', 'Giá so sánh (VNĐ)', 'number'], ['pages', 'Số trang', 'number'], ['bookSize', 'Khổ sách', 'text'], ['publicationDate', 'Ngày xuất bản', 'date'], ['weight', 'Trọng lượng', 'text']]
+  const textFields: Array<[keyof typeof values, string, string]> = [['title', 'Tên sách', 'text'], ['isbn', 'ISBN', 'text'], ['slug', 'Đường dẫn', 'text'], ['coverPriceUsd', 'Giá bìa (USD)', 'number'], ['salePrice', 'Giá bán (VNĐ)', 'number'], ['comparePrice', 'Giá so sánh (VNĐ)', 'number'], ['pages', 'Số trang', 'number'], ['inventoryQuantity', 'Tồn kho', 'number'], ['bookSize', 'Khổ sách', 'text'], ['publicationDate', 'Ngày xuất bản', 'date'], ['weight', 'Trọng lượng', 'text']]
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
     const published = submitter?.value !== 'draft' && isVisible
     setSaveError('')
+    if (optionsError) {
+      const message = 'Dữ liệu danh mục chưa tải được từ Supabase. Vui lòng tải lại trang rồi chọn lại trước khi lưu.'
+      setSaveError(message)
+      emitFloatingNotice('error', message)
+      return
+    }
     if (!values.author.length) {
       const message = 'Vui lòng nhập ít nhất một tác giả trước khi lưu sách.'
       setSaveError(message)
@@ -4022,7 +4079,7 @@ function AdminBookCreatePageV2() {
       return
     }
     const slug = (values.slug.trim() || defaultBookSlug).replace(/^\/books\//, '')
-    const input: AdminBookInput = { isbn: normalizeAdminIsbn(values.isbn), title: values.title.trim() || 'Sách chưa đặt tên', slug, descriptionHtml: values.description.trim(), coverPriceUsd: values.coverPriceUsd ? Number(values.coverPriceUsd) : null, salePriceVnd: Number(values.salePrice) || 0, comparePriceVnd: values.comparePrice ? Number(values.comparePrice) : null, pageCount: values.pages ? Number(values.pages) : null, bookSize: values.bookSize.trim(), publicationDate: values.publicationDate, weight: values.weight.trim(), inventoryQuantity: 0, isVisibleWebsite: published, authors: values.author, translators: values.translator, illustrators: values.illustrator, categories: values.category, genres: values.genre, topics: values.topic, formats: values.format ? [values.format] : [], lines: values.line ? [values.line] : [], publishers: values.publisher ? [values.publisher] : [], imprints: values.imprint ? [values.imprint] : [], languages: values.language, homepageModules: published ? homeModules : [] }
+    const input: AdminBookInput = { isbn: normalizeAdminIsbn(values.isbn), title: values.title.trim() || 'Sách chưa đặt tên', slug, descriptionHtml: values.description.trim(), coverPriceUsd: values.coverPriceUsd ? Number(values.coverPriceUsd) : null, salePriceVnd: Number(values.salePrice) || 0, comparePriceVnd: values.comparePrice ? Number(values.comparePrice) : null, pageCount: values.pages ? Number(values.pages) : null, bookSize: values.bookSize.trim(), publicationDate: values.publicationDate, weight: values.weight.trim(), inventoryQuantity: values.inventoryQuantity ? Number(values.inventoryQuantity) : 0, isVisibleWebsite: published, authors: values.author, translators: values.translator, illustrators: values.illustrator, categories: values.category, genres: values.genre, topics: values.topic, formats: values.format ? [values.format] : [], lines: values.line ? [values.line] : [], publishers: values.publisher ? [values.publisher] : [], imprints: values.imprint ? [values.imprint] : [], languages: values.language, homepageModules: published ? homeModules : [], sampleFile, samplePageCount: samplePageCount ? Number(samplePageCount) : null }
     try {
       await createAdminBook(input, coverImages.map((image) => image.file).filter((file): file is File => Boolean(file)))
       queueFloatingNotice('success', 'Đã lưu sách và các liên kết vào Supabase.')
@@ -4038,14 +4095,16 @@ function AdminBookCreatePageV2() {
     <form id="admin-book-create-form" className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" onSubmit={(event) => { void submit(event) }}>
       {saveError && <p className="rounded-xl bg-[#fff4ec] px-4 py-3 font-body text-sm leading-6 text-[#9a4c2d] lg:col-span-2" role="alert">{saveError}</p>}
       <div className="min-w-0 space-y-5">
+        {optionsError && <p className="rounded-xl border border-[#ebc4bd] bg-[#fff5f2] px-4 py-3 font-body text-sm leading-6 text-[#a33d32]" role="alert">Không tải được danh mục thật từ Supabase: {optionsError}. Hãy tải lại trang trước khi lưu để tránh ghi sai dữ liệu.</p>}
         <AdminCreatePanel id="book-information" title="Thông tin sách">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{textFields.map(([key, label, type]) => { const formattedValue = isPriceKey(key) ? formatNumericValue(values[key] as string, key) : key === 'slug' ? values.slug || defaultBookPath : values[key] as string; return <label className="block" key={key}><span className="mb-1.5 flex items-center font-body text-sm font-medium">{label}{['title', 'isbn'].includes(key) && <span className="ml-1 text-[var(--color-olive-dark)]">*</span>}{key === 'slug' && <AdminInfoTooltip label="Thông tin đường dẫn sách" text="Nếu bỏ trống, hệ thống sẽ tự tạo đường dẫn từ tên sách." />}</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type={isPriceKey(key) ? 'text' : type} min={isPriceKey(key) ? undefined : type === 'number' ? '0' : undefined} inputMode={key === 'isbn' || isPriceKey(key) ? 'numeric' : undefined} pattern={key === 'isbn' ? '[0-9]{13}' : undefined} maxLength={key === 'isbn' ? 13 : undefined} title={key === 'isbn' ? 'ISBN chỉ gồm đúng 13 chữ số.' : undefined} required={['title', 'isbn'].includes(key)} value={formattedValue} onKeyDown={key === 'isbn' ? preventNonDigitKey : undefined} onPaste={key === 'isbn' ? pasteDigitsOnly : undefined} onChange={(event) => handleTextFieldChange(key, event.target.value)} placeholder={key === 'slug' ? 'tu-dong-sinh-tu-ten-sach' : undefined} />{fieldWarnings[key] && <span className="mt-1 block font-body text-xs text-[#a33d32]" role="status">{fieldWarnings[key]}</span>}</label> })}<AdminSelect2 label="Imprint" value={values.imprint} options={adminSelectOptions.imprints} onChange={(value) => setValue('imprint', value as string)} placeholder="Tìm và chọn imprint" /><AdminSelect2 label="Ngôn ngữ" value={values.language} options={adminSelectOptions.languages} multiple onChange={(value) => setValue('language', value as string[])} placeholder="Tìm và chọn một hoặc nhiều ngôn ngữ" /></div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"><div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-end gap-2"><AdminSelect2 label="Tác giả" value={values.author} options={bookOptions.authors} multiple required onChange={(value) => setValue('author', value as string[])} placeholder="Tìm và chọn một hoặc nhiều tác giả" /><button className="mb-0 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-olive)] text-lg text-[var(--color-olive-dark)] transition-colors hover:bg-[var(--color-olive)] hover:text-white" type="button" aria-label="Thêm nhanh tác giả" title="Thêm nhanh tác giả" onClick={() => setQuickCreatorRole('author')}><i className="bi bi-plus-lg" aria-hidden="true" /></button></div><div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-end gap-2"><AdminSelect2 label="Dịch giả" value={values.translator} options={bookOptions.authors} multiple onChange={(value) => setValue('translator', value as string[])} placeholder="Tìm và chọn một hoặc nhiều dịch giả" /><button className="mb-0 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-olive)] text-lg text-[var(--color-olive-dark)] transition-colors hover:bg-[var(--color-olive)] hover:text-white" type="button" aria-label="Thêm nhanh dịch giả" title="Thêm nhanh dịch giả" onClick={() => setQuickCreatorRole('translator')}><i className="bi bi-plus-lg" aria-hidden="true" /></button></div><div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-end gap-2"><AdminSelect2 label="Họa sĩ minh họa" value={values.illustrator} options={bookOptions.authors} multiple onChange={(value) => setValue('illustrator', value as string[])} placeholder="Tìm và chọn một hoặc nhiều họa sĩ" /><button className="mb-0 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-olive)] text-lg text-[var(--color-olive-dark)] transition-colors hover:bg-[var(--color-olive)] hover:text-white" type="button" aria-label="Thêm nhanh họa sĩ minh họa" title="Thêm nhanh họa sĩ minh họa" onClick={() => setQuickCreatorRole('illustrator')}><i className="bi bi-plus-lg" aria-hidden="true" /></button></div><AdminSelect2 label="Thể thức" value={values.format} options={bookOptions.formats} onChange={(value) => setValue('format', value as string)} placeholder="Tìm và chọn thể thức" /><AdminSelect2 label="Dòng sách" value={values.line} options={bookOptions.lines} onChange={(value) => setValue('line', value as string)} placeholder="Tìm và chọn dòng sách" /><AdminSelect2 label="Danh mục" value={values.category} options={bookOptions.categories} multiple onChange={(value) => setValue('category', value as string[])} placeholder="Tìm và chọn một hoặc nhiều danh mục" /><AdminSelect2 label="Thể loại" value={values.genre} options={bookOptions.categories} multiple onChange={(value) => setValue('genre', value as string[])} placeholder="Tìm và chọn một hoặc nhiều thể loại" /><AdminSelect2 label="Chủ đề" value={values.topic} options={bookOptions.topics} multiple onChange={(value) => setValue('topic', value as string[])} placeholder="Tìm và chọn một hoặc nhiều chủ đề" /><AdminSelect2 label="Publisher" value={values.publisher} options={bookOptions.publishers} onChange={(value) => setValue('publisher', value as string)} placeholder="Tìm và chọn publisher" /></div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{textFields.map(([key, label, type]) => { const formattedValue = isPriceKey(key) ? formatNumericValue(values[key] as string, key) : key === 'slug' ? values.slug || defaultBookPath : values[key] as string; return <label className="block" key={key}><span className="mb-1.5 flex items-center font-body text-sm font-medium">{label}{['title', 'isbn'].includes(key) && <span className="ml-1 text-[var(--color-olive-dark)]">*</span>}{key === 'slug' && <AdminInfoTooltip label="Thông tin đường dẫn sách" text="Nếu bỏ trống, hệ thống sẽ tự tạo đường dẫn từ tên sách." />}</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type={isPriceKey(key) ? 'text' : type} min={isPriceKey(key) ? undefined : type === 'number' ? '0' : undefined} inputMode={key === 'isbn' || isPriceKey(key) ? 'numeric' : undefined} pattern={key === 'isbn' ? '[0-9]{13}' : undefined} maxLength={key === 'isbn' ? 13 : undefined} title={key === 'isbn' ? 'ISBN chỉ gồm đúng 13 chữ số.' : undefined} required={['title', 'isbn'].includes(key)} value={formattedValue} onKeyDown={key === 'isbn' ? preventNonDigitKey : undefined} onPaste={key === 'isbn' ? pasteDigitsOnly : undefined} onChange={(event) => handleTextFieldChange(key, event.target.value)} placeholder={key === 'slug' ? 'tu-dong-sinh-tu-ten-sach' : undefined} />{fieldWarnings[key] && <span className="mt-1 block font-body text-xs text-[#a33d32]" role="status">{fieldWarnings[key]}</span>}</label> })}<AdminSelect2 label="Imprint" value={values.imprint} options={bookOptions.imprints} onChange={(value) => setValue('imprint', value as string)} placeholder="Tìm và chọn imprint" /><AdminSelect2 label="Ngôn ngữ" value={values.language} options={bookOptions.languages} multiple onChange={(value) => setValue('language', value as string[])} placeholder="Tìm và chọn một hoặc nhiều ngôn ngữ" /></div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"><div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-end gap-2"><AdminSelect2 label="Tác giả" value={values.author} options={bookOptions.authors} multiple required onChange={(value) => setValue('author', value as string[])} placeholder="Tìm và chọn một hoặc nhiều tác giả" /><button className="mb-0 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-olive)] text-lg text-[var(--color-olive-dark)] transition-colors hover:bg-[var(--color-olive)] hover:text-white" type="button" aria-label="Thêm nhanh tác giả" title="Thêm nhanh tác giả" onClick={() => setQuickCreatorRole('author')}><i className="bi bi-plus-lg" aria-hidden="true" /></button></div><div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-end gap-2"><AdminSelect2 label="Dịch giả" value={values.translator} options={bookOptions.authors} multiple onChange={(value) => setValue('translator', value as string[])} placeholder="Tìm và chọn một hoặc nhiều dịch giả" /><button className="mb-0 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-olive)] text-lg text-[var(--color-olive-dark)] transition-colors hover:bg-[var(--color-olive)] hover:text-white" type="button" aria-label="Thêm nhanh dịch giả" title="Thêm nhanh dịch giả" onClick={() => setQuickCreatorRole('translator')}><i className="bi bi-plus-lg" aria-hidden="true" /></button></div><div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-end gap-2"><AdminSelect2 label="Họa sĩ minh họa" value={values.illustrator} options={bookOptions.authors} multiple onChange={(value) => setValue('illustrator', value as string[])} placeholder="Tìm và chọn một hoặc nhiều họa sĩ" /><button className="mb-0 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-olive)] text-lg text-[var(--color-olive-dark)] transition-colors hover:bg-[var(--color-olive)] hover:text-white" type="button" aria-label="Thêm nhanh họa sĩ minh họa" title="Thêm nhanh họa sĩ minh họa" onClick={() => setQuickCreatorRole('illustrator')}><i className="bi bi-plus-lg" aria-hidden="true" /></button></div><AdminSelect2 label="Thể thức" value={values.format} options={bookOptions.formats} onChange={(value) => setValue('format', value as string)} placeholder="Tìm và chọn thể thức" /><AdminSelect2 label="Dòng sách" value={values.line} options={bookOptions.lines} onChange={(value) => setValue('line', value as string)} placeholder="Tìm và chọn dòng sách" /><AdminSelect2 label="Danh mục" value={values.category} options={bookOptions.categories} multiple onChange={(value) => setValue('category', value as string[])} placeholder="Tìm và chọn một hoặc nhiều danh mục" /><AdminSelect2 label="Thể loại" value={values.genre} options={bookOptions.genres} multiple onChange={(value) => setValue('genre', value as string[])} placeholder="Tìm và chọn một hoặc nhiều thể loại" /><AdminSelect2 label="Chủ đề" value={values.topic} options={bookOptions.topics} multiple onChange={(value) => setValue('topic', value as string[])} placeholder="Tìm và chọn một hoặc nhiều chủ đề" /><AdminSelect2 label="Publisher" value={values.publisher} options={bookOptions.publishers} onChange={(value) => setValue('publisher', value as string)} placeholder="Tìm và chọn publisher" /></div>
         </AdminCreatePanel>
         <div id="book-description" className="scroll-mt-24"><AdminCreatePanel title="Mô tả sách"><AdminRichTextEditor label="Nội dung mô tả" value={values.description} onChange={(value) => setValue('description', value)} placeholder="Nhập mô tả, nội dung giới thiệu và ghi chú biên tập cho sách..." /></AdminCreatePanel></div>
       </div>
       <aside className="admin-create-aside min-w-0 space-y-5">
         <div id="book-cover" className="scroll-mt-24"><AdminCreatePanel title="Ảnh bìa"><AdminImageUploadWithExtras label="Ảnh bìa" showLabel={false} preview={coverImages[0]?.preview ?? ''} fileName={coverImages[0]?.name} extraItems={coverImages.slice(1)} onPrimaryFileChange={(file) => readCoverFile(file, true)} onPrimaryClear={() => setCoverImages((current) => current.slice(1))} onExtraFilesChange={(files) => files.forEach((file) => readCoverFile(file))} onRemoveExtra={(index) => setCoverImages((current) => current.filter((_, itemIndex) => itemIndex !== index + 1))} /></AdminCreatePanel></div>
+        <AdminCreatePanel title="File đọc thử"><AdminSampleUpload fileName={sampleFile?.name} onFileChange={setSampleFile} onClear={() => { setSampleFile(null); setSamplePageCount('') }} /><label className="mt-3 block"><span className="mb-1.5 block font-body text-sm font-medium">Số trang đọc thử (không bắt buộc)</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type="number" min="1" value={samplePageCount} onChange={(event) => setSamplePageCount(event.target.value)} placeholder="Ví dụ: 4" /></label></AdminCreatePanel>
         <AdminCreatePanel title="Hiển thị"><label className="flex cursor-pointer items-center gap-3 p-1"><span className="relative inline-flex h-6 w-11 shrink-0 items-center"><input className="peer sr-only" type="checkbox" role="switch" aria-label="Hiển thị website" checked={isVisible} onChange={(event) => setIsVisible(event.target.checked)} /><span className="absolute inset-0 rounded-full bg-[#d8d5c8] transition-colors peer-checked:bg-[var(--color-olive)] peer-focus-visible:ring-2 peer-focus-visible:ring-[rgba(155,148,47,.25)]" aria-hidden="true" /><span className="pointer-events-none relative ml-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" aria-hidden="true" /></span><span className="flex min-w-0 items-center font-body text-sm font-semibold text-[var(--color-ink)]">Hiển thị website <AdminInfoTooltip label="Giải thích hiển thị website" text="Nếu tắt, sách không hiển thị ở bất kỳ vị trí nào trên web." /></span></label><div className="mt-5 border-t border-[#eeeae0] pt-4"><p className="flex items-center gap-2 font-body text-sm font-semibold text-[var(--color-ink)]">Hiển thị mô đun trang chủ <AdminInfoTooltip label="Giải thích mô đun trang chủ" text="Chọn một hoặc nhiều mô đun đã tạo trên trang chủ để đưa sách vào đó." /></p><div className="space-y-1.5">{bookModuleOptions.map((module) => <label className={`flex cursor-pointer items-center gap-3 px-1 py-2 transition-colors ${!isVisible ? 'cursor-not-allowed opacity-55' : 'hover:text-[var(--color-olive-dark)]'}`} key={module}><input className="h-4 w-4 shrink-0 accent-[var(--color-olive)]" type="checkbox" disabled={!isVisible} checked={homeModules.includes(module)} onChange={(event) => setHomeModules((current) => event.target.checked ? [...current, module] : current.filter((item) => item !== module))} /><span className="font-body text-sm text-[var(--color-ink)]">{module}</span></label>)}</div>{!isVisible && <p className="mt-3 font-body text-xs text-[#8b8d86]">Bật “Hiển thị website” để chọn mô đun trang chủ.</p>}</div></AdminCreatePanel>
       </aside>
     </form>{quickCreatorRole && <AdminQuickCreatorModal role={quickCreatorRole} existingNames={bookOptions.authors} onClose={() => setQuickCreatorRole(null)} onSaved={(name) => { setBookOptions((current) => ({ ...current, authors: [...current.authors, name].sort((left, right) => left.localeCompare(right, 'vi')) })); const key = quickCreatorRole === 'author' ? 'author' : quickCreatorRole === 'translator' ? 'translator' : 'illustrator'; setValues((current) => ({ ...current, [key]: [...current[key], name] })); setQuickCreatorRole(null) }} />}
@@ -4175,7 +4234,7 @@ function AdminCategoriesPageRemote() {
   const [error, setError] = useState('')
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<{ id: string; position: 'before' | 'inside' | 'after' } | null>(null)
-  const refresh = () => { setLoading(true); void loadAdminTaxonomy(['category', 'topic']).then((rows) => { setCategories(rows); setError('') }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Không tải được danh mục từ Supabase.')).finally(() => setLoading(false)) }
+  const refresh = () => { setLoading(true); void loadAdminTaxonomy().then((rows) => { setCategories(rows); setError('') }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Không tải được dữ liệu phân loại từ Supabase.')).finally(() => setLoading(false)) }
   useEffect(() => { refresh() }, [])
   const getDepth = (id: string, seen = new Set<string>()): number => { if (seen.has(id)) return 0; const item = categories.find((entry) => entry.id === id); if (!item?.parentId) return 0; seen.add(id); return getDepth(item.parentId, seen) + 1 }
   const numberFor = (id: string, seen = new Set<string>()): string => { if (seen.has(id)) return ''; seen.add(id); const item = categories.find((entry) => entry.id === id); if (!item) return ''; const siblings = categories.filter((entry) => entry.parentId === item.parentId).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'vi')); const position = siblings.findIndex((entry) => entry.id === id) + 1; return item.parentId ? `${numberFor(item.parentId, seen).replace(/\.$/, '')}.${position}` : `${position}.` }
@@ -4228,10 +4287,10 @@ function AdminCategoryCreatePageRemote() {
   const [parentId, setParentId] = useState('')
   const [parents, setParents] = useState<AdminTaxonomyRow[]>([])
   const [message, setMessage] = useState('')
-  useEffect(() => { void loadAdminTaxonomy(['category', 'topic']).then(setParents).catch((reason: unknown) => setMessage(reason instanceof Error ? reason.message : 'Không tải được danh mục cha.')) }, [])
-  const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); try { await createAdminTaxonomyTerm({ name, slug, kind, parentId: parentId || null, sortOrder: parents.filter((item) => item.kind === kind).length }); window.location.href = '/admin/books/categories' } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Không tạo được danh mục.') } }
-  return <AdminSimpleCreateShell title="Thêm danh mục sách" backHref="/admin/books/categories" section="SÁCH" description="Tạo dữ liệu danh mục thật trong Supabase."><form className="grid gap-4 rounded-2xl border border-[#e6e2d7] bg-white p-5" onSubmit={submit}><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Loại dữ liệu</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" value={kind} onChange={(event) => { setKind(event.target.value as AdminTaxonomyKind); setParentId('') }}><option value="category">Danh mục</option><option value="topic">Chủ đề</option></select></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Danh mục cha</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" value={parentId} onChange={(event) => setParentId(event.target.value)}><option value="">Không có</option>{parents.filter((item) => item.kind === kind).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Tên</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" required value={name} onChange={(event) => setName(event.target.value)} /></label>{message && <p className="rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-3 font-body text-sm text-[#a33d32]" role="alert">{message}</p>}<div className="flex justify-end gap-3"><a className="inline-flex min-h-11 items-center rounded-xl border border-[#dedbd0] px-5 font-body text-sm" href="/admin/books/categories">Hủy</a><button className="admin-primary-action inline-flex min-h-11 items-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white" type="submit">Lưu danh mục</button></div></form></AdminSimpleCreateShell>
+  useEffect(() => { void loadAdminTaxonomy().then(setParents).catch((reason: unknown) => setMessage(reason instanceof Error ? reason.message : 'Không tải được dữ liệu phân loại cha.')) }, [])
+  const slugify = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const cleanName = name.trim(); const slug = slugify(cleanName); if (!cleanName || !slug) { setMessage('Vui lòng nhập tên hợp lệ để tạo dữ liệu phân loại.'); return } try { await createAdminTaxonomyTerm({ name: cleanName, slug, kind, parentId: ['category', 'topic'].includes(kind) ? (parentId || null) : null, sortOrder: parents.filter((item) => item.kind === kind).length }); window.location.href = '/admin/books/categories' } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Không tạo được dữ liệu phân loại.') } }
+  return <AdminSimpleCreateShell title="Thêm dữ liệu phân loại sách" backHref="/admin/books/categories" section="SÁCH" description="Tạo dữ liệu phân loại thật trong Supabase để form thêm sách có thể tìm và liên kết đúng loại."><form className="grid gap-4 rounded-2xl border border-[#e6e2d7] bg-white p-5" onSubmit={submit}><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Loại dữ liệu</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" value={kind} onChange={(event) => { setKind(event.target.value as AdminTaxonomyKind); setParentId('') }}><option value="category">Danh mục</option><option value="genre">Thể loại</option><option value="topic">Chủ đề</option><option value="format">Thể thức</option><option value="line">Dòng sách</option><option value="publisher">Nhà xuất bản</option><option value="imprint">Imprint</option><option value="language">Ngôn ngữ</option></select></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Danh mục cha</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" value={parentId} onChange={(event) => setParentId(event.target.value)} disabled={!['category', 'topic'].includes(kind)}><option value="">Không có</option>{parents.filter((item) => item.kind === kind).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Tên</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" required value={name} onChange={(event) => setName(event.target.value)} /></label>{message && <p className="rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-3 font-body text-sm text-[#a33d32]" role="alert">{message}</p>}<div className="flex justify-end gap-3"><a className="inline-flex min-h-11 items-center rounded-xl border border-[#dedbd0] px-5 font-body text-sm" href="/admin/books/categories">Hủy</a><button className="admin-primary-action inline-flex min-h-11 items-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white" type="submit">Lưu dữ liệu</button></div></form></AdminSimpleCreateShell>
 }
 
 function AdminTaxonomyEditPageRemote({ id }: { id: string }) {
@@ -4244,7 +4303,7 @@ function AdminTaxonomyEditPageRemote({ id }: { id: string }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   useEffect(() => {
-    void loadAdminTaxonomy(['category', 'topic']).then((rows) => {
+    void loadAdminTaxonomy().then((rows) => {
       const found = rows.find((row) => row.id === id) ?? null
       setItem(found)
       setParents(rows)
@@ -4257,7 +4316,7 @@ function AdminTaxonomyEditPageRemote({ id }: { id: string }) {
     if (!item) return
     setSaving(true)
     setMessage('')
-    const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     try {
       await updateAdminTaxonomyTerm(item.id, { name: name.trim(), slug, parentId: parentId || null, isActive })
       window.location.href = '/admin/books/categories'
@@ -4329,11 +4388,13 @@ function AdminPaymentMethodsPage() {
 
 function AdminAdminUsersPage() {
   const [rows, setRows] = useState<AdminUserRow[]>([])
+  const [roles, setRoles] = useState<AdminRoleRow[]>([])
+  const [matrix, setMatrix] = useState<AdminPermissionRow[]>([])
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<AdminUserRow['role']>('editor')
+  const [role, setRole] = useState<AdminRoleKey>('editor')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const refresh = () => { void loadAdminUsers().then((nextRows) => { setRows(nextRows); setError('') }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Không tải được danh sách quản trị viên.')) }
+  const refresh = () => { void Promise.all([loadAdminUsers(), loadAdminRoles(), loadAdminPermissionMatrix()]).then(([nextRows, nextRoles, nextMatrix]) => { setRows(nextRows); setRoles(nextRoles); setMatrix(nextMatrix); setError('') }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Không tải được dữ liệu phân quyền.')) }
   useEffect(() => { refresh() }, [])
   const add = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -4341,11 +4402,25 @@ function AdminAdminUsersPage() {
     setError('')
     try { await grantAdminUser(email, role); setEmail(''); setRole('editor'); refresh() } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không cấp được quyền quản trị.') } finally { setBusy(false) }
   }
+  const changeRole = async (row: AdminUserRow, nextRole: AdminRoleKey) => { setBusy(true); setError(''); try { await setAdminUserRole(row.userId, nextRole); refresh() } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không đổi được vai trò.') } finally { setBusy(false) } }
   const remove = async (row: AdminUserRow) => {
     if (!window.confirm(`Gỡ quyền quản trị của ${row.email}?`)) return
     try { await revokeAdminUser(row.userId); refresh() } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không gỡ được quyền quản trị.') }
   }
-  return <AdminListShell title="Quản trị viên" section="HỆ THỐNG" description="Gán thêm tài khoản quản trị cho website. Tài khoản phải được đăng ký trước bằng email; mật khẩu do chính người dùng đặt qua liên kết khôi phục mật khẩu." createHref="/admin/settings" createLabel="Về cài đặt"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#e6e2d7] p-5"><h3 className="font-display text-lg font-semibold">Gán quản trị viên mới</h3><p className="mt-1 font-body text-sm leading-6 text-[#74776f]">Chỉ chủ sở hữu (owner) mới nhìn thấy và thực hiện được thao tác này.</p></div><form className="grid gap-3 border-b border-[#eeeae0] bg-[#fcfbf7] p-5 sm:grid-cols-[minmax(0,1fr)_190px_auto] sm:items-end" onSubmit={add}><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Email tài khoản *</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-white px-3.5 font-body text-sm" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@example.com" /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Vai trò</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-white px-3.5 font-body text-sm" value={role} onChange={(event) => setRole(event.target.value as AdminUserRow['role'])}><option value="editor">Editor (biên tập viên)</option><option value="owner">Owner (chủ sở hữu)</option></select></label><button className="admin-primary-action inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-60" type="submit" disabled={busy}>{busy ? 'Đang cấp…' : 'Gán quyền'}</button></form>{error && <p className="m-5 rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-4 font-body text-sm text-[#a33d32]" role="alert">{error}</p>}{rows.length ? <div className="overflow-x-auto"><table className="min-w-[640px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr><th className="px-5 py-3 font-body text-sm font-semibold">Email</th><th className="px-5 py-3 font-body text-sm font-semibold">Vai trò</th><th className="px-5 py-3 font-body text-sm font-semibold">Ngày cấp</th><th className="px-5 py-3 text-right font-body text-sm font-semibold">Thao tác</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-[#eeeae0]" key={row.userId}><td className="px-5 py-3 font-body text-sm font-medium">{row.email}</td><td className="px-5 py-3 font-body text-sm">{row.role === 'owner' ? 'Owner (chủ sở hữu)' : 'Editor (biên tập viên)'}</td><td className="px-5 py-3 font-body text-sm text-[#74776f]">{row.createdAt ? new Date(row.createdAt).toLocaleString('vi-VN') : '—'}</td><td className="px-5 py-3 text-right"><button className="font-body text-sm text-[#a33d32]" type="button" onClick={() => void remove(row)}>Gỡ quyền</button></td></tr>)}</tbody></table></div> : <div className="p-10 text-center font-body text-sm text-[#74776f]">Chưa có dữ liệu hoặc migration quản lý quản trị viên chưa được chạy.</div>}</section></AdminListShell>
+  const roleName = (roleKey: AdminRoleKey) => roles.find((item) => item.roleKey === roleKey)?.name ?? roleKey
+  const permissionsFor = (roleKey: AdminRoleKey) => matrix.filter((item) => item.roleKey === roleKey)
+  return <AdminListShell title="Quản trị viên & phân quyền" section="HỆ THỐNG" description="Tạo tài khoản quản trị bằng cách gán một user Supabase vào vai trò mặc định. Ma trận nghiệp vụ bên dưới là nguồn quyền dùng chung cho frontend và backend." createHref="/admin/settings" createLabel="Về cài đặt">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white">
+        <div className="border-b border-[#e6e2d7] p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-display text-lg font-semibold">Danh sách quản trị viên</h3><p className="mt-1 font-body text-sm leading-6 text-[#74776f]">Tài khoản phải được đăng ký trước trong Supabase Auth; mật khẩu không lưu ở bảng public.</p></div><span className="inline-flex min-h-8 items-center rounded-full bg-[#edf7ef] px-3 font-body text-xs font-semibold text-[#39733e]">{rows.length} tài khoản</span></div></div>
+        <form className="grid gap-3 border-b border-[#eeeae0] bg-[#fcfbf7] p-5 sm:grid-cols-[minmax(0,1fr)_230px_auto] sm:items-end" onSubmit={add}><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Email user Supabase *</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-white px-3.5 font-body text-sm" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="user@example.com" /></label><label className="block"><span className="mb-1.5 block font-body text-sm font-medium">Vai trò mặc định</span><select className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-white px-3.5 font-body text-sm" value={role} onChange={(event) => setRole(event.target.value as AdminRoleKey)}>{roles.map((item) => <option value={item.roleKey} key={item.roleKey}>{item.name}</option>)}</select></label><button className="admin-primary-action inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-60" type="submit" disabled={busy}>{busy ? 'Đang lưu…' : 'Gán quyền'}</button></form>
+        {error && <p className="m-5 rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-4 font-body text-sm text-[#a33d32]" role="alert">{error}</p>}
+        {rows.length ? <div className="overflow-x-auto"><table className="min-w-[720px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr><th className="px-5 py-3 font-body text-sm font-semibold">Email</th><th className="px-5 py-3 font-body text-sm font-semibold">Vai trò</th><th className="px-5 py-3 font-body text-sm font-semibold">Ngày cấp</th><th className="px-5 py-3 text-right font-body text-sm font-semibold">Thao tác</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-[#eeeae0]" key={row.userId}><td className="px-5 py-3 font-body text-sm font-medium">{row.email}</td><td className="px-5 py-3"><select className="min-h-9 rounded-lg border border-[#dedbd0] bg-white px-2.5 font-body text-sm" value={row.role} disabled={busy} onChange={(event) => void changeRole(row, event.target.value as AdminRoleKey)}>{roles.map((item) => <option value={item.roleKey} key={item.roleKey}>{item.name}</option>)}</select></td><td className="px-5 py-3 font-body text-sm text-[#74776f]">{row.createdAt ? new Date(row.createdAt).toLocaleString('vi-VN') : '—'}</td><td className="px-5 py-3 text-right"><button className="font-body text-sm text-[#a33d32]" type="button" onClick={() => void remove(row)}>Gỡ quyền</button></td></tr>)}</tbody></table></div> : <div className="p-10 text-center font-body text-sm text-[#74776f]">Chưa có tài khoản quản trị.</div>}
+      </section>
+      <aside className="rounded-2xl border border-[#e6e2d7] bg-white p-5"><div className="border-b border-[#eeeae0] pb-4"><p className="font-body text-xs font-semibold uppercase tracking-[.14em] text-[var(--color-olive)]">Mặc định hệ thống</p><h3 className="mt-1 font-display text-xl font-semibold">4 vai trò chuẩn</h3><p className="mt-2 font-body text-sm leading-6 text-[#74776f]">Chỉ cần chọn vai trò khi gán user; quyền chi tiết đã được setup sẵn.</p></div><div className="mt-4 space-y-3">{roles.map((item) => <article className="rounded-xl border border-[#eeeae0] bg-[#fcfbf7] p-3" key={item.roleKey}><div className="flex items-start justify-between gap-3"><strong className="font-body text-sm">{item.name}</strong><span className="rounded-full bg-[rgba(155,148,47,.12)] px-2 py-1 font-body text-xs font-semibold text-[var(--color-olive-dark)]">{permissionsFor(item.roleKey).length} quyền</span></div><p className="mt-1 font-body text-xs leading-5 text-[#74776f]">{item.description}</p></article>)}</div></aside>
+    </div>
+    <section className="mt-5 overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#e6e2d7] p-5"><h3 className="font-display text-lg font-semibold">Ma trận nghiệp vụ</h3><p className="mt-1 font-body text-sm leading-6 text-[#74776f]">Dấu ✓ là quyền đã được cấp cho vai trò. Backend kiểm tra cùng mã quyền trước khi cho truy cập khu vực quản trị.</p></div><div className="overflow-x-auto"><table className="min-w-[980px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr><th className="w-[30%] px-5 py-3 font-body text-sm font-semibold">Nghiệp vụ</th>{roles.map((item) => <th className="px-3 py-3 text-center font-body text-sm font-semibold" key={item.roleKey}>{item.name}</th>)}</tr></thead><tbody>{Array.from(new Map(matrix.map((item) => [item.permissionKey, item])).values()).sort((a, b) => a.sortOrder - b.sortOrder).map((permission) => <tr className="border-t border-[#eeeae0]" key={permission.permissionKey}><td className="px-5 py-3"><strong className="block font-body text-sm">{permission.permissionName}</strong><span className="font-body text-xs text-[#8b8d86]">{permission.description}</span></td>{roles.map((item) => <td className="px-3 py-3 text-center" key={item.roleKey}>{permissionsFor(item.roleKey).some((row) => row.permissionKey === permission.permissionKey) ? <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#edf7ef] font-semibold text-[#39733e]" aria-label={`${roleName(item.roleKey)} có quyền ${permission.permissionName}`}>✓</span> : <span className="text-[#c6c4bb]" aria-label={`${roleName(item.roleKey)} chưa có quyền ${permission.permissionName}`}>—</span>}</td>)}</tr>)}</tbody></table></div></section>
+  </AdminListShell>
 }
 
 function AdminSiteSettingsDataPage() {
@@ -4453,12 +4528,12 @@ function AdminBooksPageV2({ managementView }: { managementView: BookManagementVi
         isbn: product.isbn,
         title: product.title,
         author: product.author,
-        quantity: product.available ? 1 : 0,
+        quantity: product.inventoryQuantity,
         unitPrice: null,
         salePrice: Number(product.price.replace(/[^0-9]/g, '')) || 0,
         link: '',
-        format: '',
-        line: product.publisher,
+        format: product.format,
+        line: product.line || product.publisher,
         category: product.categories.join(', '),
         cover: product.image,
         coverImages: product.gallery,
@@ -5080,6 +5155,7 @@ export function App() {
   const [catalogVersion, refreshPublicCatalog] = useState(0)
   const [publicMenuItems, setPublicMenuItems] = useState<PublicMenuItem[]>([])
   const [publicBanners, setPublicBanners] = useState<PublicBanner[]>([])
+  const [publicSiteSettings, setPublicSiteSettings] = useState<PublicSiteSettings>({})
   const previewCloseTimer = useRef<number | null>(null)
   const cartPulseTimer = useRef<number | null>(null)
   const edgeSwipeStart = useRef<{ x: number; y: number } | null>(null)
@@ -5093,6 +5169,12 @@ export function App() {
   useEffect(() => {
     let active = true
     void loadPublicBanners().then((banners) => { if (active && banners) setPublicBanners(banners) }).catch(() => undefined)
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    void loadPublicSiteSettings().then((settings) => { if (active && settings) setPublicSiteSettings(settings) }).catch(() => undefined)
     return () => { active = false }
   }, [])
 
@@ -5615,7 +5697,7 @@ export function App() {
 
   const isEmagazineView = view === 'news-detail' && selectedNews?.contentType === 'emagazine'
 
-  if (view === 'admin') return <><FloatingNoticeHost /><SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} /><AdminAuthGate>{window.location.pathname === '/admin' ? <AdminSalesDashboardRemote /> : <AdminDashboard />}{window.location.pathname !== '/admin/chatbot' && <ChatbotWidget adminMode />}</AdminAuthGate></>
+  if (view === 'admin') return <><FloatingNoticeHost /><SeoHead view={view} product={selectedProduct} news={selectedNews} author={selectedAuthor || 'Edward W. Said'} language={language} /><AdminAuthGate requiredPermission={getAdminPermissionForPath(window.location.pathname)}>{window.location.pathname === '/admin' ? <AdminSalesDashboardRemote /> : <AdminDashboard />}{window.location.pathname !== '/admin/chatbot' && <ChatbotWidget adminMode />}</AdminAuthGate></>
 
   if (view === 'book-reader') {
     return <>
@@ -5637,7 +5719,7 @@ export function App() {
       <div id="shop" className="collections">{sections.map(section => <Collection key={section.title} {...section} language={language} onCollection={showCollection} onOpenDetail={showDetail} onAddToCart={addToCart} onPreview={openPreview} onPreviewLeave={schedulePreviewClose} onSelectQuickView={selectQuickView} quickViewOpen={quickViewAvailable} />)}</div>
     <LineryNewsSection language={language} onOpen={showNewsDetail} onSeeMore={showNews} />
     </main>}
-    {!isEmagazineView && <Footer menuItems={publicMenuItems} />}
+    {!isEmagazineView && <Footer menuItems={publicMenuItems} siteSettings={publicSiteSettings} />}
     {!isEmagazineView && <ChatbotWidget />}
     {!isEmagazineView && <button className={`scroll-to-top ${showScrollTop ? 'is-visible' : ''}`} type="button" aria-label="Scroll to top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} tabIndex={showScrollTop ? 0 : -1}>
       <i className="bi bi-arrow-up" aria-hidden="true" />

@@ -24,10 +24,25 @@ export type PublicCatalogProduct = {
   writerType: 'Authors' | 'Translators'
   year?: number
   available: boolean
+  inventoryQuantity: number
+  reservedInventoryQuantity: number
   moduleSlugs: string[]
   moduleSortOrders?: Record<string, number>
   samplePdfUrl?: string
   samplePdfPageCount?: number
+  description: string
+  coverPriceUsd: number | null
+  comparePriceVnd: number | null
+  pageCount: number | null
+  bookSize: string
+  publicationDate: string
+  weight: string
+  format: string
+  line: string
+  imprint: string
+  languages: string[]
+  genres: string[]
+  topics: string[]
 }
 
 export type PublicCreatorProfile = {
@@ -158,6 +173,8 @@ export type PublicBanner = {
   sortOrder: number
   displayMode: string
 }
+
+export type PublicSiteSettings = Record<string, Record<string, unknown>>
 
 export type PublicStoreLocation = { id: string; code: string; name: string; address: string; city: string }
 export type PublicDeliveryZone = { id: string; name: string; feeVnd: number }
@@ -309,6 +326,8 @@ export type AdminBookInput = {
   imprints?: string[]
   languages?: string[]
   homepageModules?: string[]
+  sampleFile?: File | null
+  samplePageCount?: number | null
 }
 
 export type AdminTaxonomyKind = 'category' | 'topic' | 'format' | 'line' | 'genre' | 'publisher' | 'imprint' | 'language'
@@ -316,7 +335,11 @@ export type AdminTaxonomyRow = { id: string; name: string; slug: string; kind: A
 export type AdminHomepageModuleRow = { id: string; name: string; slug: string; sortOrder: number; isActive: boolean; bookCount: number }
 export type AdminPaymentMethodRow = { id: string; code: string; name: string; description: string; provider: string; logoStoragePath: string; sortOrder: number; isActive: boolean }
 export type AdminSiteSettingRow = { id: string; settingKey: string; language: 'en' | 'vi' | 'all'; valueJson: Record<string, unknown>; isPublic: boolean; updatedAt: string }
-export type AdminUserRow = { userId: string; email: string; role: 'owner' | 'editor'; createdAt: string }
+export type AdminRoleKey = 'super_admin' | 'system_admin' | 'sales_staff' | 'editor'
+export type AdminUserRow = { userId: string; email: string; role: AdminRoleKey; roleName: string; createdAt: string }
+export type AdminRoleRow = { roleKey: AdminRoleKey; name: string; description: string; sortOrder: number }
+export type AdminPermissionRow = { roleKey: AdminRoleKey; roleName: string; permissionKey: string; permissionName: string; groupName: string; description: string; sortOrder: number }
+export type AdminAccess = { roleKey: AdminRoleKey; roleName: string; permissions: string[] }
 export type AdminMediaAssetRow = { id: string; storagePath: string; publicUrl: string; fileName: string; mimeType: string; sizeBytes: number; altText: string; assetType: string; isActive: boolean; createdAt: string }
 export type AdminStoreLocationRow = { id: string; code: string; name: string; locationType: string; address: string; city: string; sortOrder: number; isActive: boolean }
 export type AdminDeliveryZoneRow = { id: string; name: string; level: string; feeVnd: number; sortOrder: number; isActive: boolean }
@@ -344,7 +367,10 @@ export async function loadAdminTaxonomy(kinds?: AdminTaxonomyKind[]): Promise<Ad
 
 export async function createAdminTaxonomyTerm(input: { name: string; slug: string; kind: AdminTaxonomyKind; parentId?: string | null; sortOrder?: number }): Promise<AdminTaxonomyRow> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
-  const { data, error } = await supabase.from('taxonomy_terms').insert({ name: input.name.trim(), slug: input.slug.trim(), kind: input.kind, parent_id: input.parentId || null, sort_order: input.sortOrder ?? 0, is_active: true }).select('id,name,slug,kind,parent_id,sort_order,is_active').single()
+  const name = input.name.trim()
+  const slug = input.slug.trim()
+  if (!name || !slug) throw new Error('Tên và đường dẫn dữ liệu phân loại không được để trống.')
+  const { data, error } = await supabase.from('taxonomy_terms').insert({ name, slug, kind: input.kind, parent_id: input.parentId || null, sort_order: input.sortOrder ?? 0, is_active: true }).select('id,name,slug,kind,parent_id,sort_order,is_active').single()
   if (error) throw error
   return mapAdminTaxonomyRow(data as Record<string, unknown>)
 }
@@ -533,8 +559,26 @@ export async function deleteAdminSiteSetting(id: string): Promise<void> {
 const mapAdminUserRow = (row: Record<string, unknown>): AdminUserRow => ({
   userId: String(row.user_id ?? ''),
   email: String(row.email ?? ''),
-  role: String(row.role ?? 'editor') as AdminUserRow['role'],
+  role: String(row.role ?? 'editor') as AdminRoleKey,
+  roleName: String(row.role_name ?? row.role ?? 'editor'),
   createdAt: String(row.created_at ?? ''),
+})
+
+const mapAdminRoleRow = (row: Record<string, unknown>): AdminRoleRow => ({
+  roleKey: String(row.role_key ?? 'editor') as AdminRoleKey,
+  name: String(row.name ?? ''),
+  description: String(row.description ?? ''),
+  sortOrder: Number(row.sort_order ?? 0),
+})
+
+const mapAdminPermissionRow = (row: Record<string, unknown>): AdminPermissionRow => ({
+  roleKey: String(row.role_key ?? 'editor') as AdminRoleKey,
+  roleName: String(row.role_name ?? ''),
+  permissionKey: String(row.permission_key ?? ''),
+  permissionName: String(row.permission_name ?? ''),
+  groupName: String(row.group_name ?? ''),
+  description: String(row.permission_description ?? ''),
+  sortOrder: Number(row.sort_order ?? 0),
 })
 
 export async function loadAdminUsers(): Promise<AdminUserRow[]> {
@@ -544,12 +588,45 @@ export async function loadAdminUsers(): Promise<AdminUserRow[]> {
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminUserRow)
 }
 
-export async function grantAdminUser(email: string, role: AdminUserRow['role']): Promise<AdminUserRow> {
+export async function loadAdminRoles(): Promise<AdminRoleRow[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('admin_list_admin_roles')
+  if (error) throw error
+  return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminRoleRow)
+}
+
+export async function loadAdminPermissionMatrix(): Promise<AdminPermissionRow[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('admin_list_role_permissions')
+  if (error) throw error
+  return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminPermissionRow)
+}
+
+export async function loadMyAdminAccess(): Promise<AdminAccess | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase.rpc('admin_get_my_access')
+  if (error) throw error
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) return null
+  const record = row as Record<string, unknown>
+  return { roleKey: String(record.role_key ?? 'editor') as AdminRoleKey, roleName: String(record.role_name ?? ''), permissions: Array.isArray(record.permissions) ? record.permissions.map(String) : [] }
+}
+
+export async function grantAdminUser(email: string, role: AdminRoleKey): Promise<AdminUserRow> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.rpc('admin_grant_admin', { p_email: email.trim(), p_role: role })
   if (error) throw error
   const row = Array.isArray(data) ? data[0] : data
   if (!row) throw new Error('Không nhận được bản ghi quản trị viên sau khi cấp quyền.')
+  return mapAdminUserRow(row as Record<string, unknown>)
+}
+
+export async function setAdminUserRole(userId: string, role: AdminRoleKey): Promise<AdminUserRow> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { data, error } = await supabase.rpc('admin_set_admin_role', { p_user_id: userId, p_role: role })
+  if (error) throw error
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) throw new Error('Không nhận được bản ghi sau khi đổi vai trò.')
   return mapAdminUserRow(row as Record<string, unknown>)
 }
 
@@ -630,15 +707,19 @@ export async function deleteAdminChatbotPrompt(id: string): Promise<void> { if (
 
 export async function loadAdminImportBatches(): Promise<AdminImportBatchRow[]> { if (!supabase) return []; const { data, error } = await supabase.from('book_import_batches').select('id,file_name,imported_by,total_rows,valid_rows,error_rows,status,created_at').order('created_at', { ascending: false }); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({ id: String(row.id), fileName: String(row.file_name ?? ''), importedBy: String(row.imported_by ?? '—'), totalRows: Number(row.total_rows ?? 0), validRows: Number(row.valid_rows ?? 0), errorRows: Number(row.error_rows ?? 0), status: String(row.status ?? 'pending'), createdAt: String(row.created_at ?? '') })) }
 
-export async function checkRemoteAdminAccess(): Promise<{ allowed: boolean; email?: string; error?: string }> {
+export async function checkRemoteAdminAccess(): Promise<{ allowed: boolean; email?: string; access?: AdminAccess | null; error?: string }> {
   if (!supabase) return { allowed: false, error: 'Supabase chưa được cấu hình.' }
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
   if (sessionError) return { allowed: false, error: sessionError.message }
   const user = sessionData.session?.user
   if (!user) return { allowed: false, error: 'Vui lòng đăng nhập tài khoản quản trị.' }
-  const { data, error } = await supabase.rpc('is_admin')
+  const { data, error } = await supabase.rpc('admin_get_my_access')
   if (error) return { allowed: false, email: user.email ?? undefined, error: error.message }
-  return { allowed: data === true, email: user.email ?? undefined, error: data === true ? undefined : 'Tài khoản này chưa được cấp quyền quản trị.' }
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) return { allowed: false, email: user.email ?? undefined, error: 'Tài khoản này chưa được cấp quyền quản trị.' }
+  const record = row as Record<string, unknown>
+  const access = { roleKey: String(record.role_key ?? 'editor') as AdminRoleKey, roleName: String(record.role_name ?? ''), permissions: Array.isArray(record.permissions) ? record.permissions.map(String) : [] }
+  return { allowed: true, email: user.email ?? undefined, access }
 }
 
 export async function loadAdminOrders(): Promise<AdminOrderRow[]> {
@@ -697,15 +778,14 @@ export async function loadAdminCustomers(): Promise<AdminCustomerRow[]> {
 
 export async function loadAdminCreators(): Promise<AdminCreatorRow[]> {
   if (!supabase) return []
-  const [creatorWithAcademicTitle, roles, links, images] = await Promise.all([
-    supabase.from('creators').select('id,display_name,slug,is_active,bio_html,awards,academic_title,birth_year,death_year,updated_at').order('display_name', { ascending: true }),
+  const [creators, roles, links, images] = await Promise.all([
+    // `*` keeps this reader compatible with older Supabase projects while still
+    // exposing academic_title automatically after its migration is applied.
+    supabase.from('creators').select('*').order('display_name', { ascending: true }),
     supabase.from('creator_roles').select('creator_id,role'),
     supabase.from('book_creators').select('creator_id,book_id'),
     supabase.from('creator_images').select('creator_id,storage_path,sort_order,is_primary').order('sort_order', { ascending: true }),
   ])
-  const creators = creatorWithAcademicTitle.error && /academic_title|column/i.test(creatorWithAcademicTitle.error.message ?? '')
-    ? await supabase.from('creators').select('id,display_name,slug,is_active,bio_html,awards,birth_year,death_year,updated_at').order('display_name', { ascending: true })
-    : creatorWithAcademicTitle
   const error = creators.error ?? roles.error ?? links.error ?? images.error
   if (error) throw error
   const roleMap = new Map<string, AdminCreatorRow['roles']>()
@@ -910,25 +990,71 @@ export async function loadMyTransactions(): Promise<AccountTransactionRow[]> {
 
 export async function createAdminBook(input: AdminBookInput, coverFiles: File[] = []): Promise<string> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const requestedCreatorNames = [...new Set([...(input.authors ?? []), ...(input.translators ?? []), ...(input.illustrators ?? [])].map((value) => value.trim()).filter(Boolean))]
+  const requestedTaxonomyInputs: Array<{ kind: string; names: string[] }> = [
+    { kind: 'category', names: input.categories ?? [] }, { kind: 'genre', names: input.genres ?? [] }, { kind: 'topic', names: input.topics ?? [] }, { kind: 'format', names: input.formats ?? [] }, { kind: 'line', names: input.lines ?? [] }, { kind: 'publisher', names: input.publishers ?? [] }, { kind: 'imprint', names: input.imprints ?? [] }, { kind: 'language', names: input.languages ?? [] },
+  ]
+  const requestedTaxonomyNames = [...new Set(requestedTaxonomyInputs.flatMap((entry) => entry.names.map((name) => name.trim()).filter(Boolean)))]
+  const requestedModuleNames = [...new Set((input.homepageModules ?? []).map((name) => name.trim()).filter(Boolean))]
+  const [creatorCheck, taxonomyCheck, moduleCheck] = await Promise.all([
+    requestedCreatorNames.length ? supabase.from('creators').select('display_name').in('display_name', requestedCreatorNames) : Promise.resolve({ data: [], error: null }),
+    requestedTaxonomyNames.length ? supabase.from('taxonomy_terms').select('kind,name').in('name', requestedTaxonomyNames) : Promise.resolve({ data: [], error: null }),
+    requestedModuleNames.length ? supabase.from('homepage_modules').select('name').in('name', requestedModuleNames) : Promise.resolve({ data: [], error: null }),
+  ])
+  if (creatorCheck.error) throw creatorCheck.error
+  if (taxonomyCheck.error) throw taxonomyCheck.error
+  if (moduleCheck.error) throw moduleCheck.error
+  const existingCreators = new Set((creatorCheck.data ?? []).map((row) => String((row as { display_name?: unknown }).display_name ?? '')))
+  const missingCreators = requestedCreatorNames.filter((name) => !existingCreators.has(name))
+  if (missingCreators.length) throw new Error(`Không tìm thấy tác giả/người tham gia trong Supabase: ${missingCreators.join(', ')}.`)
+  const existingTerms = (taxonomyCheck.data ?? []) as Array<{ kind: string; name: string }>
+  const missingTerms = requestedTaxonomyInputs.flatMap((entry) => entry.names.map((name) => ({ kind: entry.kind, name: name.trim() }))).filter((requested) => requested.name && !existingTerms.some((term) => term.kind === requested.kind && term.name === requested.name))
+  if (missingTerms.length) throw new Error(`Không tìm thấy dữ liệu phân loại trong Supabase: ${missingTerms.map((term) => `${term.kind}=${term.name}`).join(', ')}.`)
+  const existingModules = new Set((moduleCheck.data ?? []).map((row) => String((row as { name?: unknown }).name ?? '')))
+  const missingModules = requestedModuleNames.filter((name) => !existingModules.has(name))
+  if (missingModules.length) throw new Error(`Không tìm thấy mô đun trang chủ trong Supabase: ${missingModules.join(', ')}.`)
+  const sampleFile = input.sampleFile ?? null
+  if (sampleFile && !(/application\/pdf/i.test(sampleFile.type) || /\.pdf$/i.test(sampleFile.name) || /application\/epub\+zip/i.test(sampleFile.type) || /\.epub$/i.test(sampleFile.name))) throw new Error('File đọc thử phải là PDF hoặc EPUB.')
+  const sampleStoragePath = sampleFile ? `books/${crypto.randomUUID()}-${sampleFile.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')}` : null
+  if (sampleFile && sampleStoragePath) {
+    const { error } = await supabase.storage.from('book-samples').upload(sampleStoragePath, sampleFile, { contentType: sampleFile.type || (sampleFile.name.toLowerCase().endsWith('.epub') ? 'application/epub+zip' : 'application/pdf'), upsert: false })
+    if (error) throw error
+  }
   const uploadedPaths: string[] = []
+  const normalizedBookIsbn = input.isbn.replace(/\D/g, '')
   for (const file of coverFiles) {
+    const isbnHints = [...file.name.matchAll(/(?:^|[^0-9])(97\d{11})(?:[^0-9]|$)/g)].map((match) => match[1])
+    const conflictingIsbn = isbnHints.find((isbnHint) => normalizedBookIsbn && isbnHint !== normalizedBookIsbn)
+    if (conflictingIsbn) {
+      throw new Error(`Ảnh bìa "${file.name}" mang ISBN ${conflictingIsbn}, không khớp ISBN sách ${normalizedBookIsbn}. Vui lòng chọn đúng ảnh.`)
+    }
     const safeName = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')
     const storagePath = `books/${crypto.randomUUID()}-${safeName}`
     const { error } = await supabase.storage.from('site-media').upload(storagePath, file, { contentType: file.type, upsert: false })
     if (error) throw error
     uploadedPaths.push(storagePath)
   }
-  const { data: book, error: bookError } = await supabase.from('books').insert({ isbn: input.isbn.trim() || null, title: input.title.trim(), slug: input.slug.trim(), path: `/books/${input.slug.trim()}`, description_html: input.descriptionHtml?.trim() || null, cover_price_usd: input.coverPriceUsd ?? null, sale_price_vnd: input.salePriceVnd, compare_price_vnd: input.comparePriceVnd ?? null, page_count: input.pageCount ?? null, book_size: input.bookSize?.trim() || null, publication_date: input.publicationDate || null, weight: input.weight?.trim() || null, cover_storage_path: uploadedPaths[0] ?? null, status: input.isVisibleWebsite ? 'active' : 'draft', is_visible_website: input.isVisibleWebsite, inventory_quantity: input.inventoryQuantity ?? 0 }).select('id').single()
-  if (bookError) throw bookError
+  const { data: book, error: bookError } = await supabase.from('books').insert({ isbn: input.isbn.trim() || null, title: input.title.trim(), slug: input.slug.trim(), path: `/books/${input.slug.trim()}`, description_html: input.descriptionHtml?.trim() || null, cover_price_usd: input.coverPriceUsd ?? null, sale_price_vnd: input.salePriceVnd, compare_price_vnd: input.comparePriceVnd ?? null, page_count: input.pageCount ?? null, book_size: input.bookSize?.trim() || null, publication_date: input.publicationDate || null, weight: input.weight?.trim() || null, cover_storage_path: uploadedPaths[0] ?? null, sample_pdf_storage_path: sampleStoragePath, sample_pdf_page_count: sampleFile ? input.samplePageCount ?? null : null, sample_pdf_enabled: Boolean(sampleStoragePath), sample_file_type: sampleFile && (/\.epub$/i.test(sampleFile.name) || /epub/i.test(sampleFile.type)) ? 'epub' : 'pdf', status: input.isVisibleWebsite ? 'active' : 'draft', is_visible_website: input.isVisibleWebsite, inventory_quantity: input.inventoryQuantity ?? 0 }).select('id').single()
+  if (bookError) {
+    if (sampleStoragePath) await supabase.storage.from('book-samples').remove([sampleStoragePath])
+    if (uploadedPaths.length) await supabase.storage.from('site-media').remove(uploadedPaths)
+    throw bookError
+  }
   const bookId = String(book.id)
+  const client = supabase
+  const rollbackBook = async () => {
+    await client.from('books').delete().eq('id', bookId)
+    if (sampleStoragePath) await client.storage.from('book-samples').remove([sampleStoragePath])
+    if (uploadedPaths.length) await client.storage.from('site-media').remove(uploadedPaths)
+  }
   if (uploadedPaths.length) {
     const { error } = await supabase.from('book_images').insert(uploadedPaths.map((storagePath, index) => ({ book_id: bookId, storage_path: storagePath, sort_order: index, is_primary: index === 0 })))
-    if (error) throw error
+    if (error) { await rollbackBook(); throw error }
   }
   const creatorNames = [...new Set([...(input.authors ?? []), ...(input.translators ?? []), ...(input.illustrators ?? [])].map((value) => value.trim()).filter(Boolean))]
   if (creatorNames.length) {
     const { data: creators, error } = await supabase.from('creators').select('id,display_name').in('display_name', creatorNames)
-    if (error) throw error
+    if (error) { await rollbackBook(); throw error }
     const creatorRows = (creators ?? []) as Array<{ id: string; display_name: string }>
     const creatorLinks = creatorRows.flatMap((creator) => [
       ...(input.authors ?? []).includes(creator.display_name) ? [{ book_id: bookId, creator_id: creator.id, role: 'author' as const, sort_order: 0 }] : [],
@@ -937,7 +1063,7 @@ export async function createAdminBook(input: AdminBookInput, coverFiles: File[] 
     ])
     if (creatorLinks.length) {
       const { error: linkError } = await supabase.from('book_creators').insert(creatorLinks)
-      if (linkError) throw linkError
+      if (linkError) { await rollbackBook(); throw linkError }
     }
   }
   const taxonomyInputs: Array<{ kind: string; names: string[] }> = [
@@ -946,22 +1072,27 @@ export async function createAdminBook(input: AdminBookInput, coverFiles: File[] 
   const taxonomyNames = [...new Set(taxonomyInputs.flatMap((entry) => entry.names.map((name) => name.trim()).filter(Boolean)))]
   if (taxonomyNames.length) {
     const { data: terms, error } = await supabase.from('taxonomy_terms').select('id,kind,name').in('name', taxonomyNames)
-    if (error) throw error
+    if (error) { await rollbackBook(); throw error }
     const termRows = (terms ?? []) as Array<{ id: string; kind: string; name: string }>
-    const termLinks = taxonomyInputs.flatMap((entry) => entry.names.flatMap((name) => termRows.filter((term) => term.kind === entry.kind && term.name === name).map((term) => ({ book_id: bookId, term_id: term.id }))))
+    const missingTerms = taxonomyInputs.flatMap((entry) => entry.names.map((name) => ({ kind: entry.kind, name: name.trim() }))).filter((requested) => requested.name && !termRows.some((term) => term.kind === requested.kind && term.name === requested.name))
+    if (missingTerms.length) { await rollbackBook(); throw new Error(`Không tìm thấy dữ liệu phân loại trong Supabase: ${missingTerms.map((term) => `${term.kind}=${term.name}`).join(', ')}.`) }
+    const termLinks = [...new Map(taxonomyInputs.flatMap((entry) => entry.names.flatMap((name) => termRows.filter((term) => term.kind === entry.kind && term.name === name.trim()).map((term) => [`${bookId}:${term.id}`, { book_id: bookId, term_id: term.id }] as const))).map(([key, link]) => [key, link])).values()]
     if (termLinks.length) {
       const { error: linkError } = await supabase.from('book_taxonomy_terms').insert(termLinks)
-      if (linkError) throw linkError
+      if (linkError) { await rollbackBook(); throw linkError }
     }
   }
   if ((input.homepageModules ?? []).length) {
     const moduleNames = input.homepageModules ?? []
     const { data: modules, error } = await supabase.from('homepage_modules').select('id,name').in('name', moduleNames)
-    if (error) throw error
-    const moduleLinks = ((modules ?? []) as Array<{ id: string; name: string }>).map((module, index) => ({ book_id: bookId, module_id: module.id, sort_order: index }))
+    if (error) { await rollbackBook(); throw error }
+    const moduleRows = (modules ?? []) as Array<{ id: string; name: string }>
+    const missingModulesAfterInsert = moduleNames.filter((name) => !moduleRows.some((module) => module.name === name))
+    if (missingModulesAfterInsert.length) { await rollbackBook(); throw new Error(`Không tìm thấy mô đun trang chủ trong Supabase: ${missingModulesAfterInsert.join(', ')}.`) }
+    const moduleLinks = moduleRows.map((module, index) => ({ book_id: bookId, module_id: module.id, sort_order: index + 1 }))
     if (moduleLinks.length) {
       const { error: linkError } = await supabase.from('book_homepage_modules').insert(moduleLinks)
-      if (linkError) throw linkError
+      if (linkError) { await rollbackBook(); throw linkError }
     }
   }
   return bookId
@@ -984,6 +1115,22 @@ const publicMediaUrl = (storagePath: string) => {
   if (supabase && storagePath) return supabase.storage.from('site-media').getPublicUrl(storagePath).data.publicUrl
   if (/^[^/]+\.(?:avif|jpe?g|png|webp)$/i.test(storagePath)) return `/assets/catalog-covers/${storagePath}`
   return '/assets/media-placeholder.svg'
+}
+
+const coverPathMatchesIsbn = (storagePath: string, isbn: string) => {
+  const normalizedIsbn = isbn.replace(/\D/g, '')
+  if (!normalizedIsbn) return true
+  const hints = [...storagePath.matchAll(/(?:^|[^0-9])(97\d{11})(?:[^0-9]|$)/g)].map((match) => match[1])
+  return hints.length === 0 || hints.every((hint) => hint === normalizedIsbn)
+}
+
+const publicBookImageUrl = (storagePath: string, isbn: string) => coverPathMatchesIsbn(storagePath, isbn) ? publicMediaUrl(storagePath) : '/assets/media-placeholder.svg'
+
+const publicBookSampleUrl = (storagePath: string) => {
+  if (storagePath.startsWith('/assets/')) return storagePath
+  if (/^https?:\/\//i.test(storagePath)) return storagePath
+  if (supabase && storagePath) return supabase.storage.from('book-samples').getPublicUrl(storagePath).data.publicUrl
+  return ''
 }
 
 const unique = (values: string[]) => [...new Set(values.filter(Boolean))]
@@ -1009,8 +1156,8 @@ export function getCachedPublicCatalogProducts(): PublicCatalogProduct[] | null 
     if (!Array.isArray(cached) || cached.length === 0) return null
     return (cached as PublicCatalogProduct[]).map((product) => ({
       ...product,
-      image: publicMediaUrl(String(product.image ?? '')),
-      gallery: (product.gallery ?? []).map((image) => publicMediaUrl(String(image))),
+      image: publicBookImageUrl(String(product.image ?? ''), product.isbn),
+      gallery: (product.gallery ?? []).filter((image) => coverPathMatchesIsbn(String(image), product.isbn)).map((image) => publicMediaUrl(String(image))),
     }))
   } catch {
     return null
@@ -1018,64 +1165,15 @@ export function getCachedPublicCatalogProducts(): PublicCatalogProduct[] | null 
 }
 
 export async function loadPublicHomepageProducts(): Promise<PublicCatalogProduct[] | null> {
-  if (!supabase) return null
-  const modules = await supabase.from('book_homepage_modules').select('book_id,sort_order,homepage_modules(name,slug)').order('sort_order', { ascending: true })
-  if (modules.error) throw modules.error
-  const moduleRows = (modules.data ?? []) as Array<{ book_id: string; homepage_modules: { name: string; slug: string } | Array<{ name: string; slug: string }> | null }>
-  const bookIds = [...new Set(moduleRows.map((row) => row.book_id).filter(Boolean))]
-  if (!bookIds.length) return []
-  const [books, images, creators] = await Promise.all([
-    supabase.from('books').select('id,isbn,title,slug,sale_price_vnd,publication_date,inventory_quantity,reserved_inventory_quantity,cover_storage_path').in('id', bookIds).eq('status', 'active').eq('is_visible_website', true),
-    supabase.from('book_images').select('book_id,storage_path,sort_order,is_primary').in('book_id', bookIds).order('sort_order', { ascending: true }),
-    supabase.from('book_creators').select('book_id,role,sort_order,creators(display_name,slug)').in('book_id', bookIds).order('sort_order', { ascending: true }),
-  ])
-  const error = books.error ?? images.error ?? creators.error
-  if (error) throw error
-  const imageRows = (images.data ?? []) as Array<{ book_id: string; storage_path: string; sort_order: number; is_primary: boolean }>
-  const creatorRows = (creators.data ?? []) as Array<{ book_id: string; role: 'author' | 'translator' | 'illustrator'; sort_order: number; creators: { display_name: string; slug: string } | Array<{ display_name: string; slug: string }> | null }>
-  const imagesByBook = new Map<string, typeof imageRows>()
-  const creatorsByBook = new Map<string, typeof creatorRows>()
-  for (const row of imageRows) imagesByBook.set(row.book_id, [...(imagesByBook.get(row.book_id) ?? []), row])
-  for (const row of creatorRows) creatorsByBook.set(row.book_id, [...(creatorsByBook.get(row.book_id) ?? []), row])
-  const modulesByBook = new Map<string, string[]>()
-  for (const row of moduleRows) {
-    const linkedModules = asArray(row.homepage_modules)
-    modulesByBook.set(row.book_id, unique([...(modulesByBook.get(row.book_id) ?? []), ...linkedModules.map((module) => module.slug)]))
-  }
-  return ((books.data ?? []) as Array<Record<string, unknown>>).map((book) => {
-    const id = String(book.id)
-    const bookImages = (imagesByBook.get(id) ?? []).sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order).map((row) => publicMediaUrl(row.storage_path))
-    const bookCreators = creatorsByBook.get(id) ?? []
-    const authors = bookCreators.filter((row) => row.role === 'author').flatMap((row) => asArray(row.creators).map((creator) => creator.display_name))
-    const translators = bookCreators.filter((row) => row.role === 'translator').flatMap((row) => asArray(row.creators).map((creator) => creator.display_name))
-    const inventory = Number(book.inventory_quantity ?? 0)
-    const reserved = Number(book.reserved_inventory_quantity ?? 0)
-    return {
-      id,
-      isbn: String(book.isbn ?? ''),
-      slug: String(book.slug ?? ''),
-      title: String(book.title ?? ''),
-      image: bookImages[0] ?? publicMediaUrl(String(book.cover_storage_path ?? '')),
-      gallery: bookImages,
-      author: authors[0] ?? translators[0] ?? 'Linery Books',
-      translators: unique(translators),
-      illustrators: [],
-      price: Number(book.sale_price_vnd ?? 0).toLocaleString('vi-VN') + '₫',
-      categories: [],
-      publisher: 'Linery Books',
-      writerType: authors.length > 0 ? 'Authors' : 'Translators',
-      year: book.publication_date ? Number(String(book.publication_date).slice(0, 4)) : undefined,
-      available: inventory > reserved,
-      moduleSlugs: modulesByBook.get(id) ?? [],
-    } satisfies PublicCatalogProduct
-  }).filter((book) => book.title && book.image)
+  const products = await loadPublicCatalogProducts()
+  return products?.filter((product) => product.moduleSlugs.length > 0) ?? null
 }
 
 export async function loadPublicCatalogProducts(): Promise<PublicCatalogProduct[] | null> {
   if (!supabase) return null
   if (publicCatalogPromise) return publicCatalogPromise
   publicCatalogPromise = (async () => {
-    const books = await supabase.from('books').select('id,isbn,title,slug,sale_price_vnd,publication_date,inventory_quantity,reserved_inventory_quantity,cover_storage_path').eq('status', 'active').eq('is_visible_website', true).order('created_at', { ascending: false })
+    const books = await supabase.from('books').select('id,isbn,title,slug,description_html,cover_price_usd,sale_price_vnd,compare_price_vnd,page_count,book_size,publication_date,weight,inventory_quantity,reserved_inventory_quantity,cover_storage_path').eq('status', 'active').eq('is_visible_website', true).order('created_at', { ascending: false })
     const error = books.error
     if (error) throw error
     const bookIds = ((books.data ?? []) as Array<{ id: string }>).map((book) => book.id)
@@ -1104,7 +1202,8 @@ export async function loadPublicCatalogProducts(): Promise<PublicCatalogProduct[
 
     return ((books.data ?? []) as Array<Record<string, unknown>>).map((book) => {
     const id = String(book.id)
-    const bookImages = (imagesByBook.get(id) ?? []).sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order).map((row) => publicMediaUrl(row.storage_path))
+    const isbn = String(book.isbn ?? '')
+    const bookImages = (imagesByBook.get(id) ?? []).sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order).filter((row) => coverPathMatchesIsbn(row.storage_path, isbn)).map((row) => publicBookImageUrl(row.storage_path, isbn))
     const bookCreators = creatorsByBook.get(id) ?? []
     const linkedModules = modulesByBook.get(id) ?? []
     const moduleSortOrders = Object.fromEntries((moduleRows.filter((row) => row.book_id === id)).flatMap((row) => asArray(row.homepage_modules).map((module) => [module.slug, Number(row.sort_order)])))
@@ -1113,14 +1212,20 @@ export async function loadPublicCatalogProducts(): Promise<PublicCatalogProduct[
     const illustrators = bookCreators.filter((row) => row.role === 'illustrator').flatMap((row) => asArray(row.creators).map((creator) => creator.display_name))
     const bookTerms = (termsByBook.get(id) ?? []).flatMap((row) => asArray(row.taxonomy_terms))
     const categories = unique(bookTerms.filter((term) => ['category', 'genre', 'topic'].includes(term.kind)).map((term) => term.name))
+    const genres = unique(bookTerms.filter((term) => term.kind === 'genre').map((term) => term.name))
+    const topics = unique(bookTerms.filter((term) => term.kind === 'topic').map((term) => term.name))
+    const formats = unique(bookTerms.filter((term) => term.kind === 'format').map((term) => term.name))
+    const lines = unique(bookTerms.filter((term) => term.kind === 'line').map((term) => term.name))
+    const imprints = unique(bookTerms.filter((term) => term.kind === 'imprint').map((term) => term.name))
+    const languages = unique(bookTerms.filter((term) => term.kind === 'language').map((term) => term.name))
     const publisher = bookTerms.find((term) => term.kind === 'publisher')?.name ?? 'Linery Books'
     const price = Number(book.sale_price_vnd ?? 0).toLocaleString('vi-VN') + '₫'
     const inventory = Number(book.inventory_quantity ?? 0)
     const reserved = Number(book.reserved_inventory_quantity ?? 0)
-    const image = bookImages[0] ?? publicMediaUrl(String(book.cover_storage_path ?? ''))
+    const image = bookImages[0] ?? publicBookImageUrl(String(book.cover_storage_path ?? ''), isbn)
     return {
       id,
-      isbn: String(book.isbn ?? ''),
+      isbn,
       slug: String(book.slug ?? ''),
       title: String(book.title ?? ''),
       image,
@@ -1134,10 +1239,25 @@ export async function loadPublicCatalogProducts(): Promise<PublicCatalogProduct[
       writerType: authors.length > 0 ? 'Authors' : 'Translators',
       year: book.publication_date ? Number(String(book.publication_date).slice(0, 4)) : undefined,
       available: inventory > reserved,
+      inventoryQuantity: inventory,
+      reservedInventoryQuantity: reserved,
       moduleSlugs: unique(linkedModules.flatMap((row) => asArray(row.homepage_modules).map((module) => module.slug))),
       moduleSortOrders,
+      description: String(book.description_html ?? ''),
+      coverPriceUsd: book.cover_price_usd == null ? null : Number(book.cover_price_usd),
+      comparePriceVnd: book.compare_price_vnd == null ? null : Number(book.compare_price_vnd),
+      pageCount: book.page_count == null ? null : Number(book.page_count),
+      bookSize: String(book.book_size ?? ''),
+      publicationDate: String(book.publication_date ?? ''),
+      weight: String(book.weight ?? ''),
+      format: formats[0] ?? '',
+      line: lines[0] ?? '',
+      imprint: imprints[0] ?? '',
+      languages,
+      genres,
+      topics,
     } satisfies PublicCatalogProduct
-    }).filter((book) => book.title && book.image)
+    }).filter((book) => book.title)
   })()
   publicCatalogPromise.then((records) => {
     if (typeof window !== 'undefined' && records?.length) {
@@ -1156,7 +1276,10 @@ export async function loadPublicBookSample(bookId: string, bookSlug?: string): P
   const cached = publicBookSamplePromise.get(bookId)
   if (cached) return cached
   const request = (async () => {
-    const { data, error } = await supabase.from('books').select('sample_pdf_storage_path,sample_pdf_page_count,sample_pdf_enabled,sample_file_type').eq('id', bookId).maybeSingle()
+    // Read the full row so older databases without the optional sample columns
+    // return a normal record instead of a noisy 400 response. The migrated
+    // columns are still consumed automatically when they exist.
+    const { data, error } = await supabase.from('books').select('*').eq('id', bookId).maybeSingle()
     if (error) {
       return bundledDemoSample
     }
@@ -1165,7 +1288,7 @@ export async function loadPublicBookSample(bookId: string, bookSlug?: string): P
       return bundledDemoSample
     }
     const fileType: 'pdf' | 'epub' = row.sample_file_type === 'epub' || /\.epub(?:$|\?)/i.test(row.sample_pdf_storage_path) ? 'epub' : 'pdf'
-    return { url: publicMediaUrl(row.sample_pdf_storage_path), pageCount: row.sample_pdf_page_count ? Number(row.sample_pdf_page_count) : undefined, fileType }
+    return { url: publicBookSampleUrl(row.sample_pdf_storage_path), pageCount: row.sample_pdf_page_count ? Number(row.sample_pdf_page_count) : undefined, fileType }
   })()
   publicBookSamplePromise.set(bookId, request)
   return request
@@ -1175,10 +1298,9 @@ export async function loadPublicCreatorProfiles(): Promise<PublicCreatorProfile[
   if (!supabase) return null
   if (publicCreatorsPromise) return publicCreatorsPromise
   publicCreatorsPromise = (async () => {
-    const creatorsWithAcademicTitle = await supabase.from('creators').select('id,display_name,slug,bio_html,birth_year,death_year,awards,academic_title').eq('is_active', true).order('sort_order', { ascending: true })
-    const creators = creatorsWithAcademicTitle.error && /academic_title|column/i.test(creatorsWithAcademicTitle.error.message ?? '')
-      ? await supabase.from('creators').select('id,display_name,slug,bio_html,birth_year,death_year,awards').eq('is_active', true).order('sort_order', { ascending: true })
-      : creatorsWithAcademicTitle
+    // `*` keeps public creator loading compatible before/after the optional
+    // academic_title migration without creating a noisy 400 fallback request.
+    const creators = await supabase.from('creators').select('*').eq('is_active', true).order('sort_order', { ascending: true })
     const [images, creatorRoles] = await Promise.all([
     supabase.from('creator_images').select('creator_id,storage_path,sort_order,is_primary').order('sort_order', { ascending: true }),
     supabase.from('creator_roles').select('creator_id,role'),
@@ -1507,6 +1629,17 @@ export async function loadPublicBanners(): Promise<PublicBanner[] | null> {
     const publicUrl = String(asset?.public_url ?? '')
     return publicUrl ? [{ id: String(row.id), name: String(row.name ?? ''), positionCode: String(row.position_code ?? ''), publicUrl, sortOrder: Number(row.sort_order ?? 0), displayMode: String(row.display_mode ?? 'desktop-mobile') }] : []
   })
+}
+
+export async function loadPublicSiteSettings(): Promise<PublicSiteSettings | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase.from('site_settings').select('setting_key,language,value_json').eq('is_public', true)
+  if (error) throw error
+  return ((data ?? []) as Array<Record<string, unknown>>).reduce<PublicSiteSettings>((settings, row) => {
+    const key = String(row.setting_key ?? '')
+    if (key) settings[key] = row.value_json && typeof row.value_json === 'object' ? row.value_json as Record<string, unknown> : {}
+    return settings
+  }, {})
 }
 
 export async function loadRemoteCart(): Promise<RemoteCartItem[] | null> {

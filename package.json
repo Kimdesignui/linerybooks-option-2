@@ -12,7 +12,9 @@
     "verify:supabase-backend": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-backend.ps1",
     "verify:news-metadata": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-news-metadata.ps1",
     "verify:hosted-images": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-hosted-images.ps1",
+    "audit:source-cover-links": "node scripts/audit-source-cover-links.mjs",
     "verify:homepage-modules": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-homepage-modules.ps1",
+    "test:qa": "node scripts/qa-smoke.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -51,6 +51,14 @@ Project đang dùng đã có baseline này; verifier (bộ kiểm tra tự độ
 22. `20261116_allow_admin_book_writes.sql`
    - cấp quyền cho quản trị viên tạo, sửa và xóa sách, ảnh sách, liên kết người sáng tạo, phân loại và mô-đun trang chủ;
    - giữ nguyên RLS (Row Level Security - cơ chế giới hạn dữ liệu theo quyền), chỉ tài khoản quản trị mới được ghi.
+23. `20261116_seed_pages_public_site_configuration.sql`
+   - đăng ký metadata của logo, favicon và hai hero asset đang nằm trong bundle Cloudflare Pages;
+   - seed `site_name`, `site_logo` và `site_favicon` để storefront đọc cùng nguồn với admin.
+24. `20261116_admin_roles_and_permissions.sql`
+25. `20261116_enforce_admin_permissions.sql`
+   - tạo ma trận role/permission cho `Super Admin`, `Admin quản trị hệ thống`, `Nhân viên kinh doanh` và `Biên tập viên`;
+   - nâng cấp `admin_users`, cấp RPC gán/đổi/gỡ vai trò và trả quyền của phiên đăng nhập;
+   - chạy sau khi tài khoản Supabase Auth đầu tiên đã có trong `admin_users`.
 
 Các file đều dùng `if not exists`, `create or replace` và `on conflict` ở các điểm cần thiết để có thể chạy lại an toàn. Không chọn “Run without RLS”; nếu Supabase hiện cảnh báo, chọn “Run and enable RLS”.
 
