@@ -38,6 +38,9 @@ for (const viewport of viewports) {
     try {
       const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'domcontentloaded', timeout: 15000 })
       await page.waitForTimeout(700)
+      if (route.endsWith('/reader')) {
+        await page.waitForFunction(() => document.body.innerText.includes('Read aloud'), undefined, { timeout: 6000 }).catch(() => undefined)
+      }
       const state = await page.evaluate(() => ({
         horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
         hasRoot: Boolean(document.querySelector('#root')),
@@ -46,9 +49,19 @@ for (const viewport of viewports) {
       if (!response || response.status() >= 400) failures.push(`${viewport.name} ${route}: HTTP ${response?.status() ?? 'no response'}`)
       if (!state.hasRoot || !state.bodyText) failures.push(`${viewport.name} ${route}: blank application shell`)
       if (state.horizontalOverflow) failures.push(`${viewport.name} ${route}: horizontal overflow`)
+      if (route.startsWith('/admin') && !state.bodyText.includes('Đăng nhập quản trị')) failures.push(`${viewport.name} ${route}: unauthenticated admin gate missing`)
+      if (route.endsWith('/reader') && (!state.bodyText.includes('Read aloud') || !state.bodyText.includes('PDF reading sample'))) failures.push(`${viewport.name} ${route}: reader controls or metadata missing`)
     } catch (error) {
       failures.push(`${viewport.name} ${route}: ${error instanceof Error ? error.message : String(error)}`)
     }
+  }
+
+  try {
+    const sampleResponse = await context.request.get(`${baseUrl}/assets/book-samples/a-manual-for-cleaning-women.pdf`)
+    const contentType = sampleResponse.headers()['content-type'] ?? ''
+    if (sampleResponse.status() >= 400 || !contentType.includes('application/pdf')) failures.push(`${viewport.name}: reading sample PDF is unavailable or has the wrong content type`)
+  } catch (error) {
+    failures.push(`${viewport.name}: reading sample request failed: ${error instanceof Error ? error.message : String(error)}`)
   }
 
   if (pageErrors.length) failures.push(`${viewport.name}: page errors: ${pageErrors.join(' | ')}`)
