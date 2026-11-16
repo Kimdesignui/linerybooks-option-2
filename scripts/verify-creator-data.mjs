@@ -47,6 +47,7 @@ console.log(`Mojibake names: ${mojibake.length}`)
 console.log(`Active unused creators: ${activeUnused.length}`)
 console.log(`Known import artefacts: ${knownImportArtefacts.length}`)
 if (mojibake.length) console.log(`Mojibake: ${mojibake.map((creator) => `${creator.display_name} [${creator.slug}]`).join(' | ')}`)
+if (missingImages.length) console.log(`Missing image names: ${missingImages.map((creator) => `${creator.display_name} [${creator.slug}]`).join(' | ')}`)
 if (duplicateEncodingSlugs.length) console.log(`Duplicate encoding rows: ${duplicateEncodingSlugs.map((creator) => creator.slug).join(', ')}`)
 if (knownImportArtefacts.length) console.log(`Import artefacts: ${knownImportArtefacts.map((creator) => creator.slug).join(', ')}`)
 
