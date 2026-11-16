@@ -246,7 +246,7 @@ body[data-admin-module="/admin/news"] .admin-shell main section:first-of-type > 
 @media (min-width: 1024px) {
   .admin-sidebar { position: relative; }
 }
-.admin-sidebar-collapse { position: fixed; top: 18px; left: 228px; z-index: 9999; display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border: 1px solid #dedbd0; border-radius: 50%; background: #fff; color: var(--color-ink); box-shadow: 0 2px 8px rgba(31,42,36,.08); cursor: pointer; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
+.admin-sidebar-collapse { position: fixed; top: 18px; left: 228px; z-index: 10000; display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 1px solid #dedbd0; border-radius: 50%; background: #fff; color: var(--color-ink); box-shadow: 0 2px 8px rgba(31,42,36,.16); cursor: pointer; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
 .admin-sidebar-collapse:hover, .admin-sidebar-collapse:focus-visible { border-color: var(--color-olive); background: var(--color-olive); color: #fff; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar { width: 72px; }
 .admin-shell.admin-sidebar-collapsed .admin-sidebar > div:first-child { justify-content: center; padding-inline: 0; }
@@ -292,13 +292,13 @@ body[data-admin-module="/admin/news"] .admin-shell main section:first-of-type > 
   padding: 0 14px;
 }
 @media (max-width: 1023px) {
-  .admin-sidebar-collapse { display: none; }
+  .admin-sidebar-collapse { left: 228px; }
 }
 
 @media (min-width: 1024px) and (max-width: 1199px) {
   .admin-shell .admin-sidebar { position: fixed; transform: translateX(-100%); }
   .admin-shell .admin-sidebar.is-open { transform: translateX(0); }
-  .admin-shell .admin-sidebar-collapse { display: none; }
+  .admin-shell .admin-sidebar-collapse { left: 228px; }
   .admin-sales-dashboard main > .grid { grid-template-columns: minmax(0, 1fr); }
   .admin-sales-dashboard main > .grid > aside { position: static; }
   .admin-shell header button[aria-label='Mở menu quản trị'],

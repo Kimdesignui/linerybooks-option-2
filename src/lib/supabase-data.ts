@@ -602,6 +602,20 @@ export async function loadAdminPermissionMatrix(): Promise<AdminPermissionRow[]>
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminPermissionRow)
 }
 
+export async function setAdminRolePermission(role: AdminRoleKey, permissionKey: string, enabled: boolean): Promise<void> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { error } = await supabase.rpc('admin_set_role_permission', { p_role: role, p_permission_key: permissionKey, p_enabled: enabled })
+  if (error) throw error
+}
+
+export async function createAdminUser(email: string, password: string, role: AdminRoleKey): Promise<AdminUserRow> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { data, error } = await supabase.functions.invoke('admin-create-user', { body: { email: email.trim(), password, role } })
+  if (error) throw error
+  if (!data?.user) throw new Error('Không nhận được tài khoản quản trị sau khi tạo.')
+  return mapAdminUserRow(data.user as Record<string, unknown>)
+}
+
 export async function loadMyAdminAccess(): Promise<AdminAccess | null> {
   if (!supabase) return null
   const { data, error } = await supabase.rpc('admin_get_my_access')
@@ -1089,7 +1103,19 @@ export async function createAdminBook(input: AdminBookInput, coverFiles: File[] 
     const moduleRows = (modules ?? []) as Array<{ id: string; name: string }>
     const missingModulesAfterInsert = moduleNames.filter((name) => !moduleRows.some((module) => module.name === name))
     if (missingModulesAfterInsert.length) { await rollbackBook(); throw new Error(`Không tìm thấy mô đun trang chủ trong Supabase: ${missingModulesAfterInsert.join(', ')}.`) }
-    const moduleLinks = moduleRows.map((module, index) => ({ book_id: bookId, module_id: module.id, sort_order: index + 1 }))
+    const moduleIds = moduleRows.map((module) => module.id)
+    const { data: existingModuleLinks, error: existingLinksError } = await supabase.from('book_homepage_modules').select('module_id,sort_order').in('module_id', moduleIds)
+    if (existingLinksError) { await rollbackBook(); throw existingLinksError }
+    const nextSortByModule = new Map<string, number>()
+    for (const row of (existingModuleLinks ?? []) as Array<{ module_id: string; sort_order?: number | null }>) {
+      const current = nextSortByModule.get(row.module_id) ?? 0
+      nextSortByModule.set(row.module_id, Math.max(current, Number(row.sort_order ?? 0)))
+    }
+    const moduleLinks = moduleRows.map((module) => {
+      const nextSort = (nextSortByModule.get(module.id) ?? 0) + 1
+      nextSortByModule.set(module.id, nextSort)
+      return { book_id: bookId, module_id: module.id, sort_order: nextSort }
+    })
     if (moduleLinks.length) {
       const { error: linkError } = await supabase.from('book_homepage_modules').insert(moduleLinks)
       if (linkError) { await rollbackBook(); throw linkError }
@@ -1203,7 +1229,11 @@ export async function loadPublicCatalogProducts(): Promise<PublicCatalogProduct[
     return ((books.data ?? []) as Array<Record<string, unknown>>).map((book) => {
     const id = String(book.id)
     const isbn = String(book.isbn ?? '')
-    const bookImages = (imagesByBook.get(id) ?? []).sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order).filter((row) => coverPathMatchesIsbn(row.storage_path, isbn)).map((row) => publicBookImageUrl(row.storage_path, isbn))
+    // book_images.book_id is the authoritative relationship. Once an asset is
+    // linked to this book, do not reject it merely because an old filename
+    // contains a stale/different ISBN. New uploads are still validated before
+    // they are stored, but existing relational data must remain visible.
+    const bookImages = (imagesByBook.get(id) ?? []).sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order).map((row) => publicMediaUrl(row.storage_path))
     const bookCreators = creatorsByBook.get(id) ?? []
     const linkedModules = modulesByBook.get(id) ?? []
     const moduleSortOrders = Object.fromEntries((moduleRows.filter((row) => row.book_id === id)).flatMap((row) => asArray(row.homepage_modules).map((module) => [module.slug, Number(row.sort_order)])))

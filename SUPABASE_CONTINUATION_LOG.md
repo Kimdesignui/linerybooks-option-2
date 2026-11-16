@@ -107,3 +107,45 @@ Trạng thái hiện tại:
 - Không ghi thông tin đăng nhập, khóa API hoặc mã truy cập vào file này.
 - Sau mỗi lần sửa tiếp, cập nhật phần “Kết quả kiểm tra gần nhất” trong file này.
 
+## 10. Cập nhật flow thêm sách và cover — 16/11/2026
+
+### Đã cập nhật frontend
+
+- `src/App.tsx`:
+  - Nút `Lưu sách` có trạng thái `Đang lưu…` trong lúc upload ảnh/PDF và ghi dữ liệu.
+  - Khóa nút lưu và nút nháp trong lúc đang xử lý để tránh gửi trùng bản ghi.
+  - Sau khi `createAdminBook` hoàn tất, xóa bản nháp local, ghi thông báo thành công vào `sessionStorage`, rồi chuyển bằng `window.location.replace('/admin/books')`.
+  - Có chuyển hướng dự phòng sau 1,2 giây nếu trình duyệt không rời khỏi màn `/admin/books/new`.
+  - Nếu lưu lỗi, lỗi vẫn hiển thị trực tiếp ở đầu form và phát thông báo lỗi rõ ràng.
+  - Màn danh sách sách đọc thông báo thành công sau redirect và hiển thị banner `Đã lưu sách và các liên kết vào Supabase.`.
+
+### Đã cập nhật xử lý cover/backend mapping
+
+- `src/lib/supabase-data.ts`:
+  - Cover trong `book_images` được tin theo quan hệ `book_images.book_id` trước tiên; không loại ảnh đã liên kết chỉ vì tên file cũ chứa ISBN khác.
+  - File cover mới vẫn bị chặn trước khi upload nếu tên file chứa ISBN không khớp ISBN sách.
+  - Giữ rollback (hoàn tác) sách và file storage nếu bước liên kết tác giả, phân loại hoặc mô-đun trang chủ thất bại.
+  - Sửa tính `sort_order` theo từng mô-đun để không lặp khóa unique khi thêm sách vào mô-đun trang chủ.
+
+### Đối soát dữ liệu sau khi xóa bản ghi test
+
+- Đã kiểm tra trực tiếp Supabase: các bản ghi `Test` và `TestABC` không còn trong danh sách sách.
+- Catalog hiện còn 8 sách thật; các bản ghi đều có `cover_storage_path`.
+- Bản ghi `Test` trước đó trỏ tới object storage trả HTTP 400; không tìm thấy file nguồn trong workspace nên không tự phục hồi bằng ảnh khác.
+- Không tự chèn thêm sách test trong lượt kiểm tra này.
+
+### Kết quả kiểm tra sau cập nhật
+
+- `git diff --check` — đạt.
+- `npm run build:enhanced` — đạt; chỉ còn cảnh báo chunk lớn do PDF/TTS runtime.
+- `npm run test:qa` — đạt: 9 route × 2 viewport, không lỗi shell, runtime, console hoặc tràn ngang.
+- `npm run verify:supabase-backend` — các bảng và cột backend cần cho sách, ảnh, tác giả, phân loại và quyền quản trị phản hồi khả dụng.
+
+### Việc cần kiểm tra trên máy B
+
+1. Kéo commit mới nhất và chạy `npm install` nếu lockfile/package cache khác máy A.
+2. Mở `/admin/books/new`, nhập một sách mới với ISBN 13 số, chọn tác giả/phân loại hợp lệ và upload cover.
+3. Bấm `Lưu sách`; phải thấy `Đang lưu…`, sau đó tự về `/admin/books` và thấy banner thành công.
+4. Kiểm tra dòng sách mới có cover thật, ISBN, tác giả, số lượng và giá đúng.
+5. Nếu lỗi, ghi nguyên văn banner lỗi và thời điểm vào log; không xóa bản ghi hoặc file storage để che lỗi.
+
