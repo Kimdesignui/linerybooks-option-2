@@ -193,6 +193,14 @@ export type AdminOrderRow = {
 
 export type AdminTopBookRow = { title: string; quantity: number; revenueVnd: number }
 
+export type AdminDashboardSummary = {
+  bookCount: number
+  orderCount: number
+  creatorCount: number
+  newsCount: number
+  recentOrders: AdminOrderRow[]
+}
+
 export type AdminCustomerRow = {
   id: string
   name: string
@@ -760,6 +768,26 @@ export async function loadAdminOrders(): Promise<AdminOrderRow[]> {
       itemCount: items.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0),
     }
   })
+}
+
+export async function loadAdminDashboardSummary(): Promise<AdminDashboardSummary> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const [books, orders, creators, news, recentOrders] = await Promise.all([
+    supabase.from('books').select('id', { count: 'exact', head: true }),
+    supabase.from('orders').select('id', { count: 'exact', head: true }),
+    supabase.from('creators').select('id', { count: 'exact', head: true }),
+    supabase.from('news_posts').select('id', { count: 'exact', head: true }),
+    loadAdminOrders(),
+  ])
+  const error = books.error ?? orders.error ?? creators.error ?? news.error
+  if (error) throw error
+  return {
+    bookCount: books.count ?? 0,
+    orderCount: orders.count ?? 0,
+    creatorCount: creators.count ?? 0,
+    newsCount: news.count ?? 0,
+    recentOrders,
+  }
 }
 
 export async function loadAdminTopBooks(): Promise<AdminTopBookRow[]> {

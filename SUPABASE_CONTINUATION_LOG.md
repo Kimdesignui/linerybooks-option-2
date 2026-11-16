@@ -271,3 +271,12 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Chưa thể hoàn tất thao tác nhập/lưu qua giao diện trong tab thử nghiệm riêng vì phiên đăng nhập cục bộ trả `Invalid login credentials`; không đoán hoặc thay đổi mật khẩu. Cần dùng phiên Chrome đang đăng nhập sẵn hoặc triển khai bản này rồi kiểm tra lại trên môi trường đã đăng nhập.
 - Sau đó đã dùng đúng phiên Chrome quản trị đang đăng nhập sẵn để kiểm thử end-to-end (toàn bộ từ giao diện đến dữ liệu): tạo bài `kiem-thu-luu-tin-tuc-20261117`, nhập tiêu đề, mô tả, nội dung, SEO và hai danh mục, bấm xuất bản thành công; mở lại màn sửa và trang người dùng xác nhận dữ liệu vẫn còn.
 - Lượt đầu cố tình dùng chuỗi HTML thô trong ô soạn thảo để kiểm tra dữ liệu bất thường và phát hiện trang hiển thị cả thẻ `<p>`. Đã sửa lại bản ghi bằng thao tác nhập văn bản thuần như người dùng thật, lưu lại và kiểm tra ảnh hiển thị: thẻ HTML không còn lộ ra.
+
+## 19. Nối Tổng quan quản trị vào dữ liệu thật — 17/11/2026
+
+- Phát hiện màn Tổng quan quản trị đang hiển thị số 0 và trạng thái không có đơn hàng cố định, không phản ánh các bảng thật trong Supabase.
+- Bổ sung hàm tổng hợp số lượng bản ghi từ `books`, `orders`, `creators` và `news_posts`, đồng thời lấy danh sách đơn hàng gần đây từ Supabase.
+- Nối trực tiếp phiên bản `/admin` đang được sử dụng vào số liệu thật; không dùng số 0 hoặc danh sách mẫu làm dữ liệu thay thế khi truy vấn lỗi.
+- Khi Supabase lỗi hoặc chưa có quyền, giao diện hiển thị thông báo lỗi rõ ràng thay vì báo số liệu giả.
+- Kiểm tra sau thay đổi: `build`, `test:qa`, `verify:supabase-backend` và `git diff --check` đều đạt. Build còn cảnh báo kích thước gói runtime PDF/TTS lớn nhưng không lỗi.
+- Kiểm tra trực tiếp qua trình duyệt đã đăng nhập bị công cụ điều khiển trình duyệt hết thời gian chờ ở lệnh lấy trạng thái; chưa dùng kết quả này để tuyên bố kiểm thử giao diện trực tiếp đã đạt.
