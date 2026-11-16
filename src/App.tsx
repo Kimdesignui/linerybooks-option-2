@@ -5644,22 +5644,19 @@ export function App() {
   }
 
   const completeLogin = async (email: string, password: string) => {
-    if (supabase) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw new Error(error.message)
-    }
+    if (!supabase) throw new Error('Supabase chưa được cấu hình cho môi trường này.')
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw new Error(error.message)
     setIsAuthenticated(true)
     showAccount()
   }
 
   const completeRegister = async (email: string, password: string, username: string) => {
-    if (supabase) {
-      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username, display_name: username } } })
-      if (error) throw new Error(error.message)
-      if (data.session) { setIsAuthenticated(true); showAccount() }
-      return
-    }
-    upsertStorefrontCustomer({ name: username, email })
+    if (!supabase) throw new Error('Supabase chưa được cấu hình cho môi trường này.')
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username, display_name: username } } })
+    if (error) throw new Error(error.message)
+    if (data.session) { setIsAuthenticated(true); showAccount(); return }
+    throw new Error('Đăng ký đã tạo tài khoản nhưng chưa có phiên đăng nhập. Hãy kiểm tra email xác nhận rồi đăng nhập lại.')
   }
 
   const logout = () => {

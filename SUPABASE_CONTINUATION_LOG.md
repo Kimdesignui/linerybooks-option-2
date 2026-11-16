@@ -280,3 +280,9 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Khi Supabase lỗi hoặc chưa có quyền, giao diện hiển thị thông báo lỗi rõ ràng thay vì báo số liệu giả.
 - Kiểm tra sau thay đổi: `build`, `test:qa`, `verify:supabase-backend` và `git diff --check` đều đạt. Build còn cảnh báo kích thước gói runtime PDF/TTS lớn nhưng không lỗi.
 - Kiểm tra trực tiếp qua trình duyệt đã đăng nhập bị công cụ điều khiển trình duyệt hết thời gian chờ ở lệnh lấy trạng thái; chưa dùng kết quả này để tuyên bố kiểm thử giao diện trực tiếp đã đạt.
+
+## 20. Chặn đăng nhập/đăng ký giả khi thiếu Supabase — 17/11/2026
+
+- Phát hiện luồng đăng nhập và đăng ký người dùng còn có nhánh dự phòng ghi thông tin vào `localStorage` (bộ nhớ tạm của trình duyệt) nếu Supabase chưa cấu hình.
+- Đã bỏ hành vi dự phòng đó: thiếu Supabase hoặc đăng ký chưa tạo được phiên xác thực sẽ báo lỗi rõ ràng, không tự đánh dấu đăng nhập thành công và không sinh khách hàng/đơn hàng giả.
+- `build`, `test:qa`, `verify:supabase-backend` và `git diff --check` đều đạt sau thay đổi.
