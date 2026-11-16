@@ -252,3 +252,12 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Đối soát trực tiếp bản ghi theo ISBN xác nhận: giá, tồn kho, mô tả, 3 liên kết creator (người sáng tạo) và 7 liên kết phân loại đều đúng; không chọn mô-đun trang chủ nên không tạo liên kết mô-đun.
 - Sửa `scripts/verify-admin-book-save.mjs`: mặc định chỉ kiểm tra mô-đun khi bản kiểm thử có yêu cầu; dùng cờ `--expect-home-module` nếu cần bắt buộc sách phải được gắn vào mô-đun trang chủ.
 - Chạy lại sau sửa: `verify:admin-book-save`, `verify:supabase-backend`, `verify:hosted-images`, `verify:homepage-modules` và `build` đều đạt. Cảnh báo duy nhất là kích thước gói runtime PDF/TTS lớn, không làm hỏng build.
+
+## 17. Bổ sung ảnh Josh Malerman và chặn dữ liệu đơn hàng tạm — 17/11/2026
+
+- Đã dùng đúng phiên quản trị đang đăng nhập trên máy để mở `/admin/authors`, lọc `Josh Malerman`, chọn ảnh `.tmp-creator-images/josh-malerman.jpg` và lưu hồ sơ.
+- Đối soát lại Supabase: số ảnh creator tăng từ 173 lên 174; hồ sơ thiếu ảnh giảm từ 16 xuống 15. Ảnh đã được lưu vào Storage (kho lưu trữ tệp), không dùng ảnh mặc định.
+- Sửa luồng đặt hàng phía người dùng: khi Supabase chưa kết nối, hệ thống không còn ghi vào `localStorage` (bộ nhớ tạm của trình duyệt) rồi báo thành công. Hệ thống sẽ báo lỗi rõ ràng và chỉ xóa giỏ hàng sau khi RPC (hàm xử lý phía cơ sở dữ liệu) tạo đơn thành công.
+- Sửa màn `/admin/books/new`: truyền cấu hình `showTabs={false}` để thanh tab điều hướng không thể xuất hiện lại trên màn thêm sách.
+- Kiểm tra sau thay đổi: `build`, `test:qa`, `verify:supabase-backend`, `verify:hosted-images`, `verify:homepage-modules` và `verify:admin-book-save` đều đạt.
+- Còn 15 hồ sơ thiếu ảnh thật; chưa tự gán ảnh không xác minh được danh tính.
