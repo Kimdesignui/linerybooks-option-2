@@ -214,3 +214,7 @@ Kết quả sau cùng:
 
 Sau đó đã xác minh `agb` là bản ghi không có sách liên kết và đã chuyển sang `is_active = false` trên Supabase, không xóa dữ liệu. Kết quả mới: `Active unused creators: 0`, `Known import artefacts: 0`, `Mojibake names: 0`; còn 18 hồ sơ thật chưa có ảnh nguồn.
 
+Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu trữ tệp): Genevieve Valentine, Benjamin Percy, Seana McGuire, Jeffery Ford, Josh Malerman, Karen Heuler, Stephen Graham Jones, M. Rickert, Elizabeth Hand, Carmen Maria Machado, John Langan, Paul Tremblay, Richard Kadrey, Ag, Zarghuna Kargar, Ayn Rand, Bao Ninh và H. E. Bates.
+
+Đã kiểm tra trực tiếp trang quản trị `/admin/authors`: các hồ sơ này hiện thực sự trỏ tới `/assets/author-avatar-placeholder.png`, không phải ảnh lưu trên Supabase. Không tự gán ảnh không xác minh được danh tính.
+
