@@ -269,3 +269,5 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Bổ sung trạng thái `isPublished` vào dữ liệu tin tức để phân biệt rõ bài đang xuất bản với bản nháp ở màn sửa.
 - `build`, `test:qa`, `git diff --check` đều đạt. Kiểm tra backend Supabase vẫn đạt.
 - Chưa thể hoàn tất thao tác nhập/lưu qua giao diện trong tab thử nghiệm riêng vì phiên đăng nhập cục bộ trả `Invalid login credentials`; không đoán hoặc thay đổi mật khẩu. Cần dùng phiên Chrome đang đăng nhập sẵn hoặc triển khai bản này rồi kiểm tra lại trên môi trường đã đăng nhập.
+- Sau đó đã dùng đúng phiên Chrome quản trị đang đăng nhập sẵn để kiểm thử end-to-end (toàn bộ từ giao diện đến dữ liệu): tạo bài `kiem-thu-luu-tin-tuc-20261117`, nhập tiêu đề, mô tả, nội dung, SEO và hai danh mục, bấm xuất bản thành công; mở lại màn sửa và trang người dùng xác nhận dữ liệu vẫn còn.
+- Lượt đầu cố tình dùng chuỗi HTML thô trong ô soạn thảo để kiểm tra dữ liệu bất thường và phát hiện trang hiển thị cả thẻ `<p>`. Đã sửa lại bản ghi bằng thao tác nhập văn bản thuần như người dùng thật, lưu lại và kiểm tra ảnh hiển thị: thẻ HTML không còn lộ ra.
