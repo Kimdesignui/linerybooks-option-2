@@ -345,6 +345,7 @@ export type AdminStoreLocationRow = { id: string; code: string; name: string; lo
 export type AdminDeliveryZoneRow = { id: string; name: string; level: string; feeVnd: number; sortOrder: number; isActive: boolean }
 export type AdminChatbotPromptRow = { id: string; prompt: string; language: 'en' | 'vi'; sortOrder: number; isActive: boolean }
 export type AdminImportBatchRow = { id: string; fileName: string; importedBy: string; totalRows: number; validRows: number; errorRows: number; status: string; createdAt: string }
+export type AdminNotificationRow = { id: string; title: string; message: string; eventType: string; actionHref: string; readAt: string | null; createdAt: string }
 
 const mapAdminTaxonomyRow = (row: Record<string, unknown>): AdminTaxonomyRow => ({
   id: String(row.id),
@@ -720,6 +721,11 @@ export async function updateAdminChatbotPrompt(id: string, input: { prompt?: str
 export async function deleteAdminChatbotPrompt(id: string): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('chatbot_quick_prompts').delete().eq('id', id); if (error) throw error }
 
 export async function loadAdminImportBatches(): Promise<AdminImportBatchRow[]> { if (!supabase) return []; const { data, error } = await supabase.from('book_import_batches').select('id,file_name,imported_by,total_rows,valid_rows,error_rows,status,created_at').order('created_at', { ascending: false }); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({ id: String(row.id), fileName: String(row.file_name ?? ''), importedBy: String(row.imported_by ?? '—'), totalRows: Number(row.total_rows ?? 0), validRows: Number(row.valid_rows ?? 0), errorRows: Number(row.error_rows ?? 0), status: String(row.status ?? 'pending'), createdAt: String(row.created_at ?? '') })) }
+
+const mapAdminNotificationRow = (row: Record<string, unknown>): AdminNotificationRow => ({ id: String(row.id), title: String(row.title ?? ''), message: String(row.message ?? ''), eventType: String(row.event_type ?? 'system'), actionHref: String(row.action_href ?? ''), readAt: row.read_at ? String(row.read_at) : null, createdAt: String(row.created_at ?? '') })
+export async function loadAdminNotifications(): Promise<AdminNotificationRow[]> { if (!supabase) return []; const { data, error } = await supabase.from('admin_notifications').select('id,title,message,event_type,action_href,read_at,created_at').order('created_at', { ascending: false }).limit(30); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminNotificationRow) }
+export async function markAdminNotificationRead(id: string): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('admin_notifications').update({ read_at: new Date().toISOString() }).eq('id', id); if (error) throw error }
+export async function markAllAdminNotificationsRead(): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('admin_notifications').update({ read_at: new Date().toISOString() }).is('read_at', null); if (error) throw error }
 
 export async function checkRemoteAdminAccess(): Promise<{ allowed: boolean; email?: string; access?: AdminAccess | null; error?: string }> {
   if (!supabase) return { allowed: false, error: 'Supabase chưa được cấu hình.' }
