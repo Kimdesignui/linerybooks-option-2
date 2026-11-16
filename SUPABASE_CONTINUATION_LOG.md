@@ -165,3 +165,13 @@ Migration này chưa được xác nhận trên Supabase thật. Sau khi chạy,
 4. Kiểm tra dòng sách mới có cover thật, ISBN, tác giả, số lượng và giá đúng.
 5. Nếu lỗi, ghi nguyên văn banner lỗi và thời điểm vào log; không xóa bản ghi hoặc file storage để che lỗi.
 
+## 12. Đối soát máy A và máy B — 16/11/2026
+
+Đã kiểm tra trực tiếp cùng workspace bằng hai môi trường Vite (công cụ chạy giao diện):
+
+- `classic` (bản cũ) chỉ nạp `VITE_LINERY_VARIANT=classic`; không nạp `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY`, nên biến kết nối Supabase bị rỗng và không thể lưu sách thật.
+- `enhanced` nạp đủ hai biến Supabase; bản local ở cổng `5174` mở được `/admin/books/new`, hiển thị nút thêm nhanh và biểu mẫu kết nối backend.
+- `origin/main` (nhánh Git từ xa) tại thời điểm kiểm tra chưa có ba commit local mới nhất. Vì vậy máy B kéo từ `origin/main` hoặc bản Cloudflare chưa được triển khai lại có thể vẫn chạy cấu hình cũ.
+
+Kết luận: trước tiên máy B phải dùng đúng commit mới và chạy `npm run dev` để mặc định vào `enhanced` trên cổng `5174`. Nếu vẫn không lưu được sau bước này, cần đối chiếu tài khoản đăng nhập của máy B với quyền `books.create` (quyền tạo sách) trong Supabase; đó là lớp kiểm tra quyền riêng theo tài khoản, không phải lỗi giao diện.
+
