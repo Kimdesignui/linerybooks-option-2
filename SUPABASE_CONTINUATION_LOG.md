@@ -19,6 +19,7 @@ Trạng thái hiện tại: **chưa hoàn tất trên môi trường live (môi 
 - Bổ sung kết nối dữ liệu thật cho nhiều khu vực quản trị: đơn hàng, khách hàng, kho, khuyến mãi, địa điểm, thanh toán, menu, mô-đun trang chủ, tin tức, media và người sáng tạo.
 - Bổ sung kiểm tra ảnh lưu trên hosting (nơi lưu trữ thật), không dùng đường dẫn ảnh ngoài ở các bảng đã kiểm tra.
 - Bổ sung các bộ kiểm tra dữ liệu Excel, người sáng tạo và bản nháp màn thêm sách.
+- Bổ sung kiểm tra lưu sách thật: `npm run verify:admin-book-save -- 9781234567891` đối chiếu bản ghi sách, giá, tồn kho, mô tả và các liên kết creator/phân loại/mô đun trang chủ.
 
 ## 3. Migration (bản cập nhật cấu trúc cơ sở dữ liệu) chưa xác nhận trên Supabase thật
 
@@ -86,6 +87,14 @@ Mã frontend đã được cập nhật để hiển thị rõ:
 > Tài khoản đã đăng nhập nhưng chưa có quyền ghi sách trên Supabase. Hãy chạy migration `20261116_allow_admin_book_writes.sql` và đăng nhập quản trị lại.
 
 Sau khi migration quyền ghi đã chạy, cần thử lại cả ba bước: tạo sách, tạo liên kết phân loại và kiểm tra sách xuất hiện trong danh sách quản trị.
+
+## 13. Kiểm thử lưu sách thật — 16/11/2026
+
+- Đã nhập và lưu thành công hai bản ghi kiểm thử qua giao diện quản trị local, không gọi thẳng API để thay thế thao tác người dùng.
+- ISBN `9781234567890`: giá bìa USD đã sửa về `12.50`, giá bán `460000`, tồn kho `12`.
+- ISBN `9781234567891`: giá bìa USD `12.50`, giá bán `470000`, tồn kho `8`.
+- Cả hai bản ghi đều có liên kết tác giả Edward W. Said, 8 liên kết phân loại/thuộc tính, mô đun New & Upcoming và mô tả trong Supabase.
+- Đã phát hiện và sửa lỗi ô USD biến `12.50` thành `1250`; giá VNĐ vẫn giữ quy tắc số nguyên có phân tách hàng nghìn.
 
 ## 9. Cập nhật quyền quản trị live
 

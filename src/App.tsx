@@ -4106,9 +4106,29 @@ function AdminBookCreatePageV2() {
   const priceKeys = ['coverPriceUsd', 'salePrice', 'comparePrice'] as const
   const isPriceKey = (key: keyof typeof values): key is typeof priceKeys[number] => priceKeys.includes(key as typeof priceKeys[number])
   const formatNumericValue = (value: string, key: keyof typeof values) => {
-    const digits = value.replace(/\D/g, '')
-    if (!digits) return ''
-    return Number(digits).toLocaleString(key === 'coverPriceUsd' ? 'en-US' : 'vi-VN')
+    if (!value) return ''
+    const amount = Number(value)
+    if (!Number.isFinite(amount)) return ''
+    if (key === 'coverPriceUsd') {
+      const fractionDigits = value.includes('.') ? Math.min(2, value.split('.')[1]?.length ?? 0) : 0
+      return amount.toLocaleString('en-US', { minimumFractionDigits: fractionDigits, maximumFractionDigits: 2 })
+    }
+    return amount.toLocaleString('vi-VN')
+  }
+  const normalizePriceInput = (rawValue: string, key: keyof typeof values) => {
+    const allowDecimal = key === 'coverPriceUsd'
+    const invalidCharacters = rawValue.replace(/[\d.,\s]/g, '')
+    if (!allowDecimal) return { value: rawValue.replace(/\D/g, ''), invalidCharacters }
+    const compact = rawValue.replace(/\s/g, '')
+    const separators = [...compact].flatMap((character, index) => character === '.' || character === ',' ? [{ character, index }] : [])
+    if (!separators.length) return { value: compact.replace(/\D/g, ''), invalidCharacters }
+    const lastSeparator = separators[separators.length - 1]
+    const fractionCandidate = compact.slice(lastSeparator.index + 1).replace(/\D/g, '')
+    const useDecimal = separators.length > 1 || fractionCandidate.length <= 2
+    if (!useDecimal) return { value: compact.replace(/\D/g, ''), invalidCharacters }
+    const integerPart = compact.slice(0, lastSeparator.index).replace(/\D/g, '') || '0'
+    const fractionPart = fractionCandidate.slice(0, 2)
+    return { value: fractionPart ? `${integerPart}.${fractionPart}` : integerPart, invalidCharacters }
   }
   const handleTextFieldChange = (key: keyof typeof values, rawValue: string) => {
     if (key === 'isbn') {
@@ -4118,9 +4138,9 @@ function AdminBookCreatePageV2() {
       return
     }
     if (isPriceKey(key)) {
-      const digits = rawValue.replace(/\D/g, '')
-      setValue(key, digits)
-      setFieldWarnings((current) => ({ ...current, [key]: rawValue.replace(/[\d,.\s]/g, '') ? 'Chỉ được nhập số. Ký tự khác đã được loại bỏ.' : '' }))
+      const normalized = normalizePriceInput(rawValue, key)
+      setValue(key, normalized.value)
+      setFieldWarnings((current) => ({ ...current, [key]: normalized.invalidCharacters ? 'Chỉ được nhập số. Ký tự khác đã được loại bỏ.' : '' }))
       return
     }
     setValue(key, rawValue)
