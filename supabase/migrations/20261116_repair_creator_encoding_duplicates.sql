@@ -34,7 +34,7 @@ end $$;
 update public.creators
 set is_active = false,
     updated_at = now()
-where slug in ('ag', 'gdagda', 'dgda')
+where slug in ('ag', 'agb', 'gdagda', 'dgda')
   and not exists (
     select 1 from public.book_creators bc where bc.creator_id = creators.id
   );
