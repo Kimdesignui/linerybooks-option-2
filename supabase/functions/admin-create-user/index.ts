@@ -28,10 +28,12 @@ Deno.serve(async (request) => {
   const { data: callerPermission } = await serviceClient.from('admin_role_permissions').select('permission_key').eq('role_key', callerAdmin.role).eq('permission_key', 'admin_users.manage').maybeSingle()
   if (!callerPermission) return json({ error: 'PERMISSION_REQUIRED:admin_users.manage' }, 403)
 
-  const body = await request.json().catch(() => ({})) as { email?: string; password?: string; role?: string }
+  const body = await request.json().catch(() => ({})) as { username?: string; email?: string; password?: string; role?: string }
+  const username = String(body.username ?? '').trim().toLowerCase()
   const email = String(body.email ?? '').trim().toLowerCase()
   const password = String(body.password ?? '')
   const role = String(body.role ?? 'editor').trim().toLowerCase()
+  if (!/^[a-z0-9._-]{3,32}$/.test(username)) return json({ error: 'USERNAME_INVALID' }, 400)
   if (!email || !email.includes('@')) return json({ error: 'EMAIL_REQUIRED' }, 400)
   if (password.length < 8) return json({ error: 'PASSWORD_TOO_SHORT' }, 400)
   if (!['super_admin', 'system_admin', 'sales_staff', 'editor'].includes(role)) return json({ error: 'INVALID_ADMIN_ROLE' }, 400)
@@ -40,11 +42,11 @@ Deno.serve(async (request) => {
   const { data: created, error: createError } = await serviceClient.auth.admin.createUser({ email, password, email_confirm: true })
   if (createError || !created.user) return json({ error: createError?.message ?? 'AUTH_USER_CREATE_FAILED' }, 400)
 
-  const { data: adminRow, error: grantError } = await serviceClient.from('admin_users').insert({ user_id: created.user.id, role }).select('user_id, role, created_at').single()
+  const { data: adminRow, error: grantError } = await serviceClient.from('admin_users').insert({ user_id: created.user.id, username, role }).select('user_id, username, role, created_at').single()
   if (grantError || !adminRow) {
     await serviceClient.auth.admin.deleteUser(created.user.id)
     return json({ error: grantError?.message ?? 'ADMIN_GRANT_FAILED' }, 400)
   }
   const { data: roleRow } = await serviceClient.from('admin_roles').select('name').eq('role_key', role).single()
-  return json({ user: { user_id: adminRow.user_id, email, role: adminRow.role, role_name: roleRow?.name ?? role, created_at: adminRow.created_at } })
+  return json({ user: { user_id: adminRow.user_id, username: adminRow.username, email, role: adminRow.role, role_name: roleRow?.name ?? role, created_at: adminRow.created_at } })
 })

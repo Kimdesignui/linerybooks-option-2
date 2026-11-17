@@ -456,3 +456,74 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Test tạo quản trị viên qua Edge Function thành công: tài khoản tạm được tạo và xuất hiện trong danh sách quản trị viên thật.
 - Upload file PDF 5,2 MB chưa PASS trong môi trường kiểm thử này: request Storage rất chậm và bị ngắt sau khoảng 75 giây; upload tệp nhỏ bằng cùng phiên Admin vẫn PASS. Không tạo bản ghi sách hoặc file rác từ lần upload thất bại.
 - Đã xóa toàn bộ tài khoản, sách và object kiểm thử có tiền tố `codex.qa`/`Codex QA`; kiểm tra lại còn `0` tài khoản, `0` sách và `0` object kiểm thử.
+
+## 41. BA/UX-UI audit và chuẩn hóa Admin — 17/11/2026
+
+- Sửa header `AdminShell`: bỏ chữ cái cố định, hiển thị icon avatar cùng email và vai trò quản trị viên đang đăng nhập.
+- Bổ sung đăng nhập Admin bằng username ở frontend; thêm migration `20261117_admin_usernames.sql` để lưu username, tạo username từ email cho bản ghi cũ khi không trùng, tra email theo username và cấp tài khoản mới kèm username.
+- Bổ sung toggle ẩn/hiện thật cho danh mục sách; trạng thái dùng `is_active` và được lưu qua `updateAdminTaxonomyTerm`, nên dữ liệu ẩn sẽ không xuất hiện ở khu vực người dùng.
+- Bổ sung toggle ẩn/hiện cho tác giả; nút cập nhật `is_active`, đồng bộ nhãn/icon sau khi lưu và public loader đã lọc tác giả đang hoạt động.
+- Bổ sung tab `Read Excerpt` cạnh `Description` khi sách có file đọc thử; sách không có mô tả sẽ không render khối `Description` và không còn hiển thị câu fallback “Chưa có mô tả cho sách này”.
+- Kiểm tra đạt: `npm run build:enhanced`, `git diff --check`, `npm run test:qa` (`12 routes x 2 viewports`) và `npm run verify:supabase-backend` (các bảng/cột/RPC cốt lõi tồn tại; RPC cần đăng nhập trả `EXISTS_OR_AUTH`).
+- Chưa đồng bộ migration username và Edge Function lên Supabase live trong lượt này: Supabase CLI yêu cầu xác nhận `--yes` trước thao tác triển khai. Vì vậy username login/tạo Admin mới chỉ hoàn chỉnh ở mã nguồn local cho đến khi migration/function được deploy.
+- Cảnh báo BA còn lại: bundle reader/TTS lớn; QA route reader trong một số fixture không tìm thấy sách mẫu; hai layout Admin cũ (tác giả/báo cáo) vẫn cần gom về header dùng chung để đạt đồng nhất tuyệt đối.
+
+## 42. Sửa phạm vi toggle hiển thị sách — 17/11/2026
+
+- Đổi màn danh sách sách để tải cả bản ghi đang ẩn khi Admin đăng nhập, bổ sung cột `Hiển thị web` với switch (công tắc) cho từng cuốn.
+- Toggle gọi cập nhật `books.is_visible_website` và đồng bộ `status` active/draft; khu vực người dùng vẫn chỉ đọc sách active và visible.
+- Không dùng toggle này để điều khiển taxonomy (danh mục/chủ đề); trạng thái cần kiểm tra trên đúng từng cuốn sách trong danh sách.
+- Bỏ viền nút tài khoản Admin ở header, giữ icon avatar và email/vai trò.
+- Kiểm tra lại sau chỉnh sửa: `npm run build:enhanced`, `git diff --check` và `npm run test:qa` đều đạt; chưa deploy migration username/function lên Supabase live.
+## 43. Hồ sơ quản trị viên và đồng nhất công tắc hiển thị — 2026-11-17
+
+- Header quản trị: bỏ viền tài khoản, đồng nhất cả layout mới và layout cũ về icon avatar + email + vai trò; bấm vào mở `/admin/settings/admin-profile`.
+- Hồ sơ quản trị viên: thêm thông tin username/email/vai trò, chọn và tải avatar lên bucket `site-media` dưới thư mục `admin-avatars/`, lưu URL vào `auth.user_metadata.avatar_url`, và đổi mật khẩu qua Supabase Auth sau khi xác minh mật khẩu cũ.
+- Danh sách sách: công tắc `Hiển thị web` dùng cùng cấu trúc peer-toggle với công tắc `Hiển thị website` trong form chi tiết sách, và vẫn cập nhật `books.is_visible_website` cùng trạng thái `active/draft`.
+- Đã kiểm tra: `npm run build:enhanced` PASS; `npm run test:qa` PASS (12 route x 2 viewport); route hồ sơ trả HTTP 200; `git diff --check` PASS. Cảnh báo build còn lại chỉ là các chunk PDF/TTS lớn.
+- Lưu ý triển khai: helper avatar và migration username vẫn cần được triển khai/kiểm tra policy Storage trên Supabase production trước khi dùng tài khoản thật.
+
+## 44. Chỉnh sửa sách từ danh sách — 2026-11-17
+
+- Thêm đường dẫn `/admin/books/edit/:id` và dùng lại form nhập sách với dữ liệu hiện có được nạp từ Supabase.
+- Cho phép sửa thông tin cơ bản, tác giả/người tham gia, phân loại, mô tả, trạng thái hiển thị; giữ ảnh bìa và file đọc thử cũ nếu không chọn tệp mới.
+- Khi lưu chỉnh sửa, cập nhật bản ghi sách và đồng bộ lại các liên kết tác giả/phân loại; tồn kho không bị ghi đè vì thuộc nghiệp vụ Quản lý kho.
+- Đã kiểm tra lại bằng `npm run build:enhanced`, `npm run test:qa` và `git diff --check`.
+
+## 45. Kiểm tra tốc độ truy vấn và tiến trình lưu sách — 2026-11-17
+
+- Rà soát luồng catalog xác nhận nguyên nhân tải chậm: khi không có cache, hệ thống tải toàn bộ sách rồi chờ thêm bốn truy vấn quan hệ cho ảnh bìa, tác giả, phân loại và mô-đun trang chủ trước khi hoàn tất dữ liệu catalog. Đây là mô hình tải đầy đủ dữ liệu, chưa phân trang/lazy-load theo từng màn hình.
+- Rà soát luồng tạo/cập nhật sách xác nhận thao tác gồm nhiều bước mạng nối tiếp: kiểm tra dữ liệu, upload file đọc thử, upload ảnh bìa, tạo/cập nhật sách và ghi các liên kết tác giả/phân loại/mô-đun. Các ảnh bìa khi có nhiều tệp đã được chuyển sang upload song song để giảm thời gian chờ.
+- Bổ sung callback tiến trình thật cho `createAdminBook` và `updateAdminBook`, gồm các giai đoạn kiểm tra, upload PDF/EPUB, upload ảnh, tạo/cập nhật bản ghi, liên kết dữ liệu và hoàn tất.
+- Form `Thêm sách`/`Sửa sách` hiển thị lớp phủ chờ có icon, phần trăm và thông báo giai đoạn; lớp phủ chặn gửi lặp trong lúc Supabase xử lý, đồng thời tự biến mất khi có lỗi để người dùng đọc được thông báo lỗi.
+- `npm run build:enhanced` PASS; `npm run test:qa` PASS (`12 routes x 2 viewports`); không ghi nhận lỗi shell, runtime, console hoặc tràn ngang. Build vẫn cảnh báo chunk reader/TTS lớn, đây là vấn đề tối ưu bundle riêng, không phải lỗi luồng lưu sách.
+
+## 46. Chuẩn hóa thao tác quản lý Creators — 2026-11-17
+
+- Icon mắt trong thẻ và bảng giờ mở chi tiết hồ sơ tác giả, không còn bị gán nhầm cho thao tác ẩn/hiện.
+- Bổ sung công tắc `Hiển thị trên website` riêng, dùng trạng thái `creators.is_active` và lưu thật qua `upsertCreatorProfile`.
+- Bổ sung icon xóa ở thẻ và bảng; thao tác xóa kiểm tra liên kết sách trước, không cho xóa tác giả đang được sách sử dụng và báo nguyên nhân rõ ràng.
+- Chuẩn hóa các nút sửa/xem/xóa cùng kích thước 32px ở thẻ và bảng.
+- Không thêm Ant Design dependency; tham chiếu nguyên tắc thiết kế Tailwind hiện có để tránh tăng bundle và xung đột style.
+- `npm run build:enhanced` PASS; `npm run test:qa` PASS (`12 routes x 2 viewports`); `git diff --check` PASS. Chưa chụp được screenshot UI trực tiếp vì browser automation không có tab `iab` khả dụng trong phiên này.
+
+## 47. Đồng bộ tài khoản Admin ở màn Tổng quan — 2026-11-17
+
+- Màn `/admin` dùng header legacy (giao diện cũ) chỉ có nút chữ `K`, nên thiếu avatar, email và vai trò quản trị viên.
+- Thay nút này bằng `AdminIdentityControl` dùng chung với các màn quản trị khác; component tự đọc phiên Supabase hiện tại và hiển thị avatar, email/vai trò, đồng thời bấm vào mở hồ sơ quản trị viên.
+- Bổ sung `AdminNotificationButton` vào cùng cụm header để màn Tổng quan không còn khác cấu trúc với các màn Admin mới.
+- Giữ nút `Quản lý đơn hàng` trong header; chỉ thay phần tài khoản bị thiếu.
+- Ở dạng Thẻ của Creators, bỏ icon mắt trùng chức năng với nút `Xem hồ sơ`; nút hồ sơ được thu gọn thành nút pill (nút bo tròn dạng viên), còn các icon sửa/xóa giữ kích thước đồng nhất.
+- Toggle hiển thị tác giả dùng cùng cấu trúc công tắc bo tròn với toggle hiển thị sách.
+- Tên sách trong danh sách Admin giờ dẫn tới `book.link` ở website người dùng và mở bằng tab mới; icon mắt/sửa vẫn giữ đường dẫn nghiệp vụ Admin.
+- Bổ sung cột `Ẩn/hiện` và toggle bo tròn cho dạng Bảng của danh sách Creators; nút sửa/xem chi tiết trong bảng được đồng nhất kích thước 36px.
+- Cố định hàng thao tác trong thẻ: `Xem hồ sơ` giữ nút màu olive dạng pill và chiếm phần rộng chính; Sửa/Xóa là hai nút vuông 36px bo tròn, khoảng cách đều.
+- Điều chỉnh lại phạm vi UX: tab Thẻ/Grid chỉ hiển thị trạng thái; toggle bật/tắt tác giả chỉ xuất hiện trong tab Bảng, tại cột `Ẩn/hiện`.
+
+## 48. Đồng nhất header Admin — 2026-11-17
+
+- Thay toàn bộ nút chữ K còn sót trong các layout Admin legacy bằng cụm dùng chung gồm AdminNotificationButton và AdminIdentityControl.
+- Các màn quản trị cũ giờ hiển thị nhất quán thông báo, avatar, email/vai trò; bấm account vẫn mở hồ sơ quản trị viên.
+- Nút Xem hồ sơ của Creators giữ màu đỏ cam thương hiệu --color-terra; hai nút Sửa/Xóa giữ dạng vuông tròn.
+- Chuẩn hóa thứ tự header: các nút chức năng nằm trước, icon thông báo kế tiếp, account/avatar luôn nằm ngoài cùng bên phải; áp dụng cho Tổng quan và các layout Admin cũ.
+- Chốt lại giao diện Creators: tiêu đề dùng Hồ sơ nhà sáng tạo; nút Xem hồ sơ ở tab Thẻ dùng bo nhẹ dạng nút vuông, còn toggle ở tab Bảng được ép bo tròn 100% và không bị CSS nút Admin ghi đè.
