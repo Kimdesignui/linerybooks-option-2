@@ -39,7 +39,9 @@ const [creators, taxonomy, modules] = await Promise.all([
 const checks = {
   title: Boolean(book.title),
   prices: Number(book.cover_price_usd) > 0 && Number(book.sale_price_vnd) > 0 && Number(book.compare_price_vnd) > Number(book.sale_price_vnd),
-  inventory: Number(book.inventory_quantity) > 0,
+  // Inventory is managed separately from catalog creation. A newly created
+  // book must start at zero; receipts/adjustments are verified in the stock flow.
+  inventory: Number(book.inventory_quantity) === 0,
   description: Boolean(book.description_html),
   visible: book.is_visible_website === true,
   creatorLink: creators.some((row) => row.role === 'author'),
