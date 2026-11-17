@@ -418,6 +418,11 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - `verify:admin-book-save` vẫn FAIL trên bản ghi test cũ `Test`; đây là cảnh báo dữ liệu, không phải bằng chứng đủ để kết luận luồng tạo sách mới hỏng.
 - CRUD Admin thật, upload, phân quyền và điều chỉnh kho vẫn cần phiên Super Admin hợp lệ để kiểm thử tương tác end-to-end (từ đầu đến cuối).
 
+## 37. Sửa tiêu chí verifier lưu sách theo nghiệp vụ kho — 17/11/2026
+
+- `scripts/verify-admin-book-save.mjs` không còn yêu cầu tồn kho dương khi lưu sách; sách mới phải có `inventory_quantity = 0` và tồn kho được kiểm tra ở luồng Quản lý kho.
+- Chạy lại trên bản ghi test `Test`: tiêu chí tồn kho đã PASS; bản ghi vẫn còn thiếu giá hợp lệ và mô tả, nên tổng kiểm tra dữ liệu vẫn FAIL đúng nguyên nhân.
+
 ## 35. Tách tồn kho khỏi nghiệp vụ tạo sách — 17/11/2026
 
 - Gỡ trường `Tồn kho` khỏi form thêm sách và khỏi `AdminBookInput`; bản ghi sách mới luôn tạo với `inventory_quantity = 0`.
