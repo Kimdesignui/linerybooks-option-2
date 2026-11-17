@@ -439,3 +439,11 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - `npm run verify:supabase-backend` PASS: các bảng nghiệp vụ, cột dữ liệu và RPC cốt lõi đều tồn tại; các RPC yêu cầu phiên đăng nhập trả trạng thái `EXISTS_OR_AUTH` đúng kỳ vọng khi gọi ẩn danh.
 - Git đã đồng bộ: `main` và `origin/main` cùng commit `a3229640e3ec99e860ffd45682042e7ff0b81a3a`; working tree sạch.
 - Kiểm thử thao tác CRUD (tạo/sửa/xóa) thật của Admin vẫn chưa thể hoàn tất vì môi trường trình duyệt hiện không có phiên Super Admin hợp lệ. Không tự tạo tài khoản, mật khẩu hoặc dữ liệu kiểm thử trên production.
+
+## 39. Kiểm tra dữ liệu nháp, Storage và mô-đun trang chủ — 17/11/2026
+
+- `npm run verify:admin-book-draft` PASS: dữ liệu form thêm sách được khôi phục đúng qua localStorage/sessionStorage.
+- `npm run verify:storage-policy` PASS: tệp trong Storage vẫn tải được bằng URL công khai, nhưng API liệt kê bucket trả danh sách rỗng.
+- `npm run verify:homepage-modules` PASS: 4 mô-đun, mỗi mô-đun 24 sách; không có bản ghi trùng, trùng thứ tự, sai thứ tự hoặc sách bị ẩn.
+- Rà soát mã nguồn xác nhận form thêm sách không còn trường `inventory_quantity`; khi tạo sách, giá trị tồn kho khởi tạo là `0`, còn điều chỉnh tồn kho nằm trong RPC và khu vực Quản lý kho.
+- Chrome vẫn không có phiên Super Admin nên chưa thể chạy bước ghi dữ liệu thật qua giao diện.
