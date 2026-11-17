@@ -447,3 +447,12 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - `npm run verify:homepage-modules` PASS: 4 mô-đun, mỗi mô-đun 24 sách; không có bản ghi trùng, trùng thứ tự, sai thứ tự hoặc sách bị ẩn.
 - Rà soát mã nguồn xác nhận form thêm sách không còn trường `inventory_quantity`; khi tạo sách, giá trị tồn kho khởi tạo là `0`, còn điều chỉnh tồn kho nằm trong RPC và khu vực Quản lý kho.
 - Chrome vẫn không có phiên Super Admin nên chưa thể chạy bước ghi dữ liệu thật qua giao diện.
+
+## 40. QA có xác thực và sửa lỗi lớp phủ ô chọn — 17/11/2026
+
+- Tạo tài khoản Super Admin kiểm thử tạm thời, đăng nhập được vào bản Cloudflare Pages và chạy các tuyến `/admin`, `/admin/books`, `/admin/books/new`, `/admin/inventory`, `/admin/news`, `/admin/settings/admin-users` và `/admin/settings/permissions`; không ghi nhận lỗi JavaScript hoặc console.
+- Phát hiện lỗi thật ở form thêm sách: lớp phủ đóng ô chọn tác giả là nút `fixed` phủ toàn màn hình, chặn nút `Lưu sách` sau khi chọn tác giả. Đã thay bằng bắt sự kiện click ra ngoài và phím Escape, không còn chặn thao tác bên ngoài.
+- Sau khi sửa, test bản triển khai mới đã chọn tác giả và lưu sách thành công, chuyển về `/admin/books`; sách kiểm thử có `inventory_quantity = 0` đúng nghiệp vụ.
+- Test tạo quản trị viên qua Edge Function thành công: tài khoản tạm được tạo và xuất hiện trong danh sách quản trị viên thật.
+- Upload file PDF 5,2 MB chưa PASS trong môi trường kiểm thử này: request Storage rất chậm và bị ngắt sau khoảng 75 giây; upload tệp nhỏ bằng cùng phiên Admin vẫn PASS. Không tạo bản ghi sách hoặc file rác từ lần upload thất bại.
+- Đã xóa toàn bộ tài khoản, sách và object kiểm thử có tiền tố `codex.qa`/`Codex QA`; kiểm tra lại còn `0` tài khoản, `0` sách và `0` object kiểm thử.

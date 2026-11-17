@@ -3947,9 +3947,22 @@ function AdminSelect2({ label, value, options, onChange, placeholder, multiple =
     if (!open) return undefined
     updatePlacement()
     const handleViewportChange = () => updatePlacement()
+    const handleDocumentPointerDown = (event: PointerEvent) => {
+      if (!anchorRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const handleDocumentKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
     window.addEventListener('resize', handleViewportChange)
     window.addEventListener('scroll', handleViewportChange, true)
-    return () => { window.removeEventListener('resize', handleViewportChange); window.removeEventListener('scroll', handleViewportChange, true) }
+    document.addEventListener('pointerdown', handleDocumentPointerDown, true)
+    document.addEventListener('keydown', handleDocumentKeyDown)
+    return () => {
+      window.removeEventListener('resize', handleViewportChange)
+      window.removeEventListener('scroll', handleViewportChange, true)
+      document.removeEventListener('pointerdown', handleDocumentPointerDown, true)
+      document.removeEventListener('keydown', handleDocumentKeyDown)
+    }
   }, [open, filtered.length])
   const choose = (option: string) => {
     if (multiple) {
@@ -3965,7 +3978,6 @@ function AdminSelect2({ label, value, options, onChange, placeholder, multiple =
   return <div className={`relative ${open ? 'z-40' : 'z-0'}`}>
     <label ref={anchorRef} className="relative block"><span className="mb-1.5 block font-body text-sm font-medium">{label}{required && <span className="ml-1 text-[var(--color-olive-dark)]" aria-hidden="true">*</span>}</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm outline-none transition focus:border-[var(--color-olive)] focus:ring-2 focus:ring-[rgba(155,148,47,.14)]" value={query} onFocus={() => setOpen(true)} onChange={(event) => { setQuery(event.target.value); setOpen(true) }} placeholder={selected.length ? selected.join(', ') : placeholder} aria-expanded={open} aria-autocomplete="list" aria-required={required} />{open && <div className={`absolute left-0 z-30 max-h-[18rem] w-full overflow-auto rounded-xl border border-[#dedbd0] bg-white p-1.5 shadow-lg ${placement === 'top' ? 'bottom-full mb-2' : 'mt-2'}`}>{filtered.length ? filtered.map((option) => <button className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left font-body text-sm hover:bg-[#f5f3ec] ${selected.includes(option) ? 'bg-[rgba(155,148,47,.1)] font-semibold text-[var(--color-olive-dark)]' : ''}`} type="button" key={option} onClick={() => choose(option)}>{option}{selected.includes(option) && <i className="bi bi-check2" aria-hidden="true" />}</button>) : <p className="px-3 py-2 font-body text-sm text-[#8b8d86]">Không tìm thấy dữ liệu đã tạo.</p>}</div>}</label>
     {selected.length > 0 && <div className="admin-select2-tags mt-2 flex flex-wrap gap-2">{selected.map((item) => <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(155,148,47,.12)] px-2.5 py-1 font-body text-xs text-[var(--color-olive-dark)]" key={item}>{item}<button type="button" aria-label={`Bỏ ${item}`} onClick={() => remove(item)}><i className="bi bi-x" aria-hidden="true" /></button></span>)}</div>}
-    {open && <button className="fixed inset-0 z-20 cursor-default" type="button" aria-label="Đóng lựa chọn" onClick={() => setOpen(false)} />}
   </div>
 }
 
