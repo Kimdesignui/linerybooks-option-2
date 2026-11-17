@@ -408,3 +408,11 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - `node scripts/verify-admin-book-save.mjs 9786044611266` FAIL trên bản ghi `Test`: thiếu giá bán hợp lệ, tồn kho và mô tả; bản ghi vẫn tồn tại trong Supabase.
 - Rà soát 229 sách hiện có bằng khóa công khai: 2 sách có giá bán bằng 0, 229 sách không có `compare_price_vnd` lớn hơn giá bán, 224 sách có mô tả rỗng/thiếu. Đây là cảnh báo chất lượng dữ liệu và cần quyết định nghiệp vụ trước khi tự sửa hoặc xóa.
 - `npm run verify:storage-policy` vẫn PASS; chưa thực hiện ghi/xóa dữ liệu trong lượt kiểm tra này.
+
+## 35. Tách tồn kho khỏi nghiệp vụ tạo sách — 17/11/2026
+
+- Gỡ trường `Tồn kho` khỏi form thêm sách và khỏi `AdminBookInput`; bản ghi sách mới luôn tạo với `inventory_quantity = 0`.
+- Bổ sung `supabase/migrations/20261117_separate_inventory_operations.sql` với RPC (hàm cơ sở dữ liệu gọi từ ứng dụng) `admin_adjust_inventory`: chỉ quyền `inventory.manage` mới được nhập/điều chỉnh kho, kiểm tra không thấp hơn số đang giữ và ghi lịch sử vào `inventory_transactions`.
+- Cập nhật mô tả quyền `books.update` để xác nhận giá trị tồn kho không thuộc nghiệp vụ sửa catalog (danh mục sách), mà thuộc Quản lý kho.
+- Đã chạy trực tiếp SQL migration mới trên Supabase production vì lịch sử migration cũ đang có các phiên bản ngày trùng/thiếu file local; không chạy lại các migration cũ.
+- `npm run build:enhanced` PASS; `git diff --check` PASS; `npm run test:qa` trên Cloudflare Pages PASS (`12 routes x 2 viewports`).

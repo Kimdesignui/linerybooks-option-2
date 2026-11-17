@@ -321,7 +321,6 @@ export type AdminBookInput = {
   bookSize?: string
   publicationDate?: string
   weight?: string
-  inventoryQuantity?: number
   isVisibleWebsite: boolean
   authors?: string[]
   translators?: string[]
@@ -888,6 +887,12 @@ export async function loadAdminInventory(): Promise<AdminInventoryRow[]> {
   })
 }
 
+export async function adjustAdminInventory(bookId: string, quantityDelta: number, note?: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { error } = await supabase.rpc('admin_adjust_inventory', { p_book_id: bookId, p_quantity_delta: quantityDelta, p_note: note?.trim() || null })
+  if (error) throw error
+}
+
 export async function loadAdminReviews(): Promise<AdminReviewRow[]> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('book_reviews').select('id,guest_name,rating,title,body,status,created_at,books(title)').order('created_at', { ascending: false })
@@ -1088,7 +1093,7 @@ export async function createAdminBook(input: AdminBookInput, coverFiles: File[] 
     if (error) throw error
     uploadedPaths.push(storagePath)
   }
-  const { data: book, error: bookError } = await supabase.from('books').insert({ isbn: input.isbn.trim() || null, title: input.title.trim(), slug: input.slug.trim(), path: `/books/${input.slug.trim()}`, description_html: input.descriptionHtml?.trim() || null, cover_price_usd: input.coverPriceUsd ?? null, sale_price_vnd: input.salePriceVnd, compare_price_vnd: input.comparePriceVnd ?? null, page_count: input.pageCount ?? null, book_size: input.bookSize?.trim() || null, publication_date: input.publicationDate || null, weight: input.weight?.trim() || null, cover_storage_path: uploadedPaths[0] ?? null, sample_pdf_storage_path: sampleStoragePath, sample_pdf_page_count: sampleFile ? input.samplePageCount ?? null : null, sample_pdf_enabled: Boolean(sampleStoragePath), sample_file_type: sampleFile && (/\.epub$/i.test(sampleFile.name) || /epub/i.test(sampleFile.type)) ? 'epub' : 'pdf', status: input.isVisibleWebsite ? 'active' : 'draft', is_visible_website: input.isVisibleWebsite, inventory_quantity: input.inventoryQuantity ?? 0 }).select('id').single()
+  const { data: book, error: bookError } = await supabase.from('books').insert({ isbn: input.isbn.trim() || null, title: input.title.trim(), slug: input.slug.trim(), path: `/books/${input.slug.trim()}`, description_html: input.descriptionHtml?.trim() || null, cover_price_usd: input.coverPriceUsd ?? null, sale_price_vnd: input.salePriceVnd, compare_price_vnd: input.comparePriceVnd ?? null, page_count: input.pageCount ?? null, book_size: input.bookSize?.trim() || null, publication_date: input.publicationDate || null, weight: input.weight?.trim() || null, cover_storage_path: uploadedPaths[0] ?? null, sample_pdf_storage_path: sampleStoragePath, sample_pdf_page_count: sampleFile ? input.samplePageCount ?? null : null, sample_pdf_enabled: Boolean(sampleStoragePath), sample_file_type: sampleFile && (/\.epub$/i.test(sampleFile.name) || /epub/i.test(sampleFile.type)) ? 'epub' : 'pdf', status: input.isVisibleWebsite ? 'active' : 'draft', is_visible_website: input.isVisibleWebsite, inventory_quantity: 0 }).select('id').single()
   if (bookError) {
     if (sampleStoragePath) await supabase.storage.from('book-samples').remove([sampleStoragePath])
     if (uploadedPaths.length) await supabase.storage.from('site-media').remove(uploadedPaths)
