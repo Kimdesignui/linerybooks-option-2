@@ -401,3 +401,10 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - `npm run test:qa` tiếp tục đạt `12 routes x 2 viewports`.
 - Chưa thể PASS các thao tác CRUD thật (thêm/sửa/xóa sách, upload ảnh/PDF, danh mục, tin tức, tác giả, phân quyền và quản trị viên) vì phiên kiểm thử không có tài khoản Super Admin hợp lệ. Không tự tạo tài khoản hoặc dữ liệu rác trên production.
 - Bước tiếp theo cần chạy trong phiên đã đăng nhập: tạo một bản ghi thử có định danh, kiểm tra lưu lại sau reload, sửa, xóa/dọn dữ liệu, rồi kiểm tra lại bản ghi và ảnh/tệp trong Supabase.
+
+## 34. Phát hiện dữ liệu sách chưa đủ trường — 17/11/2026
+
+- `node scripts/verify-admin-book-draft.mjs` đạt: dữ liệu form nháp được giữ qua reload bằng localStorage/sessionStorage.
+- `node scripts/verify-admin-book-save.mjs 9786044611266` FAIL trên bản ghi `Test`: thiếu giá bán hợp lệ, tồn kho và mô tả; bản ghi vẫn tồn tại trong Supabase.
+- Rà soát 229 sách hiện có bằng khóa công khai: 2 sách có giá bán bằng 0, 229 sách không có `compare_price_vnd` lớn hơn giá bán, 224 sách có mô tả rỗng/thiếu. Đây là cảnh báo chất lượng dữ liệu và cần quyết định nghiệp vụ trước khi tự sửa hoặc xóa.
+- `npm run verify:storage-policy` vẫn PASS; chưa thực hiện ghi/xóa dữ liệu trong lượt kiểm tra này.
