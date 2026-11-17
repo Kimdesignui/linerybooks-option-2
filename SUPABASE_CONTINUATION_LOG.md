@@ -430,3 +430,12 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Cập nhật mô tả quyền `books.update` để xác nhận giá trị tồn kho không thuộc nghiệp vụ sửa catalog (danh mục sách), mà thuộc Quản lý kho.
 - Đã chạy trực tiếp SQL migration mới trên Supabase production vì lịch sử migration cũ đang có các phiên bản ngày trùng/thiếu file local; không chạy lại các migration cũ.
 - `npm run build:enhanced` PASS; `git diff --check` PASS; `npm run test:qa` trên Cloudflare Pages PASS (`12 routes x 2 viewports`).
+
+## 38. Kiểm tra hồi quy sau khi mở lại mục tiêu — 17/11/2026
+
+- `npm run build:enhanced` PASS; TypeScript (kiểm tra kiểu dữ liệu) không có lỗi và Vite tạo bản build thành công.
+- `npm run test:qa` local PASS: `12 routes x 2 viewports`, không có lỗi shell, runtime, console hoặc tràn ngang.
+- `QA_BASE_URL=https://linerybookstore2.pages.dev node scripts/qa-smoke.mjs` PASS với cùng phạm vi kiểm tra trên bản Cloudflare Pages.
+- `npm run verify:supabase-backend` PASS: các bảng nghiệp vụ, cột dữ liệu và RPC cốt lõi đều tồn tại; các RPC yêu cầu phiên đăng nhập trả trạng thái `EXISTS_OR_AUTH` đúng kỳ vọng khi gọi ẩn danh.
+- Git đã đồng bộ: `main` và `origin/main` cùng commit `a3229640e3ec99e860ffd45682042e7ff0b81a3a`; working tree sạch.
+- Kiểm thử thao tác CRUD (tạo/sửa/xóa) thật của Admin vẫn chưa thể hoàn tất vì môi trường trình duyệt hiện không có phiên Super Admin hợp lệ. Không tự tạo tài khoản, mật khẩu hoặc dữ liệu kiểm thử trên production.
