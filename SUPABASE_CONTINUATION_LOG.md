@@ -393,3 +393,11 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Kiểm tra endpoint live: `OPTIONS /functions/v1/admin-create-user` trả HTTP `200` và cho phép CORS (cơ chế cho phép trình duyệt gọi API khác miền).
 - Kiểm tra request không có phiên đăng nhập: `POST /functions/v1/admin-create-user` trả HTTP `401` với `UNAUTHORIZED`, xác nhận hàm đã tồn tại và đang chặn đúng yêu cầu chưa xác thực.
 - Không tạo tài khoản quản trị thử và không ghi mật khẩu/token vào mã nguồn hoặc log.
+
+## 33. Kiểm thử Admin toàn tuyến — 17/11/2026
+
+- Đã quét 30 tuyến Admin ở desktop `1440x900` và mobile `390x844`: tất cả trả HTTP `200`, có ứng dụng trong `#root`, không có lỗi JavaScript, lỗi console hoặc tràn ngang.
+- Đã xác nhận cổng bảo vệ quản trị hoạt động: khi chưa có phiên đăng nhập, mọi tuyến Admin đều hiển thị đúng màn “Đăng nhập quản trị”, không để lộ màn hình hay dữ liệu quản trị.
+- `npm run test:qa` tiếp tục đạt `12 routes x 2 viewports`.
+- Chưa thể PASS các thao tác CRUD thật (thêm/sửa/xóa sách, upload ảnh/PDF, danh mục, tin tức, tác giả, phân quyền và quản trị viên) vì phiên kiểm thử không có tài khoản Super Admin hợp lệ. Không tự tạo tài khoản hoặc dữ liệu rác trên production.
+- Bước tiếp theo cần chạy trong phiên đã đăng nhập: tạo một bản ghi thử có định danh, kiểm tra lưu lại sau reload, sửa, xóa/dọn dữ liệu, rồi kiểm tra lại bản ghi và ảnh/tệp trong Supabase.
