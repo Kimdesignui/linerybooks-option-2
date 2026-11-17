@@ -12,7 +12,9 @@ if (-not $ProjectRef) {
   }
 }
 if (-not $ProjectRef) { throw 'Cannot determine the Supabase project ref. Pass -ProjectRef or configure VITE_SUPABASE_URL in .env.enhanced.' }
-if (-not $env:SUPABASE_ACCESS_TOKEN) { throw 'SUPABASE_ACCESS_TOKEN is missing. Run npx supabase login before deploying.' }
+if (-not $env:SUPABASE_ACCESS_TOKEN) {
+  Write-Host 'SUPABASE_ACCESS_TOKEN is not set; using the authenticated Supabase CLI session.'
+}
 
 Push-Location $projectRoot
 try {

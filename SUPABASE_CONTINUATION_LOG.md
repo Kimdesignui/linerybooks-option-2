@@ -386,3 +386,10 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Sau khi chạy migration lần đầu, truy vấn `pg_policies` (bảng hệ thống lưu chính sách) phát hiện tên chính sách live là `public reads site media files`, không trùng tên cũ trong migration; đồng thời còn đường tải tệp ẩn danh `demo uploads site media files`. Đã bổ sung bản sửa `20261117_restrict_public_storage_listing_fix.sql` để gỡ đúng cả hai chính sách.
 - Sau khi gỡ đúng chính sách, API liệt kê trả HTTP `200` nhưng nội dung `[]`; đã sửa bộ kiểm tra để coi `200 + danh sách rỗng` là đạt, thay vì đánh nhầm mọi mã `200` là lỗi.
 - Xác nhận cuối: `npm run verify:storage-policy` đạt và `npm run verify:hosted-images` đạt; ảnh/PDF vẫn tải bằng URL công khai, nhưng API không còn trả danh sách tệp.
+
+## 32. Triển khai Edge Function tạo quản trị viên — 17/11/2026
+
+- Đã triển khai `supabase/functions/admin-create-user/index.ts` lên Supabase production của project `linerybooks-backend` (`yixcddwurbmkzxqqtfnn`).
+- Kiểm tra endpoint live: `OPTIONS /functions/v1/admin-create-user` trả HTTP `200` và cho phép CORS (cơ chế cho phép trình duyệt gọi API khác miền).
+- Kiểm tra request không có phiên đăng nhập: `POST /functions/v1/admin-create-user` trả HTTP `401` với `UNAUTHORIZED`, xác nhận hàm đã tồn tại và đang chặn đúng yêu cầu chưa xác thực.
+- Không tạo tài khoản quản trị thử và không ghi mật khẩu/token vào mã nguồn hoặc log.
