@@ -8,7 +8,7 @@ import { supabase } from './lib/supabase'
 import { updateAdminAvatar, updateAdminBook } from './lib/supabase-data'
 import type { AdminBookSaveProgress } from './lib/supabase-data'
 import { setAdminRolePermission } from './lib/supabase-data'
-import { createAdminUser, resolveAdminLoginIdentifier } from './lib/supabase-data'
+import { createAdminUser, resolveAdminLoginIdentifier, updateAdminUserPassword } from './lib/supabase-data'
 import hueEmagazine from './data/emagazine-hue.json'
 import localCreatorImageMap from './data/creator-image-map.json'
 
@@ -3158,6 +3158,8 @@ function AdminNotificationButton() {
 
 function AdminIdentityControl() {
   const [identity, setIdentity] = useState<{ email: string; roleName: string }>({ email: '', roleName: '' })
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let mounted = true
     void checkRemoteAdminAccess().then((result) => {
@@ -3165,8 +3167,16 @@ function AdminIdentityControl() {
     })
     return () => { mounted = false }
   }, [])
+  useEffect(() => {
+    const closeOnOutsideClick = (event: MouseEvent) => { if (containerRef.current && !containerRef.current.contains(event.target as Node)) setOpen(false) }
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => { document.removeEventListener('mousedown', closeOnOutsideClick); document.removeEventListener('keydown', closeOnEscape) }
+  }, [])
   const label = identity.email ? `${identity.roleName}: ${identity.email}` : 'Thông tin quản trị viên'
-  return <button className="admin-identity-control inline-flex min-h-9 max-w-[15rem] cursor-pointer items-center gap-2 rounded-full bg-[#fcfbf7] px-2.5 text-left" type="button" aria-label={label} title={label} onClick={() => { window.location.href = '/admin/settings/admin-profile' }}><span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-olive)] text-sm text-white"><i className="bi bi-person-circle" aria-hidden="true" /></span><span className="hidden min-w-0 sm:block"><strong className="block truncate font-body text-xs font-semibold text-[var(--color-ink)]">{identity.email || 'Quản trị viên'}</strong><small className="block truncate font-body text-[11px] text-[#74776f]">{identity.roleName || 'Đang xác thực'}</small></span></button>
+  const logout = async () => { setOpen(false); await supabase?.auth.signOut(); window.location.href = '/admin' }
+  return <div className="relative" ref={containerRef}><button className="admin-identity-control inline-flex min-h-9 max-w-[15rem] cursor-pointer items-center gap-2 rounded-full bg-[#fcfbf7] px-2.5 text-left" type="button" aria-label={label} title={label} aria-expanded={open} onClick={() => setOpen((value) => !value)}><span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-olive)] text-sm text-white"><i className="bi bi-person-circle" aria-hidden="true" /></span><span className="hidden min-w-0 sm:block"><strong className="block truncate font-body text-xs font-semibold text-[var(--color-ink)]">{identity.email || 'Quản trị viên'}</strong><small className="block truncate font-body text-[11px] text-[#74776f]">{identity.roleName || 'Đang xác thực'}</small></span><i className={`bi ${open ? 'bi-chevron-up' : 'bi-chevron-down'} hidden text-xs text-[#8b8d86] sm:block`} aria-hidden="true" /></button>{open && <div className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white p-1.5 shadow-[0_16px_40px_rgba(31,42,36,.14)]" role="menu"><a className="flex items-center gap-2 rounded-xl px-3 py-2.5 font-body text-sm text-[var(--color-ink)] hover:bg-[#f5f3ec]" href="/admin/settings/admin-profile" role="menuitem" onClick={() => setOpen(false)}><i className="bi bi-person-circle" aria-hidden="true" />Hồ sơ quản trị</a><button className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left font-body text-sm text-[#a33d32] hover:bg-[#fff5f2]" type="button" role="menuitem" onClick={() => void logout()}><i className="bi bi-box-arrow-right" aria-hidden="true" />Đăng xuất</button></div>}</div>
 }
 
 function AdminLegacyIdentitySync() {
@@ -4703,6 +4713,10 @@ function AdminAdminUsersPageSeparated() {
   const [form, setForm] = useState({ username: '', email: '', password: '', role: 'editor' as AdminRoleKey })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState<AdminUserRow | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [passwordBusy, setPasswordBusy] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
   const refresh = () => { void Promise.all([loadAdminUsers(), loadAdminRoles()]).then(([nextRows, nextRoles]) => { setRows(nextRows); setRoles(nextRoles); setError('') }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Không tải được tài khoản quản trị.')) }
   useEffect(() => { refresh() }, [])
   const add = async (event: FormEvent<HTMLFormElement>) => {
@@ -4711,6 +4725,12 @@ function AdminAdminUsersPageSeparated() {
   }
   const changeRole = async (row: AdminUserRow, nextRole: AdminRoleKey) => { setBusy(true); setError(''); try { await setAdminUserRole(row.userId, nextRole); refresh() } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không đổi được vai trò.') } finally { setBusy(false) } }
   const remove = async (row: AdminUserRow) => { if (!window.confirm(`Gỡ quyền quản trị của ${row.email}?`)) return; try { await revokeAdminUser(row.userId); refresh() } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không gỡ được quyền quản trị.') } }
+  const changePassword = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!passwordTarget) return
+    setPasswordBusy(true); setPasswordError('')
+    try { await updateAdminUserPassword(passwordTarget.userId, newPassword); setPasswordTarget(null); setNewPassword(''); setError('Đã đổi mật khẩu quản trị viên.') } catch (reason) { setPasswordError(reason instanceof Error ? reason.message : 'Không đổi được mật khẩu quản trị viên.') } finally { setPasswordBusy(false) }
+  }
   return <AdminListShell title="Quản trị viên" section="HỆ THỐNG" description="Tạo tài khoản quản trị, gán username (tên đăng nhập), vai trò và quản lý trạng thái truy cập." createHref="/admin/settings" createLabel="Về cài đặt">
     <section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white">
       <div className="border-b border-[#e6e2d7] p-5"><h3 className="font-display text-lg font-semibold">Tạo tài khoản quản trị</h3><p className="mt-1 font-body text-sm leading-6 text-[#74776f]">Mật khẩu được gửi trực tiếp tới Supabase Auth; username chỉ là định danh đăng nhập, không lưu mật khẩu ở database công khai.</p></div>
@@ -4723,7 +4743,8 @@ function AdminAdminUsersPageSeparated() {
       </form>
       {error && <p className="m-5 rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-4 font-body text-sm text-[#a33d32]" role="alert">{error}</p>}
       <div className="border-b border-[#e6e2d7] p-5"><h3 className="font-display text-lg font-semibold">Danh sách quản trị viên</h3><p className="mt-1 font-body text-sm text-[#74776f]">{rows.length} tài khoản thật từ Supabase Auth.</p></div>
-      {rows.length ? <div className="overflow-x-auto"><table className="min-w-[820px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr><th className="px-5 py-3 font-body text-sm font-semibold">Username</th><th className="px-5 py-3 font-body text-sm font-semibold">Email</th><th className="px-5 py-3 font-body text-sm font-semibold">Vai trò</th><th className="px-5 py-3 font-body text-sm font-semibold">Ngày cấp</th><th className="px-5 py-3 text-right font-body text-sm font-semibold">Thao tác</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-[#eeeae0]" key={row.userId}><td className="px-5 py-3 font-body text-sm font-medium">{row.username || '—'}</td><td className="px-5 py-3 font-body text-sm">{row.email}</td><td className="px-5 py-3"><select className="min-h-9 rounded-lg border border-[#dedbd0] bg-white px-2.5 font-body text-sm" value={row.role} disabled={busy} onChange={(event) => void changeRole(row, event.target.value as AdminRoleKey)}>{roles.map((item) => <option value={item.roleKey} key={item.roleKey}>{item.name}</option>)}</select></td><td className="px-5 py-3 font-body text-sm text-[#74776f]">{row.createdAt ? new Date(row.createdAt).toLocaleString('vi-VN') : '—'}</td><td className="px-5 py-3 text-right"><button className="font-body text-sm text-[#a33d32]" type="button" onClick={() => void remove(row)}>Gỡ quyền</button></td></tr>)}</tbody></table></div> : <div className="p-10 text-center font-body text-sm text-[#74776f]">Chưa có tài khoản quản trị.</div>}
+       {rows.length ? <div className="overflow-x-auto"><table className="min-w-[980px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr><th className="px-5 py-3 font-body text-sm font-semibold">Username</th><th className="px-5 py-3 font-body text-sm font-semibold">Email</th><th className="px-5 py-3 font-body text-sm font-semibold">Vai trò</th><th className="px-5 py-3 font-body text-sm font-semibold">Ngày cấp</th><th className="px-5 py-3 text-right font-body text-sm font-semibold">Thao tác</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-[#eeeae0]" key={row.userId}><td className="px-5 py-3 font-body text-sm font-medium">{row.username || '—'}</td><td className="px-5 py-3 font-body text-sm">{row.email}</td><td className="px-5 py-3"><select className="min-h-9 rounded-lg border border-[#dedbd0] bg-white px-2.5 font-body text-sm" value={row.role} disabled={busy} onChange={(event) => void changeRole(row, event.target.value as AdminRoleKey)}>{roles.map((item) => <option value={item.roleKey} key={item.roleKey}>{item.name}</option>)}</select></td><td className="px-5 py-3 font-body text-sm text-[#74776f]">{row.createdAt ? new Date(row.createdAt).toLocaleString('vi-VN') : '—'}</td><td className="px-5 py-3"><div className="flex justify-end gap-2"><button className="font-body text-sm text-[var(--color-olive-dark)]" type="button" onClick={() => { setPasswordTarget(row); setNewPassword(''); setPasswordError('') }}>Đổi mật khẩu</button><button className="font-body text-sm text-[#a33d32]" type="button" onClick={() => void remove(row)}>Gỡ quyền</button></div></td></tr>)}</tbody></table></div> : <div className="p-10 text-center font-body text-sm text-[#74776f]">Chưa có tài khoản quản trị.</div>}
+       {passwordTarget && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(31,42,36,.35)] p-4" role="presentation"><form className="w-full max-w-md rounded-2xl border border-[#e6e2d7] bg-white p-5 shadow-[0_18px_50px_rgba(31,42,36,.2)]" onSubmit={(event) => void changePassword(event)} role="dialog" aria-modal="true" aria-labelledby="admin-password-title"><div className="flex items-start justify-between gap-3"><div><h3 id="admin-password-title" className="font-display text-xl font-semibold">Đổi mật khẩu quản trị viên</h3><p className="mt-1 break-all font-body text-sm text-[#74776f]">{passwordTarget.email}</p></div><button className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dedbd0] text-[#62655f]" type="button" aria-label="Đóng" onClick={() => setPasswordTarget(null)}><i className="bi bi-x-lg" aria-hidden="true" /></button></div><label className="mt-5 block"><span className="mb-1.5 block font-body text-sm font-medium">Mật khẩu mới</span><input className="min-h-11 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="Tối thiểu 8 ký tự" /></label>{passwordError && <p className="mt-3 rounded-xl bg-[#fff5f2] px-3 py-2 font-body text-sm text-[#a33d32]" role="alert">{passwordError}</p>}<div className="mt-5 flex justify-end gap-2"><button className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#dedbd0] px-4 font-body text-sm" type="button" onClick={() => setPasswordTarget(null)}>Hủy</button><button className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-50" type="submit" disabled={passwordBusy}>{passwordBusy ? 'Đang cập nhật…' : 'Cập nhật mật khẩu'}</button></div></form></div>}
     </section>
   </AdminListShell>
 }

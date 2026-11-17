@@ -637,6 +637,13 @@ export async function createAdminUser(username: string, email: string, password:
   return mapAdminUserRow(data.user as Record<string, unknown>)
 }
 
+export async function updateAdminUserPassword(userId: string, password: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { data, error } = await supabase.functions.invoke('admin-reset-user-password', { body: { userId, password } })
+  if (error) throw error
+  if (!data?.success) throw new Error('Không nhận được xác nhận đổi mật khẩu quản trị viên.')
+}
+
 export async function resolveAdminLoginIdentifier(identifier: string): Promise<string> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const value = identifier.trim()
