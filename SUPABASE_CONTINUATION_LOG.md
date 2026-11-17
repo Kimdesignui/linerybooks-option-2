@@ -286,3 +286,94 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Phát hiện luồng đăng nhập và đăng ký người dùng còn có nhánh dự phòng ghi thông tin vào `localStorage` (bộ nhớ tạm của trình duyệt) nếu Supabase chưa cấu hình.
 - Đã bỏ hành vi dự phòng đó: thiếu Supabase hoặc đăng ký chưa tạo được phiên xác thực sẽ báo lỗi rõ ràng, không tự đánh dấu đăng nhập thành công và không sinh khách hàng/đơn hàng giả.
 - `build`, `test:qa`, `verify:supabase-backend` và `git diff --check` đều đạt sau thay đổi.
+
+## 21. Kiểm thử lại biểu mẫu thêm sách — 17/11/2026
+
+- Bổ sung `/admin/books/new` vào `scripts/qa-smoke.mjs` để kiểm thử khói (kiểm tra nhanh các lỗi nghiêm trọng) luôn bao phủ trang thêm sách.
+- `build` đạt; `test:qa` đạt `10 routes x 2 viewports`, không phát hiện lỗi shell, runtime, console hoặc tràn ngang.
+- Đã kiểm tra lại bản ghi thật ISBN `9781234567894`: tên sách, giá, tồn kho, mô tả, liên kết creator (người sáng tạo) và 7 liên kết phân loại đều đúng trong Supabase.
+- Chưa thể lặp lại thao tác bấm lưu bằng giao diện trong lượt này: phiên đăng nhập thử riêng trả `Invalid login credentials`, còn phiên Chrome đã đăng nhập bị công cụ điều khiển cửa sổ dừng khi đọc URL. Không đoán hoặc thay đổi mật khẩu.
+- Phát hiện còn một dữ liệu mẫu đọc thử: sách `a-manual-for-cleaning-women` đang trỏ tới `/assets/book-samples/a-manual-for-cleaning-women.pdf` trong database, chưa phải đường dẫn Storage. Cần tải tệp này lên bucket `book-samples` rồi cập nhật bản ghi trước khi gỡ đường dẫn mẫu nội bộ.
+
+## 22. Sửa bộ kiểm tra đường dẫn tệp — 17/11/2026
+
+- Phát hiện bộ kiểm tra cũ chỉ coi URL ngoài Supabase là lỗi, nên đã bỏ sót các đường dẫn nội bộ bắt đầu bằng `/assets/`.
+- Đã sửa `scripts/verify-supabase-hosted-images.ps1` để đánh dấu mọi đường dẫn frontend nội bộ và bổ sung kiểm tra file đọc thử đang bật.
+- Kết quả chính xác hiện tại: bìa sách và ảnh sách đạt; còn 168 ảnh tác giả, 2 ảnh tin, 11 ảnh khối eMagazine, 4 media chung và 1 file đọc thử đang chưa ở Storage.
+- Bộ kiểm tra hiện cố ý trả về lỗi cho các mục này. Đây là lỗi dữ liệu thật cần xử lý, không phải lỗi giao diện; chưa tự thay bằng ảnh hoặc file không xác minh được nguồn.
+
+## 23. Chuẩn bị chuyển tài nguyên nội bộ sang Supabase Storage — 17/11/2026
+
+- Bổ sung `scripts/migrate-local-assets-to-supabase.mjs` và lệnh `npm run migrate:hosted-assets`.
+- Công cụ chạy `dry-run` (chạy thử, không ghi dữ liệu) mặc định; khi có quyền truy cập hợp lệ và cờ `--apply` (thực sự tải tệp lên và cập nhật dữ liệu), công cụ sẽ tải ảnh tác giả, ảnh bài viết, ảnh eMagazine, media chung và tệp đọc thử lên đúng bucket, sau đó cập nhật đường dẫn trong database (cơ sở dữ liệu).
+- Đã sửa lỗi ghép đường dẫn cục bộ: toàn bộ 181 tệp được lập kế hoạch hiện có trên máy, không còn báo thiếu tệp; 5 dòng ảnh mặc định được bỏ qua có chủ đích.
+- Đã sửa riêng `site_media_assets.public_url` để sau khi chuyển sẽ lưu URL công khai đầy đủ của Supabase Storage, không lưu nhầm đường dẫn tương đối.
+- Chưa chạy `--apply`: môi trường dòng lệnh hiện không có mã truy cập Supabase; phiên trình duyệt đã đăng nhập chỉ dùng được qua giao diện, chưa có cơ chế tải hàng loạt tự động an toàn. Vì vậy các đường dẫn thật trong database vẫn chưa được cập nhật; `npm run verify:hosted-images` hiện còn thất bại theo đúng dữ liệu thực.
+
+## 24. Kiểm thử lặp lại luồng thêm sách — 17/11/2026
+
+- `build` đạt; `test:qa` đạt `10 routes x 2 viewports`, không có lỗi runtime, console hoặc tràn ngang.
+- `verify:supabase-backend` đạt: toàn bộ bảng, cột và RPC (hàm xử lý phía cơ sở dữ liệu) cần thiết đều có trên Supabase.
+- `verify:homepage-modules` đạt: 4 mô đun trang chủ, mỗi mô đun 24 sách, không trùng sách hoặc thứ tự.
+- `verify-admin-book-save` đạt với bản ghi thật `9781234567894`: giá, tồn kho, mô tả, tác giả và phân loại đều liên kết đúng.
+- `verify-admin-book-draft` đạt: dữ liệu đang nhập được khôi phục sau khi rời màn hình và quay lại.
+- Khi thử thao tác bằng giao diện như người dùng thật, phiên đăng nhập thử trả `Invalid login credentials` (thông tin đăng nhập không hợp lệ), nên chưa thể tự điền và bấm lưu trực tiếp trong phiên đó; không đoán hoặc đổi mật khẩu.
+- Đã sửa báo cáo backend để không gọi nhầm các đường dẫn `/assets/...` là ảnh đã host. Kiểm tra nghiêm ngặt hiện vẫn báo còn 168 ảnh tác giả, 2 ảnh tin, 11 ảnh khối eMagazine, 4 media chung và 1 file đọc thử chưa chuyển vào Storage.
+
+## 25. Kiểm thử nhập và lưu sách trực tiếp bằng giao diện — 17/11/2026
+
+- Đã dùng đúng phiên Chrome đang đăng nhập sẵn, tự điền biểu mẫu `/admin/books/new` như người dùng thật: tên sách, ISBN, đường dẫn, giá bìa, giá bán, giá so sánh, số trang, tồn kho, khổ sách, trọng lượng, mô tả, tác giả, thể thức, dòng sách, danh mục, thể loại, chủ đề và nhà xuất bản.
+- Lượt đầu dùng ISBN `9781234567893` bị Supabase từ chối với lỗi trùng khóa `books_isbn_key`; đây là lỗi dữ liệu trùng đã được hiển thị đúng trên giao diện, không phải lỗi mất dữ liệu.
+- Đổi sang ISBN chưa dùng `9781234567895` và bấm `Lưu sách`; giao diện chuyển về `/admin/books`, hiển thị bản ghi mới ở đầu danh sách với tên, ISBN, giá, tồn kho và tác giả.
+- Đối soát bản ghi thật theo ISBN `9781234567895` đạt: tên sách, giá, tồn kho, mô tả, 1 liên kết creator (người sáng tạo), 6 liên kết phân loại và trạng thái hiển thị đều đúng.
+- Kiểm tra hồi quy (kiểm tra lại chức năng liên quan sau thay đổi): `build` đạt, `test:qa` đạt `10 routes x 2 viewports`, `verify:supabase-backend` đạt. Cảnh báo còn lại chỉ là kích thước một số gói PDF/TTS lớn và đường dẫn ảnh nội bộ chưa chuyển hết sang Supabase Storage.
+- Kết luận luồng nhập và lưu sách bằng giao diện đã hoạt động với dữ liệu thật. Chưa tự động tải ảnh bìa trong lượt này; dữ liệu bản ghi kiểm thử đang dùng ảnh mặc định của hệ thống.
+
+## 26. Hoàn tất đối soát tài nguyên lưu trữ và kiểm thử lặp lại — 17/11/2026
+
+- Đã tải các tệp còn thiếu lên bucket `site-media` trên Supabase bằng đúng phiên trình duyệt Supabase người dùng đã đăng nhập sẵn: ảnh mặc định tác giả, PDF đọc thử `a-manual-for-cleaning-women.pdf` và các tài nguyên tin/eMagazine đã kiểm tra trước đó.
+- Đã sửa liên kết dữ liệu thật trong Supabase: ảnh mặc định tác giả và PDF A Manual for Cleaning Women không còn trỏ về `/assets/...`; kết quả SQL xác nhận không còn đường dẫn cũ ở các nhóm đã xử lý.
+- Bộ kiểm tra nghiêm ngặt `npm run verify:hosted-images` đạt toàn bộ 7 nhóm: 229 bìa sách, 229 ảnh sách, 174 ảnh creator (người sáng tạo), 2 ảnh tin, 11 ảnh khối eMagazine, 4 media chung và 2 PDF đọc thử đều có đường dẫn lưu trữ hợp lệ.
+- `npm run verify:supabase-backend` đạt: toàn bộ 33 bảng/cột cần thiết có thể truy cập, các RPC (hàm xử lý phía cơ sở dữ liệu) tồn tại; các mã 400/401 ở RPC bảo vệ là phản hồi quyền hoặc tham số kiểm tra dự kiến, không phải thiếu backend.
+- `npm run verify:homepage-modules` đạt: 4 mô đun x 24 sách, không trùng sách và không trùng thứ tự.
+- `npm run test:qa` đạt `10 routes x 2 viewports`, không có lỗi runtime (lỗi khi chạy), console (bảng lỗi trình duyệt) hoặc tràn ngang.
+- `verify-admin-book-save 9781234567895` đạt: giá, tồn kho, mô tả, creator, phân loại và trạng thái hiển thị khớp dữ liệu thật trong Supabase.
+- `npm run build` đạt; chỉ còn cảnh báo kích thước gói PDF/TTS lớn, không làm hỏng bản dựng. Chưa đẩy Git/Cloudflare trong lượt này vì chưa có yêu cầu triển khai.
+
+## 27. Sửa hiệu ứng giỏ hàng và kiểm thử hồi quy — 17/11/2026
+
+- Phát hiện hiệu ứng ảnh bay vào giỏ hàng đang gán `left/top` bằng kiểu trực tiếp trên phần tử HTML; đã chuyển tọa độ vào các mốc hoạt ảnh, giữ CSS (tập tin định kiểu) là nơi điều khiển giao diện theo quy ước dự án.
+- `npm run build`, `npm run test:qa`, `npm run verify:supabase-backend`, `npm run verify:hosted-images` và `git diff --check` đều đạt.
+- Thử đăng nhập người dùng bằng phiên cửa hàng local để kiểm tra giao dịch đặt hàng; Supabase trả `Invalid login credentials`. Không thay đổi mật khẩu hoặc tạo tài khoản/đơn hàng giả. Vì vậy luồng tạo đơn hàng qua giao diện vẫn là phần cần xác nhận sau khi có thông tin đăng nhập hợp lệ.
+
+## 28. Sửa khôi phục giỏ hàng khi mở trực tiếp — 17/11/2026
+
+- Phát hiện `/cart` và `/checkout` bị loại khỏi bước tải catalog; khi mở trực tiếp hai đường dẫn này, giỏ hàng trong Supabase có thể bị dựng thành rỗng vì giao diện chưa có dữ liệu sách để ghép với `book_id`.
+- Đã để hai màn hình này tải catalog thật trước khi khôi phục giỏ hàng từ Supabase; các màn hình xác thực và tài khoản vẫn không tải catalog không cần thiết.
+- Bổ sung `/cart` và `/checkout` vào kiểm thử khói. Kết quả mới: `12 routes x 2 viewports`, không lỗi shell, runtime, console hoặc tràn ngang.
+- `build`, `verify:supabase-backend`, `verify:hosted-images` và `git diff --check` đều đạt.
+
+## 29. Không che lỗi khi thiếu kết nối Supabase — 17/11/2026
+
+- Rà soát các hàm đọc dữ liệu quản trị phát hiện nhiều hàm trả về danh sách rỗng khi Supabase chưa cấu hình; cách này có thể khiến màn hình trông như không có dữ liệu.
+- Đã đổi các hàm đọc quản trị cho danh mục, mô-đun trang chủ, thanh toán, cài đặt, quản trị viên, media, địa điểm, giao hàng, chatbot, lịch sử nhập, thông báo, đơn hàng, khách hàng, creators (nhà sáng tạo), kho, đánh giá, menu, khuyến mãi và tin tức sang báo lỗi rõ ràng thay vì trả rỗng giả.
+- Các hàm đọc công khai vẫn giữ kết quả rỗng/null có kiểm soát để giao diện hiển thị cảnh báo kết nối phù hợp.
+- Kiểm tra sau thay đổi: `build`, `test:qa` (`12 routes x 2 viewports`), `verify:supabase-backend`, `verify:homepage-modules`, `verify:hosted-images` và `git diff --check` đều đạt.
+
+## 30. Siết đồng bộ giỏ hàng và lịch sử đơn — 17/11/2026
+
+- Bổ sung điều kiện `user_id` khi đọc lịch sử đơn hàng của tài khoản, để dữ liệu trả về đúng người dùng hiện tại ngay cả khi chính sách RLS (chính sách giới hạn dòng dữ liệu) có thay đổi.
+- Các thao tác ghi giỏ hàng thật không còn im lặng bỏ qua khi thiếu Supabase hoặc phiên đăng nhập; chúng trả lỗi rõ ràng và giao diện hiển thị thông báo nổi thay vì chỉ ghi vào bảng console (bảng nhật ký kỹ thuật).
+- Tạo đơn hàng thật không còn trả kết quả rỗng giả khi thiếu kết nối Supabase.
+- Kiểm tra hồi quy: `build`, `test:qa` (`12 routes x 2 viewports`), `verify:supabase-backend`, `verify:homepage-modules`, `verify:hosted-images` và `git diff --check` đều đạt.
+
+## 31. Chặn liệt kê công khai kho tệp — 17/11/2026
+
+- Thêm migration `20261117_restrict_public_storage_listing.sql` để bỏ chính sách cho phép mọi trình duyệt đọc danh sách toàn bộ `storage.objects` của bucket `site-media`.
+- Bucket vẫn công khai để các đường dẫn ảnh/PDF đã lưu tiếp tục tải trực tiếp; chỉ thao tác liệt kê toàn bộ tệp bị chặn.
+- Migration chưa được chạy lên Supabase live trong lượt này; cần chạy tệp này trong SQL Editor (trình soạn thảo lệnh cơ sở dữ liệu) rồi kiểm tra lại cảnh báo trong Storage.
+- Bổ sung `npm run verify:storage-policy` để kiểm tra bằng khóa công khai của website rằng trình duyệt vẫn tải được tệp bằng URL nhưng không thể gọi API liệt kê toàn bộ bucket. Lệnh này sẽ đạt sau khi migration được chạy trên Supabase live.
+- Kiểm tra hiện tại có bằng chứng rõ ràng: lệnh trả `FAIL` với HTTP `200`, xác nhận chính sách liệt kê công khai vẫn còn trên Supabase live; chưa gọi là đạt trước khi chạy migration.
+- Sau khi chạy migration lần đầu, truy vấn `pg_policies` (bảng hệ thống lưu chính sách) phát hiện tên chính sách live là `public reads site media files`, không trùng tên cũ trong migration; đồng thời còn đường tải tệp ẩn danh `demo uploads site media files`. Đã bổ sung bản sửa `20261117_restrict_public_storage_listing_fix.sql` để gỡ đúng cả hai chính sách.
+- Sau khi gỡ đúng chính sách, API liệt kê trả HTTP `200` nhưng nội dung `[]`; đã sửa bộ kiểm tra để coi `200 + danh sách rỗng` là đạt, thay vì đánh nhầm mọi mã `200` là lỗi.
+- Xác nhận cuối: `npm run verify:storage-policy` đạt và `npm run verify:hosted-images` đạt; ảnh/PDF vẫn tải bằng URL công khai, nhưng API không còn trả danh sách tệp.

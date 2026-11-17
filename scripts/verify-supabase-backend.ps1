@@ -127,11 +127,12 @@ $creatorImageResponse = Invoke-WebRequest -UseBasicParsing -TimeoutSec 10 -Uri "
 $creatorImageRows = ConvertFrom-Json -InputObject $creatorImageResponse.Content
 $creatorImageRows = @($creatorImageRows)
 $externalCreatorImages = @($creatorImageRows | Where-Object { $_.storage_path -match '^https?://' })
+$localAssetCreatorImages = @($creatorImageRows | Where-Object { $_.storage_path -match '^/assets/' -or $_.storage_path -match '^/media/assets/' })
 [pscustomobject]@{
   Resource = 'image-path-audit:creator_images'
   Http = 200
-  Status = if ($externalCreatorImages.Count -eq 0) { 'HOSTED_PATHS_ONLY' } else { 'EXTERNAL_URLS_FOUND' }
-  Detail = "rows=$($creatorImageRows.Count); external=$($externalCreatorImages.Count)"
+  Status = if ($externalCreatorImages.Count -gt 0) { 'EXTERNAL_URLS_FOUND' } elseif ($localAssetCreatorImages.Count -gt 0) { 'LOCAL_ASSET_PATHS_FOUND' } else { 'SUPABASE_OR_RELATIVE_PATHS_ONLY' }
+  Detail = "rows=$($creatorImageRows.Count); local_assets=$($localAssetCreatorImages.Count); external=$($externalCreatorImages.Count)"
 } | Format-Table -AutoSize
 if ($externalCreatorImages.Count -gt 0) {
   Write-Error "creator_images vẫn còn URL ảnh bên ngoài; ảnh phải được host nội bộ trước khi deploy."

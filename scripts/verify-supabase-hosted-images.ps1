@@ -20,7 +20,9 @@ function Get-Rows([string]$resource, [string]$select) {
 function Test-HostedPath([object]$value) {
   $path = [string]$value
   if ([string]::IsNullOrWhiteSpace($path) -or $path -eq 'N/A') { return $true }
-  return -not ($path -match '^https?://' -and $path -notmatch '\.supabase\.co/')
+  if ($path -match '^/assets/' -or $path -match '^/media/assets/') { return $false }
+  if ($path -match '^https?://') { return $path -match '\.supabase\.co/' }
+  return $true
 }
 
 $sources = @(
@@ -29,13 +31,14 @@ $sources = @(
   @{ Name = 'creator_images.storage_path'; Rows = Get-Rows 'creator_images' 'storage_path'; Field = 'storage_path' },
   @{ Name = 'news_posts.image_storage_path'; Rows = Get-Rows 'news_posts' 'image_storage_path'; Field = 'image_storage_path' },
   @{ Name = 'news_post_blocks.image_storage_path'; Rows = Get-Rows 'news_post_blocks' 'image_storage_path'; Field = 'image_storage_path' },
-  @{ Name = 'site_media_assets.public_url'; Rows = Get-Rows 'site_media_assets' 'public_url'; Field = 'public_url' }
+  @{ Name = 'site_media_assets.public_url'; Rows = Get-Rows 'site_media_assets' 'public_url'; Field = 'public_url' },
+  @{ Name = 'books.sample_pdf_storage_path'; Rows = @(Get-Rows 'books' 'sample_pdf_storage_path,sample_pdf_enabled' | Where-Object { $_.sample_pdf_enabled -eq $true }); Field = 'sample_pdf_storage_path' }
 )
 
 $results = foreach ($source in $sources) {
   $values = @($source.Rows | ForEach-Object { $_ | Select-Object -ExpandProperty $source.Field } | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
   $external = @($values | Where-Object { -not (Test-HostedPath $_) })
-  [pscustomobject]@{ Source = $source.Name; Rows = $values.Count; External = $external.Count; Status = if ($external.Count -eq 0) { 'PASS' } else { 'FAIL' } }
+  [pscustomobject]@{ Source = $source.Name; Rows = $values.Count; NotHosted = $external.Count; Status = if ($external.Count -eq 0) { 'PASS' } else { 'FAIL' } }
 }
 $results | Format-Table -AutoSize
 if (@($results | Where-Object Status -eq 'FAIL').Count -gt 0) { exit 1 }

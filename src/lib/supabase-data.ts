@@ -367,7 +367,7 @@ const mapAdminTaxonomyRow = (row: Record<string, unknown>): AdminTaxonomyRow => 
 })
 
 export async function loadAdminTaxonomy(kinds?: AdminTaxonomyKind[]): Promise<AdminTaxonomyRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   let request = supabase.from('taxonomy_terms').select('id,name,slug,kind,parent_id,sort_order,is_active').order('sort_order', { ascending: true }).order('name', { ascending: true })
   if (kinds?.length) request = request.in('kind', kinds)
   const { data, error } = await request
@@ -407,7 +407,7 @@ const mapAdminHomepageModuleRow = (row: Record<string, unknown>): AdminHomepageM
 })
 
 export async function loadAdminHomepageModules(): Promise<AdminHomepageModuleRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('homepage_modules').select('id,name,slug,sort_order,is_active,book_homepage_modules(book_id)').order('sort_order', { ascending: true })
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminHomepageModuleRow)
@@ -513,7 +513,7 @@ const mapAdminPaymentMethodRow = (row: Record<string, unknown>): AdminPaymentMet
 })
 
 export async function loadAdminPaymentMethods(): Promise<AdminPaymentMethodRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('payment_methods').select('id,code,name,description,provider,logo_storage_path,sort_order,is_active').order('sort_order', { ascending: true }).order('name', { ascending: true })
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminPaymentMethodRow)
@@ -548,7 +548,7 @@ const mapAdminSiteSettingRow = (row: Record<string, unknown>): AdminSiteSettingR
 })
 
 export async function loadAdminSiteSettings(): Promise<AdminSiteSettingRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('site_settings').select('id,setting_key,language,value_json,is_public,updated_at').order('setting_key', { ascending: true }).order('language', { ascending: true })
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminSiteSettingRow)
@@ -592,21 +592,21 @@ const mapAdminPermissionRow = (row: Record<string, unknown>): AdminPermissionRow
 })
 
 export async function loadAdminUsers(): Promise<AdminUserRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.rpc('admin_list_admin_users')
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminUserRow)
 }
 
 export async function loadAdminRoles(): Promise<AdminRoleRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.rpc('admin_list_admin_roles')
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminRoleRow)
 }
 
 export async function loadAdminPermissionMatrix(): Promise<AdminPermissionRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.rpc('admin_list_role_permissions')
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminPermissionRow)
@@ -674,7 +674,7 @@ const mapAdminMediaAssetRow = (row: Record<string, unknown>): AdminMediaAssetRow
 })
 
 export async function loadAdminMediaAssets(): Promise<AdminMediaAssetRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('site_media_assets').select('id,storage_path,public_url,file_name,mime_type,size_bytes,alt_text,asset_type,is_active,created_at').order('created_at', { ascending: false })
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminMediaAssetRow)
@@ -710,13 +710,13 @@ export async function deleteAdminMediaAsset(row: AdminMediaAssetRow): Promise<vo
 }
 
 const mapAdminStoreLocationRow = (row: Record<string, unknown>): AdminStoreLocationRow => ({ id: String(row.id), code: String(row.code ?? ''), name: String(row.name ?? ''), locationType: String(row.location_type ?? 'store'), address: String(row.address ?? ''), city: String(row.city ?? ''), sortOrder: Number(row.sort_order ?? 0), isActive: Boolean(row.is_active) })
-export async function loadAdminStoreLocations(): Promise<AdminStoreLocationRow[]> { if (!supabase) return []; const { data, error } = await supabase.from('store_locations').select('id,code,name,location_type,address,city,sort_order,is_active').order('sort_order'); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminStoreLocationRow) }
+export async function loadAdminStoreLocations(): Promise<AdminStoreLocationRow[]> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { data, error } = await supabase.from('store_locations').select('id,code,name,location_type,address,city,sort_order,is_active').order('sort_order'); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminStoreLocationRow) }
 export async function createAdminStoreLocation(input: { code: string; name: string; locationType: string; address: string; city: string; sortOrder?: number }): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('store_locations').insert({ code: input.code.trim().toUpperCase(), name: input.name.trim(), location_type: input.locationType.trim() || 'store', address: input.address.trim() || null, city: input.city.trim() || null, sort_order: input.sortOrder ?? 0, is_active: true }); if (error) throw error }
 export async function updateAdminStoreLocation(id: string, input: { name?: string; locationType?: string; address?: string; city?: string; sortOrder?: number; isActive?: boolean }): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('store_locations').update({ ...(input.name === undefined ? {} : { name: input.name.trim() }), ...(input.locationType === undefined ? {} : { location_type: input.locationType.trim() }), ...(input.address === undefined ? {} : { address: input.address.trim() || null }), ...(input.city === undefined ? {} : { city: input.city.trim() || null }), ...(input.sortOrder === undefined ? {} : { sort_order: input.sortOrder }), ...(input.isActive === undefined ? {} : { is_active: input.isActive }) }).eq('id', id); if (error) throw error }
 export async function deleteAdminStoreLocation(id: string): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('store_locations').delete().eq('id', id); if (error) throw error }
 
 const mapAdminDeliveryZoneRow = (row: Record<string, unknown>): AdminDeliveryZoneRow => ({ id: String(row.id), name: String(row.name ?? ''), level: String(row.level ?? 'city'), feeVnd: Number(row.fee_vnd ?? 0), sortOrder: Number(row.sort_order ?? 0), isActive: Boolean(row.is_active) })
-export async function loadAdminDeliveryZones(): Promise<AdminDeliveryZoneRow[]> { if (!supabase) return []; const { data, error } = await supabase.from('delivery_zones').select('id,name,level,fee_vnd,sort_order,is_active').order('sort_order'); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminDeliveryZoneRow) }
+export async function loadAdminDeliveryZones(): Promise<AdminDeliveryZoneRow[]> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { data, error } = await supabase.from('delivery_zones').select('id,name,level,fee_vnd,sort_order,is_active').order('sort_order'); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminDeliveryZoneRow) }
 export async function loadPublicStoreLocations(): Promise<PublicStoreLocation[]> { if (!supabase) return []; const { data, error } = await supabase.from('store_locations').select('id,code,name,address,city').eq('is_active', true).order('sort_order'); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({ id: String(row.id), code: String(row.code ?? ''), name: String(row.name ?? ''), address: String(row.address ?? ''), city: String(row.city ?? '') })) }
 export async function loadPublicDeliveryZones(): Promise<PublicDeliveryZone[]> { if (!supabase) return []; const { data, error } = await supabase.from('delivery_zones').select('id,name,fee_vnd').eq('is_active', true).order('sort_order'); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({ id: String(row.id), name: String(row.name ?? ''), feeVnd: Number(row.fee_vnd ?? 0) })) }
 export async function createAdminDeliveryZone(input: { name: string; level: string; feeVnd?: number; sortOrder?: number }): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('delivery_zones').insert({ name: input.name.trim(), level: input.level.trim() || 'city', fee_vnd: input.feeVnd ?? 0, sort_order: input.sortOrder ?? 0, is_active: true }); if (error) throw error }
@@ -724,15 +724,15 @@ export async function updateAdminDeliveryZone(id: string, input: { name?: string
 export async function deleteAdminDeliveryZone(id: string): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('delivery_zones').delete().eq('id', id); if (error) throw error }
 
 const mapAdminChatbotPromptRow = (row: Record<string, unknown>): AdminChatbotPromptRow => ({ id: String(row.id), prompt: String(row.prompt ?? ''), language: String(row.language ?? 'en') as AdminChatbotPromptRow['language'], sortOrder: Number(row.sort_order ?? 0), isActive: Boolean(row.is_active) })
-export async function loadAdminChatbotPrompts(): Promise<AdminChatbotPromptRow[]> { if (!supabase) return []; const { data, error } = await supabase.from('chatbot_quick_prompts').select('id,prompt,language,sort_order,is_active').order('sort_order'); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminChatbotPromptRow) }
+export async function loadAdminChatbotPrompts(): Promise<AdminChatbotPromptRow[]> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { data, error } = await supabase.from('chatbot_quick_prompts').select('id,prompt,language,sort_order,is_active').order('sort_order'); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminChatbotPromptRow) }
 export async function createAdminChatbotPrompt(input: { prompt: string; language: AdminChatbotPromptRow['language']; sortOrder?: number }): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('chatbot_quick_prompts').insert({ prompt: input.prompt.trim(), language: input.language, sort_order: input.sortOrder ?? 0, is_active: true }); if (error) throw error }
 export async function updateAdminChatbotPrompt(id: string, input: { prompt?: string; language?: AdminChatbotPromptRow['language']; sortOrder?: number; isActive?: boolean }): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('chatbot_quick_prompts').update({ ...(input.prompt === undefined ? {} : { prompt: input.prompt.trim() }), ...(input.language === undefined ? {} : { language: input.language }), ...(input.sortOrder === undefined ? {} : { sort_order: input.sortOrder }), ...(input.isActive === undefined ? {} : { is_active: input.isActive }) }).eq('id', id); if (error) throw error }
 export async function deleteAdminChatbotPrompt(id: string): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('chatbot_quick_prompts').delete().eq('id', id); if (error) throw error }
 
-export async function loadAdminImportBatches(): Promise<AdminImportBatchRow[]> { if (!supabase) return []; const { data, error } = await supabase.from('book_import_batches').select('id,file_name,imported_by,total_rows,valid_rows,error_rows,status,created_at').order('created_at', { ascending: false }); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({ id: String(row.id), fileName: String(row.file_name ?? ''), importedBy: String(row.imported_by ?? '—'), totalRows: Number(row.total_rows ?? 0), validRows: Number(row.valid_rows ?? 0), errorRows: Number(row.error_rows ?? 0), status: String(row.status ?? 'pending'), createdAt: String(row.created_at ?? '') })) }
+export async function loadAdminImportBatches(): Promise<AdminImportBatchRow[]> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { data, error } = await supabase.from('book_import_batches').select('id,file_name,imported_by,total_rows,valid_rows,error_rows,status,created_at').order('created_at', { ascending: false }); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({ id: String(row.id), fileName: String(row.file_name ?? ''), importedBy: String(row.imported_by ?? '—'), totalRows: Number(row.total_rows ?? 0), validRows: Number(row.valid_rows ?? 0), errorRows: Number(row.error_rows ?? 0), status: String(row.status ?? 'pending'), createdAt: String(row.created_at ?? '') })) }
 
 const mapAdminNotificationRow = (row: Record<string, unknown>): AdminNotificationRow => ({ id: String(row.id), title: String(row.title ?? ''), message: String(row.message ?? ''), eventType: String(row.event_type ?? 'system'), actionHref: String(row.action_href ?? ''), readAt: row.read_at ? String(row.read_at) : null, createdAt: String(row.created_at ?? '') })
-export async function loadAdminNotifications(): Promise<AdminNotificationRow[]> { if (!supabase) return []; const { data, error } = await supabase.from('admin_notifications').select('id,title,message,event_type,action_href,read_at,created_at').order('created_at', { ascending: false }).limit(30); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminNotificationRow) }
+export async function loadAdminNotifications(): Promise<AdminNotificationRow[]> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { data, error } = await supabase.from('admin_notifications').select('id,title,message,event_type,action_href,read_at,created_at').order('created_at', { ascending: false }).limit(30); if (error) throw error; return ((data ?? []) as Array<Record<string, unknown>>).map(mapAdminNotificationRow) }
 export async function markAdminNotificationRead(id: string): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('admin_notifications').update({ read_at: new Date().toISOString() }).eq('id', id); if (error) throw error }
 export async function markAllAdminNotificationsRead(): Promise<void> { if (!supabase) throw new Error('Supabase chưa được cấu hình.'); const { error } = await supabase.from('admin_notifications').update({ read_at: new Date().toISOString() }).is('read_at', null); if (error) throw error }
 
@@ -752,7 +752,7 @@ export async function checkRemoteAdminAccess(): Promise<{ allowed: boolean; emai
 }
 
 export async function loadAdminOrders(): Promise<AdminOrderRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('orders').select('id,order_number,status,payment_status,total_vnd,created_at,guest_email,user_id,order_items(quantity)').order('created_at', { ascending: false })
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
@@ -791,7 +791,7 @@ export async function loadAdminDashboardSummary(): Promise<AdminDashboardSummary
 }
 
 export async function loadAdminTopBooks(): Promise<AdminTopBookRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('order_items').select('title_snapshot,quantity,line_total_vnd')
   if (error) throw error
   const totals = new Map<string, AdminTopBookRow>()
@@ -812,7 +812,7 @@ export async function updateAdminOrderStatus(orderId: string, status: string, pa
 }
 
 export async function loadAdminCustomers(): Promise<AdminCustomerRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.rpc('admin_list_customers')
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map((customer) => ({
@@ -826,7 +826,7 @@ export async function loadAdminCustomers(): Promise<AdminCustomerRow[]> {
 }
 
 export async function loadAdminCreators(): Promise<AdminCreatorRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const [creators, roles, links, images] = await Promise.all([
     // `*` keeps this reader compatible with older Supabase projects while still
     // exposing academic_title automatically after its migration is applied.
@@ -874,7 +874,7 @@ export async function loadAdminCreators(): Promise<AdminCreatorRow[]> {
 }
 
 export async function loadAdminInventory(): Promise<AdminInventoryRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('books').select('id,title,isbn,inventory_quantity,reserved_inventory_quantity,sale_price_vnd').order('title', { ascending: true })
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map((book) => {
@@ -885,7 +885,7 @@ export async function loadAdminInventory(): Promise<AdminInventoryRow[]> {
 }
 
 export async function loadAdminReviews(): Promise<AdminReviewRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('book_reviews').select('id,guest_name,rating,title,body,status,created_at,books(title)').order('created_at', { ascending: false })
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map((review) => {
@@ -902,7 +902,7 @@ export async function updateAdminReviewStatus(reviewId: string, status: 'approve
 }
 
 export async function loadAdminMenuItems(): Promise<AdminMenuItemRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('site_menu_items').select('id,label,href,sort_order,is_active,site_menus!inner(menu_key)').order('sort_order', { ascending: true })
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map((item) => {
@@ -933,7 +933,7 @@ const mapPromotionRow = (row: Record<string, unknown>): AdminPromotionRow => ({
 })
 
 export async function loadAdminPromotions(): Promise<AdminPromotionRow[]> {
-  if (!supabase) return []
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.from('promotions').select('id,code,name,description,discount_type,discount_value,minimum_order_value,starts_at,ends_at,usage_limit,usage_count,is_active').order('created_at', { ascending: false })
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapPromotionRow)
@@ -980,8 +980,9 @@ export async function loadMyOrders(): Promise<AccountOrderRow[]> {
   if (!supabase) return []
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
   if (sessionError) throw sessionError
-  if (!sessionData.session?.user) return []
-  const { data, error } = await supabase.from('orders').select('id,order_number,status,payment_status,total_vnd,subtotal_vnd,discount_vnd,delivery_fee_vnd,created_at,order_items(title_snapshot,quantity,line_total_vnd)').order('created_at', { ascending: false })
+  const userId = sessionData.session?.user?.id
+  if (!userId) return []
+  const { data, error } = await supabase.from('orders').select('id,order_number,status,payment_status,total_vnd,subtotal_vnd,discount_vnd,delivery_fee_vnd,created_at,order_items(title_snapshot,quantity,line_total_vnd)').eq('user_id', userId).order('created_at', { ascending: false })
   if (error) throw error
   return ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
     const rawItems = Array.isArray(row.order_items) ? row.order_items as Array<Record<string, unknown>> : []
@@ -1475,7 +1476,7 @@ export async function loadPublicNewsPosts(): Promise<PublicNewsPost[] | null> {
 
 export async function loadAdminNewsPosts(): Promise<AdminNewsPost[]> {
   const client = supabase
-  if (!client) return []
+  if (!client) throw new Error('Supabase chưa được cấu hình.')
   const [{ data, error }, { data: blockData, error: blockError }] = await Promise.all([
     loadNewsPostRows(true),
     client.from('news_post_blocks').select('id,news_post_id,language,block_type,sort_order,content,image_storage_path,image_alt,caption,is_full_bleed,image_width,image_height').order('sort_order', { ascending: true }),
@@ -1722,10 +1723,11 @@ export async function loadRemoteCart(): Promise<RemoteCartItem[] | null> {
 }
 
 export async function saveRemoteCartItem(bookId: string, quantity: number, unitPriceVnd = 0): Promise<void> {
-  if (!supabase) return
-  const { data: session } = await supabase.auth.getSession()
+  if (!supabase) throw new Error('Giỏ hàng thật chưa kết nối Supabase.')
+  const { data: session, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError) throw sessionError
   const userId = session.session?.user?.id
-  if (!userId) return
+  if (!userId) throw new Error('Vui lòng đăng nhập để đồng bộ giỏ hàng.')
   const { data: cart, error: cartError } = await supabase.from('carts').upsert({ user_id: userId }, { onConflict: 'user_id' }).select('id').single()
   if (cartError) throw cartError
   if (quantity <= 0) {
@@ -1738,7 +1740,7 @@ export async function saveRemoteCartItem(bookId: string, quantity: number, unitP
 }
 
 export async function createRemoteOrder(input: RemoteOrderInput): Promise<{ orderId: string; orderNumber: string } | null> {
-  if (!supabase) return null
+  if (!supabase) throw new Error('Dịch vụ đặt hàng chưa kết nối Supabase.')
   const { data, error } = await supabase.rpc('create_order_from_cart', { p_fulfillment_method: input.fulfillmentMethod, p_payment_method: input.paymentMethod, p_shipping_address: input.shippingAddress, p_delivery_notes: input.deliveryNotes ?? '', p_guest_email: input.guestEmail ?? null, p_promotion_code: input.promotionCode ?? null })
   if (error) throw error
   const result = (Array.isArray(data) ? data[0] : data) as { order_id?: string; order_number?: string } | null

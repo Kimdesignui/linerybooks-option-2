@@ -5427,7 +5427,7 @@ export function App() {
     let cancelled = false
     const path = window.location.pathname
     const isAdminPath = path.startsWith('/admin')
-    const catalogNotNeeded = ['/login', '/register', '/forgot-password', '/password-reset-sent', '/reset-password', '/password-reset-complete', '/cart', '/checkout', '/account'].includes(path)
+    const catalogNotNeeded = ['/login', '/register', '/forgot-password', '/password-reset-sent', '/reset-password', '/password-reset-complete', '/account'].includes(path)
     if (isAdminPath || catalogNotNeeded) {
       setCatalogLoading(false)
       return () => { cancelled = true }
@@ -5803,14 +5803,14 @@ export function App() {
     flyer.src = product.image
     flyer.alt = ''
     flyer.setAttribute('aria-hidden', 'true')
-    flyer.style.left = `${sourceRect.left + (sourceRect.width - 64) / 2}px`
-    flyer.style.top = `${sourceRect.top + (sourceRect.height - 96) / 2}px`
     document.body.appendChild(flyer)
-    const deltaX = targetRect.left + targetRect.width / 2 - (sourceRect.left + sourceRect.width / 2)
-    const deltaY = targetRect.top + targetRect.height / 2 - (sourceRect.top + sourceRect.height / 2)
+    const startX = sourceRect.left + (sourceRect.width - 64) / 2
+    const startY = sourceRect.top + (sourceRect.height - 96) / 2
+    const targetX = targetRect.left + targetRect.width / 2 - 32
+    const targetY = targetRect.top + targetRect.height / 2 - 48
     const animation = flyer.animate([
-      { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-      { transform: `translate(${deltaX}px, ${deltaY}px) scale(.18)`, opacity: .25 },
+      { transform: `translate(${startX}px, ${startY}px) scale(1)`, opacity: 1 },
+      { transform: `translate(${targetX}px, ${targetY}px) scale(.18)`, opacity: .25 },
     ], { duration: 720, easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' })
     animation.finished.then(() => flyer.remove()).catch(() => flyer.remove())
     setCartPulse(true)
@@ -5824,7 +5824,7 @@ export function App() {
       const key = productKey(product)
       const existing = items.find((item) => productKey(item.product) === key)
       const quantity = (existing?.quantity ?? 0) + 1
-      if (product.id) void saveRemoteCartItem(product.id, quantity, getPriceValue(product.price)).catch((error) => console.warn('Could not save cart item.', error))
+      if (isAuthenticated && product.id) void saveRemoteCartItem(product.id, quantity, getPriceValue(product.price)).catch((error) => emitFloatingNotice('error', error instanceof Error ? error.message : 'Không đồng bộ được giỏ hàng.'))
       return existing ? items.map((item) => productKey(item.product) === key ? { ...item, quantity } : item) : [...items, { product, quantity: 1 }]
     })
     animateProductToCart(product, source)
@@ -5841,13 +5841,13 @@ export function App() {
   const isWishlisted = (product: Product) => wishlistTitles.includes(product.title)
   const removeFromCart = (key: string) => setCartItems((items) => {
     const item = items.find((entry) => productKey(entry.product) === key)
-    if (item?.product.id) void saveRemoteCartItem(item.product.id, 0, getPriceValue(item.product.price)).catch((error) => console.warn('Could not remove cart item.', error))
+    if (isAuthenticated && item?.product.id) void saveRemoteCartItem(item.product.id, 0, getPriceValue(item.product.price)).catch((error) => emitFloatingNotice('error', error instanceof Error ? error.message : 'Không xóa được sách khỏi giỏ hàng.'))
     return items.filter((entry) => productKey(entry.product) !== key)
   })
   const changeCartQuantity = (key: string, delta: number) => setCartItems((items) => items.map((item) => {
     if (productKey(item.product) !== key) return item
     const quantity = Math.max(1, item.quantity + delta)
-    if (item.product.id) void saveRemoteCartItem(item.product.id, quantity, getPriceValue(item.product.price)).catch((error) => console.warn('Could not update cart item.', error))
+    if (isAuthenticated && item.product.id) void saveRemoteCartItem(item.product.id, quantity, getPriceValue(item.product.price)).catch((error) => emitFloatingNotice('error', error instanceof Error ? error.message : 'Không cập nhật được giỏ hàng.'))
     return { ...item, quantity }
   }))
   const createOrder = async (input: { fulfillmentMethod: FulfillmentMethod; paymentMethod: PaymentMethod; shippingAddress: Record<string, string>; deliveryNotes: string; guestEmail: string; promotionCode?: string }) => {

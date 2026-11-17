@@ -8,7 +8,10 @@ const routes = [
   '/news',
   '/books/a-manual-for-cleaning-women',
   '/books/a-manual-for-cleaning-women/reader',
+  '/cart',
+  '/checkout',
   '/admin',
+  '/admin/books/new',
   '/admin/news',
   '/admin/settings/admin-users',
 ]

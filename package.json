@@ -12,6 +12,8 @@
     "verify:supabase-backend": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-backend.ps1",
     "verify:news-metadata": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-news-metadata.ps1",
     "verify:hosted-images": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-hosted-images.ps1",
+    "verify:storage-policy": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-storage-policy.ps1",
+    "migrate:hosted-assets": "node scripts/migrate-local-assets-to-supabase.mjs",
     "verify:admin-book-draft": "node scripts/verify-admin-book-draft.mjs",
     "verify:admin-book-save": "node scripts/verify-admin-book-save.mjs",
     "verify:creator-data": "node scripts/verify-creator-data.mjs",

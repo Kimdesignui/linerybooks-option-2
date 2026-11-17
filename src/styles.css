@@ -431,7 +431,7 @@ button { cursor: pointer; }
 .cart-button img { width: 22px; height: 22px; }
 .cart-button.is-pulsing { animation: cart-button-pulse 560ms cubic-bezier(.22,.61,.36,1); }
 @keyframes cart-button-pulse { 0%, 100% { transform: scale(1); } 35% { transform: scale(1.16); } 70% { transform: scale(.96); } }
-.cart-flyer { position: fixed; z-index: 60; width: 64px; height: 96px; border-radius: 8px; object-fit: cover; box-shadow: 0 12px 24px rgba(31,42,36,.28); pointer-events: none; }
+.cart-flyer { position: fixed; top: 0; left: 0; z-index: 60; width: 64px; height: 96px; border-radius: 8px; object-fit: cover; box-shadow: 0 12px 24px rgba(31,42,36,.28); pointer-events: none; }
 .menu-button { display: none; }
 .mobile-menu, .mobile-menu-edge-swipe { display: none; }
 .mobile-backdrop { display: none; }
