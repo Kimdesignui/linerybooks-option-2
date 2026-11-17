@@ -621,7 +621,11 @@ export async function setAdminRolePermission(role: AdminRoleKey, permissionKey: 
 export async function createAdminUser(email: string, password: string, role: AdminRoleKey): Promise<AdminUserRow> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { data, error } = await supabase.functions.invoke('admin-create-user', { body: { email: email.trim(), password, role } })
-  if (error) throw error
+  if (error) {
+    const message = error instanceof Error ? error.message : String((error as { message?: unknown }).message ?? '')
+    if (/failed to send a request|404|not found/i.test(message)) throw new Error('Edge Function admin-create-user chưa được triển khai trên Supabase live. Hãy chạy npm run deploy:admin-user sau khi đăng nhập Supabase CLI.')
+    throw error
+  }
   if (!data?.user) throw new Error('Không nhận được tài khoản quản trị sau khi tạo.')
   return mapAdminUserRow(data.user as Record<string, unknown>)
 }

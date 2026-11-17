@@ -10,6 +10,7 @@
     "build": "tsc -b && vite build --mode enhanced",
     "build:enhanced": "tsc -b && vite build --mode enhanced",
     "verify:supabase-backend": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-backend.ps1",
+    "deploy:admin-user": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-admin-user-function.ps1",
     "verify:news-metadata": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-news-metadata.ps1",
     "verify:hosted-images": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-hosted-images.ps1",
     "verify:storage-policy": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-supabase-storage-policy.ps1",

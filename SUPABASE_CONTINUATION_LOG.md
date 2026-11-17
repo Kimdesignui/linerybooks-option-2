@@ -177,6 +177,15 @@ Nút chuông quản trị vẫn cần được kiểm tra tiếp bằng phiên a
 4. Kiểm tra dòng sách mới có cover thật, ISBN, tác giả, số lượng và giá đúng.
 5. Nếu lỗi, ghi nguyên văn banner lỗi và thời điểm vào log; không xóa bản ghi hoặc file storage để che lỗi.
 
+## 11. Kiểm tra Edge Function quản trị viên — 17/11/2026
+
+- Endpoint live `functions/v1/admin-create-user` đã được kiểm tra và đang trả HTTP 404.
+- Kết luận: `admin-create-user` có source local nhưng chưa được deploy lên Supabase project `yixcddwurbmkzxqqtfnn`; đây là lý do giao diện báo `Failed to send a request to the Edge Function`.
+- Supabase CLI trên máy hiện chưa có `SUPABASE_ACCESS_TOKEN`, nên chưa thể deploy trực tiếp hoặc tự tạo tài khoản thật.
+- Đã bổ sung thông báo lỗi có hướng dẫn cụ thể trong `createAdminUser`.
+- Đã thêm script `scripts/deploy-admin-user-function.ps1` và lệnh `npm run deploy:admin-user` để deploy đúng function sau khi CLI đã đăng nhập.
+- Không ghi access token, service-role key hoặc mật khẩu vào repo.
+
 ## 12. Đối soát máy A và máy B — 16/11/2026
 
 Đã kiểm tra trực tiếp cùng workspace bằng hai môi trường Vite (công cụ chạy giao diện):
