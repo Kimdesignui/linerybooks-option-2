@@ -409,6 +409,15 @@ Danh sách 18 hồ sơ cần bổ sung ảnh thật trên Storage (kho lưu tr�
 - Rà soát 229 sách hiện có bằng khóa công khai: 2 sách có giá bán bằng 0, 229 sách không có `compare_price_vnd` lớn hơn giá bán, 224 sách có mô tả rỗng/thiếu. Đây là cảnh báo chất lượng dữ liệu và cần quyết định nghiệp vụ trước khi tự sửa hoặc xóa.
 - `npm run verify:storage-policy` vẫn PASS; chưa thực hiện ghi/xóa dữ liệu trong lượt kiểm tra này.
 
+## 36. Đối chiếu domain triển khai và QA độc lập — 17/11/2026
+
+- Agent tester độc lập xác nhận `main = origin/main` tại commit `d5df7d9`, `git diff --check` đạt.
+- Các kiểm tra độc lập đạt: build, QA local, QA `https://linerybookstore2.pages.dev`, backend Supabase, Storage, homepage modules, hosted images, news metadata và giữ nháp Admin.
+- `audit:source-cover-links` đọc được 227 dòng Excel nhưng cả 227 Link đều là URL trang sản phẩm, không phải URL ảnh trực tiếp; không được coi đây là lỗi tải ảnh của Storage.
+- Chạy QA trên `https://linerybooks.vn` thất bại: mọi route trả shell trắng và `/api/auth/me` trả `401`. Domain này hiện không phục vụ cùng ứng dụng với `linerybookstore2.pages.dev`; không dùng nó làm bằng chứng QA cho bản Pages.
+- `verify:admin-book-save` vẫn FAIL trên bản ghi test cũ `Test`; đây là cảnh báo dữ liệu, không phải bằng chứng đủ để kết luận luồng tạo sách mới hỏng.
+- CRUD Admin thật, upload, phân quyền và điều chỉnh kho vẫn cần phiên Super Admin hợp lệ để kiểm thử tương tác end-to-end (từ đầu đến cuối).
+
 ## 35. Tách tồn kho khỏi nghiệp vụ tạo sách — 17/11/2026
 
 - Gỡ trường `Tồn kho` khỏi form thêm sách và khỏi `AdminBookInput`; bản ghi sách mới luôn tạo với `inventory_quantity = 0`.
