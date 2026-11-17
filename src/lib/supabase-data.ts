@@ -1303,12 +1303,12 @@ const publicMediaUrl = (storagePath: string) => {
   if (legacyHostedAsset) return `/assets/catalog-covers/${legacyHostedAsset[1]}`
   if (/^https?:\/\//i.test(storagePath)) {
     const isSupabaseStorageUrl = Boolean(supabaseConfig.url) && storagePath.startsWith(`${supabaseConfig.url}/storage/v1/object/public/`)
-    return isSupabaseStorageUrl ? storagePath : '/assets/media-placeholder.svg'
+    return isSupabaseStorageUrl ? storagePath : '/assets/linery-image-placeholder.svg'
   }
   if (storagePath.startsWith('/assets/')) return storagePath
   if (supabase && storagePath) return supabase.storage.from('site-media').getPublicUrl(storagePath).data.publicUrl
   if (/^[^/]+\.(?:avif|jpe?g|png|webp)$/i.test(storagePath)) return `/assets/catalog-covers/${storagePath}`
-  return '/assets/media-placeholder.svg'
+  return '/assets/linery-image-placeholder.svg'
 }
 
 const coverPathMatchesIsbn = (storagePath: string, isbn: string) => {
@@ -1318,7 +1318,7 @@ const coverPathMatchesIsbn = (storagePath: string, isbn: string) => {
   return hints.length === 0 || hints.every((hint) => hint === normalizedIsbn)
 }
 
-const publicBookImageUrl = (storagePath: string, isbn: string) => coverPathMatchesIsbn(storagePath, isbn) ? publicMediaUrl(storagePath) : '/assets/media-placeholder.svg'
+const publicBookImageUrl = (storagePath: string, isbn: string) => coverPathMatchesIsbn(storagePath, isbn) ? publicMediaUrl(storagePath) : '/assets/linery-image-placeholder.svg'
 
 const publicBookSampleUrl = (storagePath: string) => {
   if (storagePath.startsWith('/assets/')) return storagePath
