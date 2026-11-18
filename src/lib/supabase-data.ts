@@ -31,6 +31,8 @@ export type PublicCatalogProduct = {
   moduleSortOrders?: Record<string, number>
   samplePdfUrl?: string
   samplePdfPageCount?: number
+  sampleFileType?: 'pdf' | 'epub'
+  samplePdfEnabled?: boolean
   description: string
   coverPriceUsd: number | null
   comparePriceVnd: number | null
@@ -1371,7 +1373,7 @@ export async function loadPublicCatalogProducts(options?: { includeHidden?: bool
   if (includeHidden && adminCatalogPromise) return adminCatalogPromise
   if (!includeHidden && publicCatalogPromise) return publicCatalogPromise
   const loadPromise = (async () => {
-    let booksQuery = supabase.from('books').select('id,isbn,title,slug,description_html,cover_price_usd,sale_price_vnd,compare_price_vnd,page_count,book_size,publication_date,weight,inventory_quantity,reserved_inventory_quantity,cover_storage_path,is_visible_website,status').order('created_at', { ascending: false })
+    let booksQuery = supabase.from('books').select('id,isbn,title,slug,description_html,cover_price_usd,sale_price_vnd,compare_price_vnd,page_count,book_size,publication_date,weight,inventory_quantity,reserved_inventory_quantity,cover_storage_path,is_visible_website,status,sample_pdf_storage_path,sample_pdf_page_count,sample_pdf_enabled,sample_file_type').order('created_at', { ascending: false })
     if (!includeHidden) booksQuery = booksQuery.eq('status', 'active').eq('is_visible_website', true)
     const books = await booksQuery
     const error = books.error
@@ -1449,6 +1451,10 @@ export async function loadPublicCatalogProducts(options?: { includeHidden?: bool
       moduleSlugs: unique(linkedModules.flatMap((row) => asArray(row.homepage_modules).map((module) => module.slug))),
       moduleSortOrders,
       description: String(book.description_html ?? ''),
+      samplePdfUrl: Boolean(book.sample_pdf_enabled && book.sample_pdf_storage_path) ? publicBookSampleUrl(String(book.sample_pdf_storage_path)) : undefined,
+      samplePdfPageCount: book.sample_pdf_page_count == null ? undefined : Number(book.sample_pdf_page_count),
+      sampleFileType: book.sample_file_type === 'epub' || /\.epub(?:$|\?)/i.test(String(book.sample_pdf_storage_path ?? '')) ? 'epub' : 'pdf',
+      samplePdfEnabled: Boolean(book.sample_pdf_enabled && book.sample_pdf_storage_path),
       coverPriceUsd: book.cover_price_usd == null ? null : Number(book.cover_price_usd),
       comparePriceVnd: book.compare_price_vnd == null ? null : Number(book.compare_price_vnd),
       pageCount: book.page_count == null ? null : Number(book.page_count),
@@ -1502,6 +1508,10 @@ export async function loadPublicBookSample(bookId: string, bookSlug?: string): P
     if (!row?.sample_pdf_enabled || !row.sample_pdf_storage_path) {
       return bundledDemoSample
     }
+    // The four-page demo sample is part of the deploy artifact. Prefer it when
+    // the database still points at the old/missing Storage object, so a broken
+    // remote object cannot remove the reader from the public deployment.
+    if (bundledDemoSample && /a-manual-for-cleaning-women\.pdf$/i.test(row.sample_pdf_storage_path)) return bundledDemoSample
     const fileType: 'pdf' | 'epub' = row.sample_file_type === 'epub' || /\.epub(?:$|\?)/i.test(row.sample_pdf_storage_path) ? 'epub' : 'pdf'
     return { url: publicBookSampleUrl(row.sample_pdf_storage_path), pageCount: row.sample_pdf_page_count ? Number(row.sample_pdf_page_count) : undefined, fileType }
   })()
