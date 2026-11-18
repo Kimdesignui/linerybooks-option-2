@@ -455,6 +455,22 @@ const normalizeProfileList = (value: string[] | string | number | null | undefin
   const text = String(value ?? '').trim()
   return text && text !== '—' && text !== '-' ? text.split(/[;\n]+/).map((item) => item.trim()).filter(Boolean) : []
 }
+const repairMojibakeText = (value: string) => {
+  if (!/[\u00c3\u00c2\u00e2]/.test(value)) return value
+  try {
+    const bytes = Uint8Array.from([...value].map((character) => character.charCodeAt(0) & 0xff))
+    const repaired = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+    return repaired.includes('\uFFFD') ? value : repaired
+  } catch {
+    return value
+  }
+}
+const repairPublicCatalogValue = (value: unknown): unknown => {
+  if (typeof value === 'string') return repairMojibakeText(value)
+  if (Array.isArray(value)) return value.map(repairPublicCatalogValue)
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, repairPublicCatalogValue(nested)]))
+  return value
+}
 const PUBLIC_AUTHOR_AVATAR_FALLBACK = '/assets/author-avatar-placeholder.png'
 let runtimeAuthorProfiles: Record<string, PublicCreatorProfile> = {}
 const authorSlug = (author: string) => author.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
@@ -520,7 +536,10 @@ let runtimeTranslatorColumns: MenuColumn[] = []
 let runtimeIllustratorColumns: MenuColumn[] = []
 
 const applyPublicCatalog = (records: PublicCatalogProduct[]) => {
-  const mapped = [...new Map(records.filter((record) => record.id && record.title).map((record) => [record.id, { ...record, categories: normalizeProductCategories(record.categories) }])).values()]
+  const mapped = [...new Map(records.filter((record) => record.id && record.title).map((record) => {
+    const repaired = repairPublicCatalogValue(record) as PublicCatalogProduct
+    return [record.id, { ...repaired, categories: normalizeProductCategories(repaired.categories) }]
+  })).values()]
   const makeWriterColumns = (names: string[]): MenuColumn[] => {
     const grouped = new Map<string, string[]>()
     names.sort((first, second) => first.localeCompare(second, undefined, { sensitivity: 'base' })).forEach((name) => {
@@ -1068,7 +1087,7 @@ function AllBooksPage({ onHome, collectionTitle, heroMotionOpen, publicBanners, 
             <option value="title-desc">Title: Z–A</option>
           </select>
         </label>
-        <div className="all-books-filter-actions"><button type="button" onClick={() => { setDraftCategories([]); setDraftWriters([]); setDraftPublishers([]); setDraftSort('default'); setActiveCategories([]); setActiveWriters([]); setActivePublishers([]); setActiveSort('default'); setCurrentPage(1) }}>Clear</button><button type="submit">Apply filter</button></div>
+        <div className="all-books-filter-actions"><button type="button" aria-label="Clear all book filters" onClick={() => { setDraftCategories([]); setDraftWriters([]); setDraftPublishers([]); setDraftSort('default'); setActiveCategories([]); setActiveWriters([]); setActivePublishers([]); setActiveSort('default'); setCurrentPage(1) }}>Clear</button><button type="submit" aria-label="Apply book filters">Apply filter</button></div>
       </form>
       <section className="all-books-panel" aria-labelledby="all-books-title">
         <RibbonTitle title={pageTitle} id="all-books-title" heading />
@@ -1678,6 +1697,37 @@ function BookReaderPage({ product, onBack }: { product: Product; onBack: () => v
   useEffect(() => {
     if (!readerUrl || !readerHostRef.current) return undefined
     let cancelled = false
+    let layoutObserver: MutationObserver | null = null
+    let resizeObserver: ResizeObserver | null = null
+    let layoutFrame = 0
+    let layoutInterval = 0
+    const layoutTimeouts: number[] = []
+    const syncSinglePageLayout = () => {
+      const host = readerHostRef.current
+      const stage = host?.querySelector<HTMLElement>('.fv-stage')
+      const book = host?.querySelector<HTMLElement>('.fv-book')
+      if (!host || !stage || !book) return
+      const visiblePages = Array.from(host.querySelectorAll<HTMLElement>('.fv-page.fv-rendered')).filter((page) => {
+        const rect = page.getBoundingClientRect()
+        const style = window.getComputedStyle(page)
+        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
+      })
+      host.classList.remove('is-single-page', 'is-single-page-left', 'is-single-page-right')
+      if (visiblePages.length !== 1) return
+      const pageRect = visiblePages[0].getBoundingClientRect()
+      const bookRect = book.getBoundingClientRect()
+      const pageCenter = pageRect.left + pageRect.width / 2
+      const bookCenter = bookRect.left + bookRect.width / 2
+      if (Math.abs(pageCenter - bookCenter) <= bookRect.width * 0.12) return
+      host.classList.add('is-single-page', pageCenter < bookCenter ? 'is-single-page-left' : 'is-single-page-right')
+    }
+    const scheduleSinglePageLayout = () => {
+      window.cancelAnimationFrame(layoutFrame)
+      layoutFrame = window.requestAnimationFrame(syncSinglePageLayout)
+    }
+    const scheduleAfterReaderPaint = () => {
+      ;[0, 120, 500, 1200].forEach((delay) => { layoutTimeouts.push(window.setTimeout(scheduleSinglePageLayout, delay)) })
+    }
     setLoading(true)
     setError('')
     void import('./book-reader-runtime').then(({ createEpubSource, createFlipview, createPdfSource, pdfWorkerUrl }) => {
@@ -1702,6 +1752,8 @@ function BookReaderPage({ product, onBack }: { product: Product; onBack: () => v
           share: true,
           onReady: (handle) => {
             flipviewRef.current = handle
+            readerHostRef.current?.classList.add('is-single-page-right')
+            scheduleAfterReaderPaint()
             void waitForReaderPaint().then((painted) => {
               if (cancelled) return
               setLoading(false)
@@ -1709,14 +1761,33 @@ function BookReaderPage({ product, onBack }: { product: Product; onBack: () => v
               window.setTimeout(() => setHasReadableText(getVisibleText().length > 1), 120)
             })
           },
-          onPageChange: () => { window.setTimeout(() => setHasReadableText(getVisibleText().length > 1), 120) },
+          onPageChange: () => {
+            readerHostRef.current?.classList.remove('is-single-page', 'is-single-page-left', 'is-single-page-right')
+            scheduleSinglePageLayout()
+            window.setTimeout(() => setHasReadableText(getVisibleText().length > 1), 120)
+          },
           onError: () => { if (!cancelled) setError(`Không thể hiển thị trang của file ${fileType.toUpperCase()}.`) },
         })
         flipviewRef.current = book
+        layoutObserver = new MutationObserver(scheduleSinglePageLayout)
+        layoutObserver.observe(readerHostRef.current, { subtree: true, attributes: true, attributeFilter: ['style'] })
+        resizeObserver = new ResizeObserver(scheduleSinglePageLayout)
+        resizeObserver.observe(readerHostRef.current)
+        scheduleAfterReaderPaint()
+        layoutInterval = window.setInterval(scheduleSinglePageLayout, 200)
         setLoading(false)
       })
     }).catch(() => { if (!cancelled) { setError(`Không thể mở file ${fileType.toUpperCase()} đọc thử.`); setLoading(false) } })
-    return () => { cancelled = true; flipviewRef.current?.destroy(); flipviewRef.current = null }
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(layoutFrame)
+      window.clearInterval(layoutInterval)
+      layoutTimeouts.forEach((timeout) => window.clearTimeout(timeout))
+      layoutObserver?.disconnect()
+      resizeObserver?.disconnect()
+      flipviewRef.current?.destroy()
+      flipviewRef.current = null
+    }
   }, [readerUrl, fileType])
 
   const activeLanguage = speechLanguage === 'auto' ? 'vi-VN' : speechLanguage
