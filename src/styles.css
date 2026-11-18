@@ -296,14 +296,8 @@ body[data-admin-module="/admin/news"] .admin-shell main section:first-of-type > 
 }
 
 @media (min-width: 1024px) and (max-width: 1199px) {
-  .admin-shell .admin-sidebar { position: fixed; transform: translateX(-100%); }
-  .admin-shell .admin-sidebar.is-open { transform: translateX(0); }
-  .admin-shell .admin-sidebar-collapse { left: 228px; }
   .admin-sales-dashboard main > .grid { grid-template-columns: minmax(0, 1fr); }
   .admin-sales-dashboard main > .grid > aside { position: static; }
-  .admin-shell header button[aria-label='Mở menu quản trị'],
-  .admin-shell header button[aria-label='Open admin navigation'] { display: inline-flex; }
-  .admin-shell > button.fixed.inset-0 { display: block; }
 }
 @media (max-width: 1023px) {
   .admin-shell .admin-sidebar { width: 240px; }
