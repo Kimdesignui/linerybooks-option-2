@@ -17,8 +17,13 @@
 
 :root { --page-gutter: 12px; --header-height: 91px; --module-radius: 24px; --section-gap: 24px; font-family: var(--font-display); color: var(--color-ink); background: var(--color-olive); font-synthesis: none; }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; background: var(--color-olive); }
+html { min-width: 320px; overflow-x: hidden; scroll-behavior: smooth; scrollbar-color: rgba(31,42,36,.46) transparent; scrollbar-width: thin; }
+html::-webkit-scrollbar { width: 10px; height: 10px; }
+html::-webkit-scrollbar-track { background: transparent; }
+html::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: rgba(31,42,36,.46); background-clip: padding-box; }
+html::-webkit-scrollbar-thumb:hover { background: rgba(31,42,36,.66); background-clip: padding-box; }
+body { margin: 0; min-width: 320px; overflow-x: hidden; background: var(--color-olive); }
+#root { min-width: 0; }
 .admin-shell, .admin-shell .font-display, .admin-shell .font-body { font-family: var(--font-admin); }
 .admin-shell { --admin-body-size: 14px; font-size: var(--admin-body-size); line-height: 1.5; }
 .admin-shell button, .admin-shell a { font-size: var(--admin-body-size); line-height: 1; }
@@ -34,6 +39,7 @@ body { margin: 0; min-width: 320px; background: var(--color-olive); }
 .admin-shell .admin-status-badge.is-danger { background: #fff0ee; color: #b52f2f; }
 .admin-shell .admin-status-badge.is-info { background: #eef6ff; color: #1467bd; }
 .admin-shell [class~="text-[10px]"], .admin-shell [class~="text-[11px]"], .admin-shell [class~="text-xs"] { font-size: 12px; line-height: 1.4; }
+.admin-shell, .admin-shell > div { min-width: 0; }
 .admin-shell .admin-sidebar { width: 240px; height: 100dvh; min-height: 100dvh; max-height: 100dvh; align-self: flex-start; overflow: hidden; }
 .admin-shell .admin-sidebar > nav { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: auto; scrollbar-width: thin; }
 .admin-shell .admin-sidebar > nav { scrollbar-color: rgba(155,148,47,.68) rgba(31,42,36,.06); }
@@ -191,7 +197,7 @@ body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:h
 .admin-news-preview-figure img { display: block; width: 100%; max-height: 720px; border-radius: 14px; object-fit: contain; background: #f6f5ed; }
 .admin-news-preview-figure figcaption { margin-top: 8px; color: #74776f; font: italic 13px/1.5 var(--font-display); }
 @media (max-width: 767px) {
-  .admin-news-table-scroll { overflow-x: visible; }
+  .admin-news-table-scroll { overflow-x: auto; }
   .admin-news-table { min-width: 0; table-layout: fixed; }
   .admin-news-table th, .admin-news-table td { overflow-wrap: anywhere; }
   .admin-news-table th:nth-child(1), .admin-news-table td:nth-child(1) { width: 42%; }

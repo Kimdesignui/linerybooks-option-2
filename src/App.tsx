@@ -39,6 +39,15 @@ type AdminBook = { id?: string; isbn: string; title: string; slug?: string; auth
 const adminBookDraftStorageKey = 'linery-admin-book-draft-v1'
 type AdminBookCreateValues = { isbn: string; title: string; slug: string; coverPriceUsd: string; salePrice: string; comparePrice: string; pages: string; bookSize: string; author: string[]; translator: string[]; illustrator: string[]; format: string; line: string; category: string[]; genre: string[]; topic: string[]; publisher: string; imprint: string; publicationDate: string; weight: string; language: string[]; link: string; description: string }
 const emptyAdminBookCreateValues: AdminBookCreateValues = { isbn: '', title: '', slug: '', coverPriceUsd: '', salePrice: '', comparePrice: '', pages: '', bookSize: '', author: [], translator: [], illustrator: [], format: '', line: '', category: [], genre: [], topic: [], publisher: '', imprint: '', publicationDate: '', weight: '', language: [], link: '', description: '' }
+type BulkBookImportRow = {
+  rowNumber: number
+  values: AdminBookInput
+  coverFile?: File
+  sampleFile?: File
+  sourceName: string
+  issues: string[]
+}
+type BulkBookImportResult = { rowNumber: number; title: string; status: 'created' | 'failed'; message: string }
 type AdminBookDraftPayload = { values?: Partial<AdminBookCreateValues>; isVisible?: boolean; homeModules?: string[]; samplePageCount?: string }
 const readAdminBookDraftPayload = (): AdminBookDraftPayload | null => { if (typeof window === 'undefined') return null; try { return JSON.parse(window.localStorage.getItem(adminBookDraftStorageKey) ?? 'null') as AdminBookDraftPayload | null } catch { return null } }
 const adminBookDraftFilesDb = 'linery-admin-book-draft-files-v1'
@@ -2644,6 +2653,7 @@ function AdminAuthGate({ children, requiredPermission }: { children: ReactNode; 
   const [message, setMessage] = useState('')
   const [access, setAccess] = useState<AdminAccess | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const checkAccess = async () => {
     setChecking(true)
@@ -2686,7 +2696,7 @@ function AdminAuthGate({ children, requiredPermission }: { children: ReactNode; 
   if (checking) return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-8 text-center shadow-[0_10px_30px_rgba(31,42,36,.04)]"><p className="font-body text-sm text-[#74776f]">Đang kiểm tra quyền quản trị…</p></section></main>
   if (allowed) return <>{children}</>
 
-  return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-6 shadow-[0_10px_30px_rgba(31,42,36,.04)] sm:p-8"><div className="mb-8"><p className="font-body text-xs font-semibold uppercase tracking-[.14em] text-[var(--color-olive)]">LINERY QUẢN TRỊ</p><h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">{access && email ? 'Không đủ quyền truy cập' : 'Đăng nhập quản trị'}</h1><p className="mt-2 font-body text-sm leading-6 text-[#74776f]">{access && email ? `Tài khoản ${email} đang là ${access.roleName}. Hãy liên hệ Super Admin để được cấp thêm nghiệp vụ.` : 'Chỉ tài khoản đã được cấp trong bảng admin_users mới có thể mở khu vực này.'}</p></div>{!access && <form className="grid gap-4" onSubmit={signIn}><label className="grid gap-1.5 font-body text-sm font-medium">Email hoặc username<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="email" type="text" autoComplete="username" required /></label><label className="grid gap-1.5 font-body text-sm font-medium">Mật khẩu<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="password" type="password" autoComplete="current-password" required /></label><button className="admin-primary-action inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-60" type="submit" disabled={submitting}>{submitting ? 'Đang xác thực…' : 'Đăng nhập quản trị'}</button></form>}{!access && <a className="mt-4 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#forgot-password">Quên mật khẩu?</a>}{email && <p className="mt-4 font-body text-xs text-[#74776f]">Tài khoản hiện tại: {email}</p>}{message && <p className="mt-4 rounded-xl bg-[#fff4ec] px-4 py-3 font-body text-sm leading-6 text-[#9a4c2d]" role="alert">{message}</p>}<a className="mt-6 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#home">← Quay lại website</a></section></main>
+  return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-6 shadow-[0_10px_30px_rgba(31,42,36,.04)] sm:p-8"><div className="mb-8"><p className="font-body text-xs font-semibold uppercase tracking-[.14em] text-[var(--color-olive)]">LINERY QUẢN TRỊ</p><h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">{access && email ? 'Không đủ quyền truy cập' : 'Đăng nhập quản trị'}</h1><p className="mt-2 font-body text-sm leading-6 text-[#74776f]">{access && email ? `Tài khoản ${email} đang là ${access.roleName}. Hãy liên hệ Super Admin để được cấp thêm nghiệp vụ.` : 'Chỉ tài khoản đã được cấp trong bảng admin_users mới có thể mở khu vực này.'}</p></div>{!access && <form className="grid gap-4" onSubmit={signIn}><label className="grid gap-1.5 font-body text-sm font-medium">Email hoặc username<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="email" type="text" autoComplete="username" required /></label><label className="grid gap-1.5 font-body text-sm font-medium">Mật khẩu<div className="login-password-field"><input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required /><button type="button" aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button></div></label><button className="admin-primary-action inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-60" type="submit" disabled={submitting}>{submitting ? 'Đang xác thực…' : 'Đăng nhập quản trị'}</button></form>}{!access && <a className="mt-4 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#forgot-password">Quên mật khẩu?</a>}{email && <p className="mt-4 font-body text-xs text-[#74776f]">Tài khoản hiện tại: {email}</p>}{message && <p className="mt-4 rounded-xl bg-[#fff4ec] px-4 py-3 font-body text-sm leading-6 text-[#9a4c2d]" role="alert">{message}</p>}<a className="mt-6 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#home">← Quay lại website</a></section></main>
 }
 
 type RecoveryMode = 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete'
@@ -4307,7 +4317,9 @@ function AdminBookCreatePageV2({ editId }: { editId?: string }) {
     return () => { active = false }
   }, [editId])
   useEffect(() => {
-    if (!editId) return undefined
+    // Load draft files for both create and edit flows. Previously this was
+    // gated by editId, so files selected while creating a new book were never
+    // written to IndexedDB and disappeared after a tab switch or remount.
     void loadAdminBookDraftFiles().then(({ coverFiles, sampleFile: draftSampleFile }) => {
       if (coverFiles.length) setCoverImages((current) => current.length ? current : coverFiles.map((file) => ({ preview: URL.createObjectURL(file), name: file.name, file })))
       if (draftSampleFile) setSampleFile((current) => current ?? draftSampleFile)
@@ -4493,7 +4505,8 @@ function AdminCategoryCreatePageV2() {
 }
 
 function AdminListShell({ title, section, description: _description, createHref = '/admin', createLabel = 'Quản trị', children }: { title: string; section: string; description: string; createHref?: string; createLabel?: string; children: ReactNode }) {
-  return <AdminShell title={title} section={section} headerActions={<a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a>}>{children}</AdminShell>
+  const bookListActions = typeof window !== 'undefined' && window.location.pathname === '/admin/books'
+  return <AdminShell title={title} section={section} headerActions={bookListActions ? <div className="flex shrink-0 items-center gap-2"><AdminBulkBookImportLauncher /><a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a></div> : <a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a>}>{children}</AdminShell>
 }
 
 function AdminAuthorsPageV3() {
@@ -5044,6 +5057,172 @@ function AdminImportHistoryPage() {
   return <AdminListShell title="Lịch sử nhập Excel" section="SÁCH" description="Lịch sử các lần nhập sách được ghi lại trong book_import_batches của Supabase." createHref="/admin/books" createLabel="Về quản lý sách"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#e6e2d7] p-5"><h3 className="font-display text-lg font-semibold">Các lần nhập dữ liệu</h3><p className="mt-1 font-body text-sm text-[#74776f]">{rows.length} bản ghi thật từ Supabase.</p></div>{error && <p className="m-5 rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-4 font-body text-sm text-[#a33d32]" role="alert">{error}</p>}<div className="overflow-x-auto"><table className="min-w-[820px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr><th className="px-4 py-3 font-body text-sm font-semibold">Tên file</th><th className="px-4 py-3 font-body text-sm font-semibold">Tổng dòng</th><th className="px-4 py-3 font-body text-sm font-semibold">Hợp lệ</th><th className="px-4 py-3 font-body text-sm font-semibold">Lỗi</th><th className="px-4 py-3 font-body text-sm font-semibold">Trạng thái</th><th className="px-4 py-3 font-body text-sm font-semibold">Ngày nhập</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-[#eeeae0]" key={row.id}><td className="px-4 py-3 font-body text-sm">{row.fileName}</td><td className="px-4 py-3 font-body text-sm">{row.totalRows}</td><td className="px-4 py-3 font-body text-sm">{row.validRows}</td><td className="px-4 py-3 font-body text-sm">{row.errorRows}</td><td className="px-4 py-3 font-body text-sm">{row.status}</td><td className="px-4 py-3 font-body text-sm">{row.createdAt ? new Date(row.createdAt).toLocaleString('vi-VN') : '—'}</td></tr>)}</tbody></table></div>{!rows.length && <div className="p-10 text-center font-body text-sm text-[#74776f]">Chưa có lịch sử nhập thật trong Supabase.</div>}</section></AdminListShell>
 }
 
+const bulkBookHeaders = ['ISBN', 'Tên sách', 'Đường dẫn', 'Giá bìa USD', 'Giá bán VNĐ', 'Giá so sánh VNĐ', 'Số trang', 'Khổ sách', 'Ngày xuất bản', 'Trọng lượng', 'Tác giả', 'Dịch giả', 'Họa sĩ', 'Thể thức', 'Dòng sách', 'Danh mục', 'Thể loại', 'Chủ đề', 'Nhà xuất bản', 'Imprint', 'Ngôn ngữ', 'Mô tả', 'Ảnh bìa', 'File đọc thử', 'Số trang đọc thử', 'Hiển thị website'] as const
+type BulkBookHeader = typeof bulkBookHeaders[number]
+const bulkBookTextHeaders: BulkBookHeader[] = ['ISBN', 'Tên sách', 'Đường dẫn', 'Giá bán VNĐ', 'Tác giả', 'Mô tả', 'Ảnh bìa', 'File đọc thử']
+const bulkBookHeaderAliases: Record<string, BulkBookHeader> = Object.fromEntries(bulkBookHeaders.flatMap((header) => [[normalizeAdminHeader(header), header], [normalizeAdminHeader(header.replace('VNĐ', '')), header]])) as Record<string, BulkBookHeader>
+const bulkBookCell = (value: unknown) => value instanceof Date ? value.toISOString().slice(0, 10) : String(value ?? '').trim()
+const splitBulkBookNames = (value: string) => value.split(/[;,\n]/).map((item) => item.trim()).filter(Boolean)
+const bulkBookSlug = (title: string) => title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+const bulkBookNumber = (value: string) => {
+  const compactValue = value.replace(/\s/g, '')
+  const separators = [...compactValue].flatMap((character, index) => character === '.' || character === ',' ? [{ character, index }] : [])
+  let compact = compactValue
+  if (separators.length > 1) {
+    const last = separators[separators.length - 1]
+    compact = `${compactValue.slice(0, last.index).replace(/[.,]/g, '')}.${compactValue.slice(last.index + 1)}`
+  } else if (separators.length === 1) {
+    const separator = separators[0]
+    const fraction = compactValue.slice(separator.index + 1)
+    compact = fraction.length === 3 ? compactValue.replace(/[.,]/g, '') : compactValue.replace(',', '.')
+  }
+  const number = Number(compact.replace(/[^\d.-]/g, ''))
+  return Number.isFinite(number) ? number : null
+}
+const bulkBookBoolean = (value: string) => !value || !['0', 'false', 'no', 'không', 'off', 'ẩn'].includes(value.trim().toLowerCase())
+const bulkBookFileMap = (files: File[]) => new Map(files.map((file) => [file.name.trim().toLowerCase(), file]))
+const buildBulkBookRow = (row: Record<BulkBookHeader, string>, rowNumber: number, files: Map<string, File>, sourceName: string): BulkBookImportRow => {
+  const title = row['Tên sách'].trim()
+  const isbn = row.ISBN.replace(/\D/g, '')
+  const authors = splitBulkBookNames(row['Tác giả'])
+  const coverFile = row['Ảnh bìa'] ? files.get(row['Ảnh bìa'].toLowerCase()) : undefined
+  const sampleFile = row['File đọc thử'] ? files.get(row['File đọc thử'].toLowerCase()) : undefined
+  const issues: string[] = []
+  if (!title) issues.push('Thiếu tên sách')
+  if (isbn && !/^\d{13}$/.test(isbn)) issues.push('ISBN nếu có phải gồm đúng 13 chữ số')
+  if (!authors.length) issues.push('Thiếu ít nhất một tác giả')
+  const salePrice = bulkBookNumber(row['Giá bán VNĐ'])
+  if (salePrice === null || salePrice < 0) issues.push('Giá bán VNĐ không hợp lệ')
+  if (row['Ảnh bìa'] && !coverFile) issues.push(`Không tìm thấy ảnh bìa “${row['Ảnh bìa']}” trong các tệp đã chọn`)
+  if (row['File đọc thử'] && !sampleFile) issues.push(`Không tìm thấy file đọc thử “${row['File đọc thử']}” trong các tệp đã chọn`)
+  if (sampleFile && !(/\.pdf$/i.test(sampleFile.name) || /\.epub$/i.test(sampleFile.name) || /pdf|epub/i.test(sampleFile.type))) issues.push('File đọc thử phải là PDF hoặc EPUB')
+  const slug = row['Đường dẫn'].replace(/^\/books\//, '').trim() || bulkBookSlug(title)
+  const values: AdminBookInput = {
+    isbn,
+    title,
+    slug,
+    descriptionHtml: row['Mô tả'],
+    coverPriceUsd: bulkBookNumber(row['Giá bìa USD']),
+    salePriceVnd: salePrice ?? 0,
+    comparePriceVnd: bulkBookNumber(row['Giá so sánh VNĐ']),
+    pageCount: bulkBookNumber(row['Số trang']),
+    bookSize: row['Khổ sách'],
+    publicationDate: row['Ngày xuất bản'],
+    weight: row['Trọng lượng'],
+    isVisibleWebsite: bulkBookBoolean(row['Hiển thị website']),
+    authors,
+    translators: splitBulkBookNames(row['Dịch giả']),
+    illustrators: splitBulkBookNames(row['Họa sĩ']),
+    formats: splitBulkBookNames(row['Thể thức']),
+    lines: splitBulkBookNames(row['Dòng sách']),
+    categories: splitBulkBookNames(row['Danh mục']),
+    genres: splitBulkBookNames(row['Thể loại']),
+    topics: splitBulkBookNames(row['Chủ đề']),
+    publishers: splitBulkBookNames(row['Nhà xuất bản']),
+    imprints: splitBulkBookNames(row.Imprint),
+    languages: splitBulkBookNames(row['Ngôn ngữ']),
+    sampleFile,
+    samplePageCount: bulkBookNumber(row['Số trang đọc thử']),
+  }
+  return { rowNumber, values, coverFile, sampleFile, sourceName, issues }
+}
+const emptyBulkBookRow = (): Record<BulkBookHeader, string> => Object.fromEntries(bulkBookHeaders.map((header) => [header, ''])) as Record<BulkBookHeader, string>
+const parseBulkBookText = (text: string, files: File[]) => {
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  const rows = lines.map((line) => line.split('|').map((cell) => cell.trim()))
+  const hasHeader = rows[0]?.some((cell) => Boolean(bulkBookHeaderAliases[normalizeAdminHeader(cell)]))
+  const dataRows = hasHeader ? rows.slice(1) : rows
+  const headers = hasHeader ? rows[0].map((cell) => bulkBookHeaderAliases[normalizeAdminHeader(cell)] ?? null) : bulkBookTextHeaders
+  return dataRows.map((cells, index) => {
+    const row = emptyBulkBookRow()
+    headers.forEach((header, cellIndex) => { if (header) row[header] = cells[cellIndex] ?? '' })
+    return buildBulkBookRow(row, index + (hasHeader ? 2 : 1), bulkBookFileMap(files), 'Chuỗi dán')
+  })
+}
+const parseBulkBookWorkbook = async (file: File, files: File[]) => {
+  const { readSheet } = await import('read-excel-file/browser')
+  const rows = await readSheet(file, 'Sách') as unknown[][]
+  if (!rows.length) return []
+  const headers = (rows[0] ?? []).map((cell: unknown) => bulkBookHeaderAliases[normalizeAdminHeader(bulkBookCell(cell))] ?? null)
+  if (!headers.some(Boolean)) throw new Error(`Không nhận diện được dòng tiêu đề. Hãy dùng file mẫu với các cột: ${bulkBookHeaders.slice(0, 6).join(', ')}…`)
+  return rows.slice(1).map((cells: unknown[], index: number) => {
+    const row = emptyBulkBookRow()
+    headers.forEach((header: BulkBookHeader | null, cellIndex: number) => { if (header) row[header] = bulkBookCell(cells[cellIndex]) })
+    return buildBulkBookRow(row, index + 2, bulkBookFileMap(files), file.name)
+  }).filter((row: BulkBookImportRow) => row.values.title || row.issues.length)
+}
+const downloadBulkBookTemplate = async () => {
+  const { default: writeExcelFile } = await import('write-excel-file/browser')
+  await writeExcelFile([bulkBookHeaders.map((value) => ({ value, fontWeight: 'bold' as const })), bulkBookHeaders.map((value) => ({ value: value === 'Hiển thị website' ? 'Có' : value === 'Giá bán VNĐ' ? '0' : '' }))], { fileName: 'mau-nhap-hang-loat-sach.xlsx' })
+}
+
+function AdminBulkBookImportModal({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
+  const [mode, setMode] = useState<'excel' | 'text'>('excel')
+  const [sourceFile, setSourceFile] = useState<File | null>(null)
+  const [assetFiles, setAssetFiles] = useState<File[]>([])
+  const [text, setText] = useState('')
+  const [rows, setRows] = useState<BulkBookImportRow[]>([])
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState<{ current: number; total: number; title: string } | null>(null)
+  const [results, setResults] = useState<BulkBookImportResult[]>([])
+  const readSource = async (file?: File) => {
+    setError('')
+    try {
+      const nextRows = mode === 'excel' ? file ? await parseBulkBookWorkbook(file, assetFiles) : [] : parseBulkBookText(text, assetFiles)
+      setSourceFile(file ?? null)
+      setRows(nextRows)
+      setResults([])
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không đọc được dữ liệu nhập.') }
+  }
+  useEffect(() => {
+    if (mode === 'excel' && sourceFile) void readSource(sourceFile)
+    if (mode === 'text' && text.trim()) void readSource()
+  }, [assetFiles])
+  const validRows = rows.filter((row) => !row.issues.length)
+  const importRows = async () => {
+    const currentRows = mode === 'text' && text.trim() ? parseBulkBookText(text, assetFiles) : rows
+    const currentValidRows = currentRows.filter((row) => !row.issues.length)
+    setRows(currentRows)
+    if (!currentValidRows.length) { setError('Chưa có dòng hợp lệ để nhập.'); return }
+    setBusy(true)
+    setError('')
+    const nextResults: BulkBookImportResult[] = []
+    for (const [index, row] of currentValidRows.entries()) {
+      setProgress({ current: index + 1, total: currentValidRows.length, title: row.values.title })
+      try {
+        await createAdminBook(row.values, row.coverFile ? [row.coverFile] : [], (saveProgress) => setProgress({ current: index + 1, total: currentValidRows.length, title: `${row.values.title} · ${saveProgress.message}` }))
+        nextResults.push({ rowNumber: row.rowNumber, title: row.values.title, status: 'created', message: 'Đã tạo và lưu vào Supabase' })
+      } catch (reason) {
+        nextResults.push({ rowNumber: row.rowNumber, title: row.values.title, status: 'failed', message: describeSaveError(reason, 'Không lưu được bản ghi') })
+      }
+      setResults([...nextResults])
+    }
+    setProgress(null)
+    setBusy(false)
+    if (nextResults.some((item) => item.status === 'created')) onImported()
+  }
+  return <div className="fixed inset-0 z-[80] flex items-end justify-center bg-[rgba(31,42,36,.48)] p-0 sm:items-center sm:p-5" role="dialog" aria-modal="true" aria-labelledby="bulk-book-import-title">
+    <section className="max-h-[94vh] w-full max-w-6xl overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
+      <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[#e6e2d7] bg-white px-5 py-4 sm:px-6"><div><h2 id="bulk-book-import-title" className="font-display text-xl font-semibold">Nhập hàng loạt sách</h2><p className="mt-1 max-w-3xl font-body text-sm leading-6 text-[#74776f]">Nhập Excel hoặc dán chuỗi theo dấu <code className="rounded bg-[#f6f5ed] px-1">|</code>. File bìa và PDF/EPUB đọc thử được ghép theo đúng tên file ở hai cột tương ứng.</p></div><button className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#dedbd0] text-[#62655f] hover:bg-[#f6f5ed]" type="button" onClick={onClose} aria-label="Đóng cửa sổ nhập hàng loạt"><i className="bi bi-x-lg" aria-hidden="true" /></button></div>
+      <div className="flex border-b border-[#e6e2d7] px-5 sm:px-6"><button className={`border-b-2 px-4 py-3 font-body text-sm ${mode === 'excel' ? 'border-[var(--color-olive)] font-semibold text-[var(--color-olive-dark)]' : 'border-transparent text-[#74776f]'}`} type="button" onClick={() => setMode('excel')}>Excel</button><button className={`border-b-2 px-4 py-3 font-body text-sm ${mode === 'text' ? 'border-[var(--color-olive)] font-semibold text-[var(--color-olive-dark)]' : 'border-transparent text-[#74776f]'}`} type="button" onClick={() => setMode('text')}>Dán chuỗi</button></div>
+      <div className="grid gap-5 p-5 sm:p-6">
+        {mode === 'excel' ? <div className="grid gap-3 rounded-xl border border-dashed border-[var(--color-olive)] bg-[#fcfbf7] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div><p className="font-body text-sm font-semibold">Chọn bảng Excel</p><p className="mt-1 font-body text-xs leading-5 text-[#74776f]">Ưu tiên sheet “Sách”. Cột Ảnh bìa/File đọc thử là tên file sẽ ghép với các tệp bên dưới.</p>{sourceFile && <p className="mt-1 font-body text-xs text-[var(--color-olive-dark)]">Đã chọn: {sourceFile.name}</p>}</div><div className="flex flex-wrap gap-2"><button className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#dedbd0] bg-white px-3.5 font-body text-sm" type="button" onClick={() => void downloadBulkBookTemplate()}><i className="bi bi-download" aria-hidden="true" />Tải file mẫu</button><label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--color-olive)] px-3.5 font-body text-sm font-medium text-white"><i className="bi bi-file-earmark-spreadsheet" aria-hidden="true" />Chọn Excel<input className="sr-only" type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void readSource(file) }} /></label></div></div> : <div className="grid gap-2"><label className="font-body text-sm font-semibold" htmlFor="bulk-book-text">Một dòng = một sách</label><textarea id="bulk-book-text" className="min-h-32 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] p-3 font-mono text-xs leading-6" value={text} onChange={(event) => setText(event.target.value)} onBlur={() => void readSource()} placeholder="ISBN | Tên sách | Đường dẫn | Giá bán VNĐ | Tác giả | Mô tả | Ảnh bìa | File đọc thử\n978... | Tên sách | ten-sach | 250000 | Tác giả A; Tác giả B | Mô tả ngắn | bia.jpg | doc-thu.pdf" /><p className="font-body text-xs leading-5 text-[#74776f]">Dùng dấu <code className="rounded bg-[#f6f5ed] px-1">;</code> để tách nhiều tác giả, danh mục hoặc ngôn ngữ trong cùng một trường.</p></div>}
+        <div className="grid gap-3 rounded-xl border border-[#e6e2d7] bg-[#fcfbf7] p-4 sm:grid-cols-2"><label className="block"><span className="mb-1.5 block font-body text-sm font-semibold">Tệp bìa và tệp đọc thử</span><input className="block min-h-11 w-full rounded-xl border border-dashed border-[#dedbd0] bg-white px-3 py-2 font-body text-sm" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.epub,application/pdf,application/epub+zip" onChange={(event) => setAssetFiles(Array.from(event.target.files ?? []))} />{assetFiles.length > 0 && <span className="mt-1 block font-body text-xs text-[#74776f]">Đã chọn {assetFiles.length} tệp để ghép theo tên.</span>}</label><p className="self-end font-body text-xs leading-5 text-[#74776f]">Có thể bỏ trống hai cột file. Nếu nhập tên file nhưng không chọn đúng file tương ứng, dòng sẽ bị đánh dấu lỗi và không được tạo.</p></div>
+        {error && <p className="rounded-xl border border-[#ebc4bd] bg-[#fff5f2] px-4 py-3 font-body text-sm leading-6 text-[#a33d32]" role="alert">{error}</p>}
+        {rows.length > 0 && <div className="overflow-x-auto rounded-xl border border-[#e6e2d7]"><table className="min-w-[900px] w-full text-left"><thead className="bg-[#f6f7fa]"><tr><th className="px-3 py-3 font-body text-xs font-semibold">Dòng</th><th className="px-3 py-3 font-body text-xs font-semibold">Tên sách</th><th className="px-3 py-3 font-body text-xs font-semibold">ISBN</th><th className="px-3 py-3 font-body text-xs font-semibold">Tác giả</th><th className="px-3 py-3 font-body text-xs font-semibold">Tệp</th><th className="px-3 py-3 font-body text-xs font-semibold">Kiểm tra</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-[#eeeae0] align-top" key={`${row.sourceName}-${row.rowNumber}`}><td className="px-3 py-3 font-body text-sm text-[#74776f]">{row.rowNumber}</td><td className="max-w-[240px] px-3 py-3 font-body text-sm font-medium">{row.values.title || '—'}</td><td className="px-3 py-3 font-body text-sm">{row.values.isbn || '—'}</td><td className="max-w-[200px] px-3 py-3 font-body text-sm">{row.values.authors?.join(', ') || '—'}</td><td className="px-3 py-3 font-body text-xs text-[#62655f]">{row.coverFile ? `Bìa: ${row.coverFile.name}` : '—'}<br />{row.sampleFile ? `Đọc thử: ${row.sampleFile.name}` : '—'}</td><td className="px-3 py-3 font-body text-xs">{row.issues.length ? <span className="text-[#a33d32]">{row.issues.join(' · ')}</span> : <span className="font-semibold text-[#39733e]">Hợp lệ</span>}</td></tr>)}</tbody></table></div>}
+        {results.length > 0 && <div className="rounded-xl border border-[#e6e2d7] bg-[#fcfbf7] p-4"><p className="font-body text-sm font-semibold">Kết quả nhập</p><div className="mt-2 space-y-1 font-body text-sm">{results.map((result) => <p className={result.status === 'created' ? 'text-[#39733e]' : 'text-[#a33d32]'} key={`${result.rowNumber}-${result.title}`}><strong>Dòng {result.rowNumber} · {result.title}:</strong> {result.message}</p>)}</div></div>}
+      </div>
+      <div className="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-[#e6e2d7] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"><p className="font-body text-xs text-[#74776f]">{progress ? `Đang tạo ${progress.current}/${progress.total}: ${progress.title}` : rows.length ? `${validRows.length}/${rows.length} dòng hợp lệ` : 'Chưa có dữ liệu để xem trước'}</p><div className="flex justify-end gap-2"><button className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#dedbd0] px-4 font-body text-sm" type="button" onClick={onClose} disabled={busy}>Đóng</button><button className="admin-primary-action inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => void importRows()} disabled={busy || !validRows.length}>{busy ? <><i className="bi bi-arrow-repeat animate-spin" aria-hidden="true" />Đang nhập…</> : <><i className="bi bi-cloud-arrow-up" aria-hidden="true" />Nhập vào Supabase</>}</button></div></div>
+    </section>
+  </div>
+}
+
+function AdminBulkBookImportLauncher() {
+  const [open, setOpen] = useState(false)
+  return <><button className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[var(--color-olive)] px-3.5 font-body text-sm font-medium text-[var(--color-olive-dark)] hover:bg-[rgba(155,148,47,.08)]" type="button" onClick={() => setOpen(true)}><i className="bi bi-file-earmark-spreadsheet" aria-hidden="true" />Nhập hàng loạt</button>{open && <AdminBulkBookImportModal onClose={() => setOpen(false)} onImported={() => { setOpen(false); window.dispatchEvent(new Event('linery:admin-books-refresh')); emitFloatingNotice('success', 'Đã nhập sách hàng loạt; danh sách đã được tải lại từ Supabase.') }} />}</>
+}
+
 function AdminBooksPageV2({ managementView }: { managementView: BookManagementView }) {
   const [books, setBooks] = useState<AdminBook[]>([])
   const [loading, setLoading] = useState(true)
@@ -5055,15 +5234,15 @@ function AdminBooksPageV2({ managementView }: { managementView: BookManagementVi
   const [publisherFilter, setPublisherFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  useEffect(() => {
-    let active = true
-    loadPublicCatalogProducts({ includeHidden: true }).then((products) => {
-      if (!active) return
+  const refreshBooks = async () => {
+    setLoading(true)
+    try {
+      const products = await loadPublicCatalogProducts({ includeHidden: true })
       setBooks((products ?? []).map((product) => ({ id: product.id, isbn: product.isbn, title: product.title, slug: product.slug, author: product.author, quantity: product.inventoryQuantity, unitPrice: null, salePrice: Number(product.price.replace(/[^0-9]/g, '')) || 0, link: product.isVisibleWebsite !== false && product.slug ? `/books/${product.slug}` : '', format: product.format ?? '', line: product.line || product.publisher, category: product.categories.join(', '), cover: product.image, coverImages: product.gallery, samplePdfUrl: product.samplePdfUrl, sampleFileType: product.sampleFileType, samplePdfPageCount: product.samplePdfPageCount, isVisibleWebsite: product.isVisibleWebsite !== false })))
-      setLoading(false)
-    }).catch((reason) => { if (active) { setError(reason instanceof Error ? reason.message : 'Không tải được danh sách sách thật.'); setLoading(false) } })
-    return () => { active = false }
-  }, [])
+      setError('')
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không tải được danh sách sách thật.') } finally { setLoading(false) }
+  }
+  useEffect(() => { void refreshBooks(); const refresh = () => { void refreshBooks() }; window.addEventListener('linery:admin-books-refresh', refresh); return () => window.removeEventListener('linery:admin-books-refresh', refresh) }, [])
   const authors = [...new Set(books.map((book) => book.author).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'))
   const authorHref = (authorName: string) => `/admin/authors/${authorSlug(authorName)}`
   const categories = [...new Set(books.flatMap((book) => book.category.split(',').map((value) => value.trim()).filter(Boolean)))].sort((a, b) => a.localeCompare(b, 'vi'))
