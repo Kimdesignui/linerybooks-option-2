@@ -5600,23 +5600,6 @@ function AdminSalesDashboard() {
     toggle.addEventListener('click', onClick)
     return () => toggle.removeEventListener('click', onClick)
   }, [recentOrdersExpanded])
-  useEffect(() => {
-    const sidebar = document.querySelector<HTMLElement>('.admin-sales-dashboard .admin-sidebar')
-    const shell = sidebar?.closest<HTMLElement>('.admin-shell')
-    if (!sidebar || !shell || sidebar.querySelector('.admin-sidebar-collapse')) return
-    const button = document.createElement('button')
-    button.className = 'admin-sidebar-collapse'
-    button.type = 'button'
-    button.setAttribute('aria-label', 'Thu gọn menu quản trị')
-    const icon = document.createElement('i')
-    icon.className = 'bi bi-chevron-left'
-    icon.setAttribute('aria-hidden', 'true')
-    button.append(icon)
-    const toggle = () => { const collapsed = shell.classList.toggle('admin-sidebar-collapsed'); icon.className = `bi ${collapsed ? 'bi-chevron-right' : 'bi-chevron-left'}`; button.setAttribute('aria-label', collapsed ? 'Mở rộng menu quản trị' : 'Thu gọn menu quản trị') }
-    button.addEventListener('click', toggle)
-    sidebar.append(button)
-    return () => { button.removeEventListener('click', toggle); button.remove() }
-  }, [])
     useEffect(() => {
       const brand = document.querySelector<HTMLAnchorElement>('.admin-sales-dashboard .admin-sidebar > div:first-child > a.font-display')
       if (!brand || brand.classList.contains('admin-brand-link')) return
@@ -5842,7 +5825,7 @@ function AdminDashboard() {
     if (window.location.pathname === '/admin/website') return
     const sidebar = document.querySelector<HTMLElement>('.admin-sidebar')
     const shell = sidebar?.closest<HTMLElement>('.admin-shell')
-    if (!sidebar || !shell || sidebar.querySelector('.admin-sidebar-collapse')) return
+    if (!sidebar || !shell || shell.querySelector('.admin-sidebar-collapse')) return
     const button = document.createElement('button')
     button.className = 'admin-sidebar-collapse'
     button.type = 'button'
@@ -5853,7 +5836,7 @@ function AdminDashboard() {
     button.append(icon)
     const toggle = () => { const collapsed = shell.classList.toggle('admin-sidebar-collapsed'); icon.className = `bi ${collapsed ? 'bi-chevron-right' : 'bi-chevron-left'}`; button.setAttribute('aria-label', collapsed ? 'Mở rộng menu quản trị' : 'Thu gọn menu quản trị') }
     button.addEventListener('click', toggle)
-    sidebar.append(button)
+    shell.append(button)
     return () => { button.removeEventListener('click', toggle); button.remove() }
   }, [])
 
