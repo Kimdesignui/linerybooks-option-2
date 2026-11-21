@@ -1,7 +1,7 @@
 import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ClipboardEvent, type ElementType, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type SyntheticEvent } from 'react'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 import type { FlipviewHandle } from 'flipview'
-import { checkRemoteAdminAccess, createAdminBook, createAdminChatbotPrompt, createAdminHomepageModule, createAdminMediaAsset, createAdminPaymentMethod, createAdminPromotion, createAdminStoreLocation, createAdminTaxonomyTerm, createAdminDeliveryZone, createRemoteOrder, deleteAdminBook, deleteAdminChatbotPrompt, deleteAdminDeliveryZone, deleteAdminHomepageModule, deleteAdminMediaAsset, deleteAdminPaymentMethod, deleteAdminSiteSetting, deleteAdminStoreLocation, deleteAdminTaxonomyTerm, ensureAdminHomepageModuleBooks, getCachedPublicCatalogProducts, grantAdminUser, loadAdminChatbotPrompts, loadAdminCustomers, loadAdminCreators, loadAdminDashboardSummary, loadAdminDeliveryZones, loadAdminHomepageModules, loadAdminImportBatches, loadAdminInventory, loadAdminMediaAssets, loadAdminMenuItems, loadAdminNewsPosts, loadAdminNotifications, loadAdminOrders, loadAdminPaymentMethods, loadAdminPermissionMatrix, loadAdminPromotions, loadAdminRoles, loadAdminReviews, loadAdminSiteSettings, loadAdminStoreLocations, loadAdminTaxonomy, loadAdminTopBooks, loadAdminUsers, loadMyOrders, loadMyProfile, loadMyTransactions, loadPublicBanners, loadPublicBookSample, loadPublicCatalogProducts, loadPublicCreatorProfiles, loadPublicDeliveryZones, loadPublicMenuItems, loadPublicNewsPosts, loadPublicSiteSettings, loadPublicStoreLocations, loadRemoteCart, loadRemoteWishlist, markAdminNotificationRead, markAllAdminNotificationsRead, revokeAdminUser, saveAdminCreatorImages, saveMyProfile, saveRemoteCartItem, setAdminUserRole, toggleRemoteWishlist, updateAdminBookVisibility, updateAdminChatbotPrompt, updateAdminDeliveryZone, updateAdminHomepageModule, updateAdminMenuItem, updateAdminMediaAsset, updateAdminOrderStatus, updateAdminPaymentMethod, updateAdminPromotionStatus, updateAdminReviewStatus, updateAdminStoreLocation, updateAdminTaxonomyTerm, updateMyPassword, upsertAdminSiteSetting, upsertCreatorProfile, upsertNewsPost, type AccountOrderRow, type AccountProfileRow, type AccountTransactionRow, type AdminAccess, type AdminBookInput, type AdminChatbotPromptRow, type AdminCreatorRow, type AdminCustomerRow, type AdminDashboardSummary, type AdminDeliveryZoneRow, type AdminHomepageModuleRow, type AdminImportBatchRow, type AdminInventoryRow, type AdminMediaAssetRow, type AdminMenuItemRow, type AdminNewsPost, type AdminNotificationRow, type AdminOrderRow, type AdminPaymentMethodRow, type AdminPermissionRow, type AdminPromotionInput, type AdminPromotionRow, type AdminReviewRow, type AdminRoleKey, type AdminRoleRow, type AdminSiteSettingRow, type AdminStoreLocationRow, type AdminTaxonomyKind, type AdminTaxonomyRow, type AdminTopBookRow, type AdminUserRow, type PublicBanner, type PublicCatalogProduct, type PublicCreatorProfile, type PublicDeliveryZone, type PublicMenuItem, type PublicNewsPost, type PublicNewsBlock, type PublicSiteSettings, type PublicStoreLocation } from './lib/supabase-data'
+import { checkRemoteAdminAccess, createAdminBook, createAdminChatbotPrompt, createAdminHomepageModule, createAdminMediaAsset, createAdminPaymentMethod, createAdminPromotion, createAdminStoreLocation, createAdminTaxonomyTerm, createAdminDeliveryZone, createRemoteOrder, deleteAdminBook, deleteAdminChatbotPrompt, deleteAdminDeliveryZone, deleteAdminHomepageModule, deleteAdminMediaAsset, deleteAdminPaymentMethod, deleteAdminSiteSetting, deleteAdminStoreLocation, deleteAdminTaxonomyTerm, ensureAdminHomepageModuleBooks, getCachedPublicCatalogProducts, grantAdminUser, loadAdminChatbotPrompts, loadAdminCustomers, loadAdminCreators, loadAdminDashboardSummary, loadAdminDeliveryZones, loadAdminHomepageModules, loadAdminImportBatches, loadAdminInventory, loadAdminMediaAssets, loadAdminMenuItems, loadAdminNewsPosts, loadAdminNotifications, loadAdminOrders, loadAdminPaymentMethods, loadAdminPermissionMatrix, loadAdminPromotions, loadAdminRoles, loadAdminReviews, loadAdminSiteSettings, loadAdminStoreLocations, loadAdminTaxonomy, loadAdminTopBooks, loadAdminUsers, loadMyOrders, loadMyProfile, loadMyTransactions, loadPublicBanners, loadPublicBookSample, loadPublicCatalogProducts, loadPublicCreatorProfiles, loadPublicDeliveryZones, loadPublicMenuItems, loadPublicNewsPosts, loadPublicSiteSettings, loadPublicStoreLocations, loadRemoteCart, loadRemoteWishlist, markAdminNotificationRead, markAllAdminNotificationsRead, revokeAdminUser, saveAdminCreatorImages, saveMyProfile, saveRemoteCartItem, setAdminUserRole, toggleRemoteWishlist, updateAdminBookVisibility, updateAdminChatbotPrompt, updateAdminDeliveryZone, updateAdminHomepageModule, updateAdminMenuItem, updateAdminMediaAsset, updateAdminOrderStatus, updateAdminPaymentMethod, updateAdminPromotionStatus, updateAdminReviewStatus, updateAdminStoreLocation, updateAdminTaxonomyTerm, updateNewsPostListingVisibility, updateMyPassword, upsertAdminSiteSetting, upsertCreatorProfile, upsertNewsPost, type AccountOrderRow, type AccountProfileRow, type AccountTransactionRow, type AdminAccess, type AdminBookInput, type AdminChatbotPromptRow, type AdminCreatorRow, type AdminCustomerRow, type AdminDashboardSummary, type AdminDeliveryZoneRow, type AdminHomepageModuleRow, type AdminImportBatchRow, type AdminInventoryRow, type AdminMediaAssetRow, type AdminMenuItemRow, type AdminNewsPost, type AdminNotificationRow, type AdminOrderRow, type AdminPaymentMethodRow, type AdminPermissionRow, type AdminPromotionInput, type AdminPromotionRow, type AdminReviewRow, type AdminRoleKey, type AdminRoleRow, type AdminSiteSettingRow, type AdminStoreLocationRow, type AdminTaxonomyKind, type AdminTaxonomyRow, type AdminTopBookRow, type AdminUserRow, type PublicBanner, type PublicCatalogProduct, type PublicCreatorProfile, type PublicDeliveryZone, type PublicMenuItem, type PublicNewsPost, type PublicNewsBlock, type PublicSiteSettings, type PublicStoreLocation } from './lib/supabase-data'
 import { adjustAdminInventory } from './lib/supabase-data'
 import { deleteAdminCreator } from './lib/supabase-data'
 import { supabase } from './lib/supabase'
@@ -16,7 +16,7 @@ type Product = { id?: string; slug?: string; isbn?: string; image: string; galle
 type CartItem = { product: Product; quantity: number }
 type PaymentMethod = 'vnpay' | 'bank' | 'momo' | 'apple' | 'zalopay'
 type FulfillmentMethod = 'pickup' | 'delivery'
-type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[]; byline?: string; blocks?: PublicNewsBlock[]; blocksVi?: PublicNewsBlock[]; contentType?: 'news' | 'emagazine'; seoTitle?: string; seoKeywords?: string[]; seoDescription?: string; showOnHomepage?: boolean; isFeatured?: boolean; isPublished?: boolean; categorySlugs?: string[]; displayFormat?: 'standard' | 'video' }
+type NewsItem = { image: string; title: string; titleVi: string; date: string; kicker: string; slug: string; excerpt: string; excerptVi: string; body: string[]; bodyVi: string[]; byline?: string; blocks?: PublicNewsBlock[]; blocksVi?: PublicNewsBlock[]; contentType?: 'news' | 'emagazine'; seoTitle?: string; seoKeywords?: string[]; seoDescription?: string; showOnHomepage?: boolean; showOnNewsListing?: boolean; isFeatured?: boolean; isPublished?: boolean; categorySlugs?: string[]; displayFormat?: 'standard' | 'video' }
 type View = 'home' | 'authors' | 'all-books' | 'collection' | 'search' | 'author' | 'detail' | 'book-reader' | 'cart' | 'checkout' | 'news' | 'news-detail' | 'login' | 'register' | 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete' | 'account' | 'admin'
 type AccountTab = 'profile' | 'orders' | 'transactions' | 'security'
 type WriterDirectoryFilter = 'all' | 'authors' | 'translators' | 'illustrators'
@@ -37,6 +37,7 @@ const handleMediaImageError = (event: SyntheticEvent<HTMLImageElement>) => {
 }
 type AdminBook = { id?: string; isbn: string; title: string; slug?: string; author: string; quantity: number; unitPrice: number | null; salePrice: number; link: string; format: string; line: string; category: string; cover?: string; coverImages?: string[]; samplePdfUrl?: string; sampleFileType?: 'pdf' | 'epub'; samplePdfPageCount?: number; isVisibleWebsite?: boolean }
 const adminBookDraftStorageKey = 'linery-admin-book-draft-v1'
+const adminNewsDraftStorageKey = 'linery-admin-news-draft-v1'
 type AdminBookCreateValues = { isbn: string; title: string; slug: string; coverPriceUsd: string; salePrice: string; comparePrice: string; pages: string; bookSize: string; author: string[]; translator: string[]; illustrator: string[]; format: string; line: string; category: string[]; genre: string[]; topic: string[]; publisher: string; imprint: string; publicationDate: string; weight: string; language: string[]; link: string; description: string }
 const emptyAdminBookCreateValues: AdminBookCreateValues = { isbn: '', title: '', slug: '', coverPriceUsd: '', salePrice: '', comparePrice: '', pages: '', bookSize: '', author: [], translator: [], illustrator: [], format: '', line: '', category: [], genre: [], topic: [], publisher: '', imprint: '', publicationDate: '', weight: '', language: [], link: '', description: '' }
 type BulkBookImportRow = {
@@ -50,6 +51,8 @@ type BulkBookImportRow = {
 type BulkBookImportResult = { rowNumber: number; title: string; status: 'created' | 'failed'; message: string }
 type AdminBookDraftPayload = { values?: Partial<AdminBookCreateValues>; isVisible?: boolean; homeModules?: string[]; samplePageCount?: string }
 const readAdminBookDraftPayload = (): AdminBookDraftPayload | null => { if (typeof window === 'undefined') return null; try { return JSON.parse(window.localStorage.getItem(adminBookDraftStorageKey) ?? 'null') as AdminBookDraftPayload | null } catch { return null } }
+type AdminNewsDraftPayload = { title?: string; slug?: string; excerpt?: string; content?: string; contentType?: 'news' | 'emagazine'; seoTitle?: string; seoKeywords?: string; seoDescription?: string; isPublished?: boolean; showOnNewsListing?: boolean; showOnHomepage?: boolean; isFeatured?: boolean; categorySlugs?: string[]; displayFormat?: 'standard' | 'video' }
+const readAdminNewsDraftPayload = (): AdminNewsDraftPayload | null => { if (typeof window === 'undefined') return null; try { return JSON.parse(window.localStorage.getItem(adminNewsDraftStorageKey) ?? 'null') as AdminNewsDraftPayload | null } catch { return null } }
 const adminBookDraftFilesDb = 'linery-admin-book-draft-files-v1'
 const saveAdminBookDraftFiles = (coverFiles: File[], sampleFile: File | null) => new Promise<void>((resolve) => {
   if (typeof window === 'undefined' || !window.indexedDB) { resolve(); return }
@@ -524,7 +527,7 @@ const getViewFromPath = (pathname: string, hash: string): View => {
   if (pathname === '/checkout') return 'checkout'
   if (pathname.startsWith('/books/') && pathname.endsWith('/reader') && getProductFromPath(pathname)) return 'book-reader'
   if (pathname === '/news') return 'news'
-  if (pathname.startsWith('/news/') && getNewsFromPath(pathname)) return 'news-detail'
+  if ((pathname.startsWith('/news/') || ['/gioi-thieu', '/lien-he', '/chinh-sach', '/dieu-khoan'].includes(pathname)) && getNewsFromPath(pathname)) return 'news-detail'
   if ((pathname.startsWith('/authors/') || pathname.startsWith('/creators/')) && getAuthorFromPath(pathname)) return 'author'
   if (pathname.startsWith('/books/') && getProductFromPath(pathname)) return 'detail'
   return 'home'
@@ -1270,7 +1273,7 @@ function LineryNewsSection({ language, onOpen, onSeeMore }: { language: 'en' | '
     return () => mediaQuery.removeEventListener('change', handleChange)
   }, [])
   const pageSize = mobile ? 3 : 4
-  const visibleItems = runtimeNewsItems.slice(0, pageSize)
+  const visibleItems = runtimeNewsItems.filter((item) => item.showOnNewsListing !== false).slice(0, pageSize)
   return <section className="news-module" aria-labelledby="linery-news-title">
     <RibbonTitle title="LINERY NEWS" id="linery-news-title" heading />
     <div className="news-grid">{visibleItems.map((item) => <NewsCard key={item.slug} item={item} language={language} onOpen={onOpen} />)}</div>
@@ -1286,7 +1289,7 @@ function NewsPage({ language, onOpen, heroMotionOpen, publicBanners }: { languag
       <nav className="news-breadcrumb news-page-breadcrumb" aria-label="Breadcrumb"><a href="/#home">Home</a><span aria-hidden="true">/</span><span>{pageTitle}</span></nav>
       <section className="news-page-panel" aria-labelledby="all-news-title">
         <RibbonTitle title={pageTitle.toUpperCase()} id="all-news-title" heading />
-        <div className="news-page-grid">{runtimeNewsItems.map((item) => {
+        <div className="news-page-grid">{runtimeNewsItems.filter((item) => item.showOnNewsListing !== false).map((item) => {
           const title = language === 'vi' ? item.titleVi : item.title
           const excerpt = language === 'vi' ? item.excerptVi : item.excerpt
           return <article className="news-page-card" key={item.slug}>
@@ -2693,10 +2696,10 @@ function AdminAuthGate({ children, requiredPermission }: { children: ReactNode; 
     setSubmitting(false)
   }
 
-  if (checking) return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-8 text-center shadow-[0_10px_30px_rgba(31,42,36,.04)]"><p className="font-body text-sm text-[#74776f]">Đang kiểm tra quyền quản trị…</p></section></main>
+  if (checking) return <main className="admin-auth-page"><section className="admin-auth-card admin-auth-card--checking"><p>Đang kiểm tra quyền quản trị…</p></section></main>
   if (allowed) return <>{children}</>
 
-  return <main className="min-h-screen bg-[#f7f7f2] px-5 py-16 text-[var(--color-ink)]"><section className="mx-auto max-w-lg rounded-2xl border border-[#e6e2d7] bg-white p-6 shadow-[0_10px_30px_rgba(31,42,36,.04)] sm:p-8"><div className="mb-8"><p className="font-body text-xs font-semibold uppercase tracking-[.14em] text-[var(--color-olive)]">LINERY QUẢN TRỊ</p><h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">{access && email ? 'Không đủ quyền truy cập' : 'Đăng nhập quản trị'}</h1><p className="mt-2 font-body text-sm leading-6 text-[#74776f]">{access && email ? `Tài khoản ${email} đang là ${access.roleName}. Hãy liên hệ Super Admin để được cấp thêm nghiệp vụ.` : 'Chỉ tài khoản đã được cấp trong bảng admin_users mới có thể mở khu vực này.'}</p></div>{!access && <form className="grid gap-4" onSubmit={signIn}><label className="grid gap-1.5 font-body text-sm font-medium">Email hoặc username<input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="email" type="text" autoComplete="username" required /></label><label className="grid gap-1.5 font-body text-sm font-medium">Mật khẩu<div className="login-password-field"><input className="min-h-11 rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required /><button type="button" aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button></div></label><button className="admin-primary-action inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--color-olive)] px-5 font-body text-sm font-medium text-white disabled:cursor-wait disabled:opacity-60" type="submit" disabled={submitting}>{submitting ? 'Đang xác thực…' : 'Đăng nhập quản trị'}</button></form>}{!access && <a className="mt-4 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#forgot-password">Quên mật khẩu?</a>}{email && <p className="mt-4 font-body text-xs text-[#74776f]">Tài khoản hiện tại: {email}</p>}{message && <p className="mt-4 rounded-xl bg-[#fff4ec] px-4 py-3 font-body text-sm leading-6 text-[#9a4c2d]" role="alert">{message}</p>}<a className="mt-6 inline-flex font-body text-sm text-[var(--color-olive-dark)] underline-offset-4 hover:underline" href="/#home">← Quay lại website</a></section></main>
+  return <main className="admin-auth-page"><section className="admin-auth-card"><div className="admin-auth-heading"><p className="admin-auth-kicker">LINERY QUẢN TRỊ</p><h1>{access && email ? 'Không đủ quyền truy cập' : 'Đăng nhập quản trị'}</h1><p className="admin-auth-intro">{access && email ? `Tài khoản ${email} đang là ${access.roleName}. Hãy liên hệ Super Admin để được cấp thêm nghiệp vụ.` : 'Chỉ tài khoản đã được cấp trong bảng admin_users mới có thể mở khu vực này.'}</p></div>{!access && <form className="admin-auth-form" onSubmit={signIn}><label className="admin-auth-field">Email hoặc username<input name="email" type="text" autoComplete="username" required /></label><label className="admin-auth-field">Mật khẩu<div className="admin-auth-password"><input name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required /><button type="button" aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={() => setShowPassword((visible) => !visible)}><i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" /></button></div></label><button className="admin-auth-submit" type="submit" disabled={submitting}>{submitting ? 'Đang xác thực…' : 'Đăng nhập quản trị'}</button></form>}{!access && <a className="admin-auth-link" href="/#forgot-password">Quên mật khẩu?</a>}{email && <p className="admin-auth-account">Tài khoản hiện tại: {email}</p>}{message && <p className="admin-auth-message" role="alert">{message}</p>}<a className="admin-auth-link admin-auth-back" href="/#home">← Quay lại website</a></section></main>
 }
 
 type RecoveryMode = 'forgot-password' | 'password-reset-sent' | 'reset-password' | 'password-reset-complete'
@@ -3344,7 +3347,7 @@ function AdminRichTextEditor({ label, value, onChange, placeholder }: { label: s
 }
 
 function AdminCkEditor({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
-  return <div className="admin-ckeditor sm:col-span-2 lg:col-span-3"><span className="mb-1.5 block font-body text-sm font-medium">{label}</span><div className="overflow-hidden rounded-xl border border-[#dedbd0] bg-white focus-within:border-[var(--color-olive)] focus-within:ring-2 focus-within:ring-[rgba(155,148,47,.14)]"><Suspense fallback={<div className="min-h-[280px] p-4 font-body text-sm text-[#8b8d86]">Đang tải trình soạn thảo…</div>}><LazyCkEditor data={value} config={{ placeholder, toolbar: ['undo', 'redo', '|', 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable'] }} onChange={(_event: unknown, editor: any) => onChange(editor.getData())} /></Suspense></div><span className="mt-1 block font-body text-xs text-[#8b8d86]">CKEditor miễn phí với heading, định dạng chữ, liên kết, danh sách, trích dẫn và bảng.</span></div>
+  return <div className="admin-ckeditor sm:col-span-2 lg:col-span-3"><span className="mb-1.5 block font-body text-sm font-medium">{label}</span><div className="overflow-visible rounded-xl border border-[#dedbd0] bg-white focus-within:border-[var(--color-olive)] focus-within:ring-2 focus-within:ring-[rgba(155,148,47,.14)]"><Suspense fallback={<div className="min-h-[280px] p-4 font-body text-sm text-[#8b8d86]">Đang tải trình soạn thảo…</div>}><LazyCkEditor data={value} config={{ placeholder, toolbar: ['undo', 'redo', '|', 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable'] }} onChange={(_event: unknown, editor: any) => onChange(editor.getData())} /></Suspense></div><span className="mt-1 block font-body text-xs text-[#8b8d86]">CKEditor miễn phí với heading, định dạng chữ, liên kết, danh sách, trích dẫn và bảng.</span></div>
 }
 
 function readEditorJsData(value: string) {
@@ -4473,7 +4476,7 @@ function AdminBookCreatePageV2({ editId }: { editId?: string }) {
       <div className="min-w-0 space-y-5">
         {optionsError && <p className="rounded-xl border border-[#ebc4bd] bg-[#fff5f2] px-4 py-3 font-body text-sm leading-6 text-[#a33d32]" role="alert">Không tải được danh mục thật từ Supabase: {optionsError}. Hãy tải lại trang trước khi lưu để tránh ghi sai dữ liệu.</p>}
         <AdminCreatePanel id="book-information" title="Thông tin sách">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{textFields.map(([key, label, type]) => { const formattedValue = isPriceKey(key) ? formatNumericValue(values[key] as string, key) : key === 'slug' ? values.slug || defaultBookPath : values[key] as string; return <label className="block" key={key}><span className="mb-1.5 flex items-center font-body text-sm font-medium">{label}{key === 'title' && <span className="ml-1 text-[var(--color-olive-dark)]">*</span>}{key === 'isbn' && <span className="ml-1 text-xs font-normal text-[#8b8d86]">(không bắt buộc)</span>}{key === 'slug' && <AdminInfoTooltip label="Thông tin đường dẫn sách" text="Nếu bỏ trống, hệ thống sẽ tự tạo đường dẫn từ tên sách." />}</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type={isPriceKey(key) ? 'text' : type} min={isPriceKey(key) ? undefined : type === 'number' ? '0' : undefined} inputMode={key === 'isbn' || isPriceKey(key) ? 'numeric' : undefined} pattern={key === 'isbn' ? '[0-9]{13}' : undefined} maxLength={key === 'isbn' ? 13 : undefined} title={key === 'isbn' ? 'ISBN nếu nhập phải gồm đúng 13 chữ số.' : undefined} required={key === 'title'} value={formattedValue} onKeyDown={key === 'isbn' ? preventNonDigitKey : undefined} onPaste={key === 'isbn' ? pasteDigitsOnly : undefined} onChange={(event) => handleTextFieldChange(key, event.target.value)} placeholder={key === 'slug' ? 'tu-dong-sinh-tu-ten-sach' : key === 'isbn' ? 'Có thể để trống' : undefined} />{fieldWarnings[key] && <span className="mt-1 block font-body text-xs text-[#a33d32]" role="status">{fieldWarnings[key]}</span>}</label> })}<AdminSelect2 label="Imprint" value={values.imprint} options={bookOptions.imprints} onChange={(value) => setValue('imprint', value as string)} placeholder="Tìm và chọn imprint" /><AdminSelect2 label="Ngôn ngữ" value={values.language} options={bookOptions.languages} multiple onChange={(value) => setValue('language', value as string[])} placeholder="Tìm và chọn một hoặc nhiều ngôn ngữ" /></div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{textFields.map(([key, label, type]) => { const formattedValue = isPriceKey(key) ? formatNumericValue(values[key] as string, key) : key === 'slug' ? values.slug || defaultBookPath : values[key] as string; return <label className="block" key={key}><span className="mb-1.5 flex items-center font-body text-sm font-medium">{label}{key === 'title' && <span className="ml-1 text-[var(--color-olive-dark)]">*</span>}{key === 'slug' && <AdminInfoTooltip label="Thông tin đường dẫn sách" text="Nếu bỏ trống, hệ thống sẽ tự tạo đường dẫn từ tên sách." />}</span><input className="min-h-11 w-full rounded-lg border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm" type={isPriceKey(key) ? 'text' : type} min={isPriceKey(key) ? undefined : type === 'number' ? '0' : undefined} inputMode={key === 'isbn' || isPriceKey(key) ? 'numeric' : undefined} pattern={key === 'isbn' ? '[0-9]{13}' : undefined} maxLength={key === 'isbn' ? 13 : undefined} title={key === 'isbn' ? 'ISBN nếu nhập phải gồm đúng 13 chữ số.' : undefined} required={key === 'title'} value={formattedValue} onKeyDown={key === 'isbn' ? preventNonDigitKey : undefined} onPaste={key === 'isbn' ? pasteDigitsOnly : undefined} onChange={(event) => handleTextFieldChange(key, event.target.value)} placeholder={key === 'slug' ? 'tu-dong-sinh-tu-ten-sach' : key === 'isbn' ? 'Có thể để trống' : undefined} />{fieldWarnings[key] && <span className="mt-1 block font-body text-xs text-[#a33d32]" role="status">{fieldWarnings[key]}</span>}</label> })}<AdminSelect2 label="Imprint" value={values.imprint} options={bookOptions.imprints} onChange={(value) => setValue('imprint', value as string)} placeholder="Tìm và chọn imprint" /><AdminSelect2 label="Ngôn ngữ" value={values.language} options={bookOptions.languages} multiple onChange={(value) => setValue('language', value as string[])} placeholder="Tìm và chọn một hoặc nhiều ngôn ngữ" /></div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"><div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-end gap-2"><AdminSelect2 label="Tác giả" value={values.author} options={bookOptions.authors} multiple required onChange={(value) => setValue('author', value as string[])} placeholder="Tìm và chọn một hoặc nhiều tác giả" /><button className="mb-0 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-olive)] text-lg text-[var(--color-olive-dark)] transition-colors hover:bg-[var(--color-olive)] hover:text-white" type="button" aria-label="Thêm nhanh tác giả" title="Thêm nhanh tác giả" onClick={() => setQuickCreatorRole('author')}><i className="bi bi-plus-lg" aria-hidden="true" /></button></div><div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-end gap-2"><AdminSelect2 label="Dịch giả" value={values.translator} options={bookOptions.authors} multiple onChange={(value) => setValue('translator', value as string[])} placeholder="Tìm và chọn một hoặc nhiều dịch giả" /><button className="mb-0 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-olive)] text-lg text-[var(--color-olive-dark)] transition-colors hover:bg-[var(--color-olive)] hover:text-white" type="button" aria-label="Thêm nhanh dịch giả" title="Thêm nhanh dịch giả" onClick={() => setQuickCreatorRole('translator')}><i className="bi bi-plus-lg" aria-hidden="true" /></button></div><div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-end gap-2"><AdminSelect2 label="Họa sĩ minh họa" value={values.illustrator} options={bookOptions.authors} multiple onChange={(value) => setValue('illustrator', value as string[])} placeholder="Tìm và chọn một hoặc nhiều họa sĩ" /><button className="mb-0 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-olive)] text-lg text-[var(--color-olive-dark)] transition-colors hover:bg-[var(--color-olive)] hover:text-white" type="button" aria-label="Thêm nhanh họa sĩ minh họa" title="Thêm nhanh họa sĩ minh họa" onClick={() => setQuickCreatorRole('illustrator')}><i className="bi bi-plus-lg" aria-hidden="true" /></button></div><AdminSelect2 label="Thể thức" value={values.format} options={bookOptions.formats} onChange={(value) => setValue('format', value as string)} placeholder="Tìm và chọn thể thức" /><AdminSelect2 label="Dòng sách" value={values.line} options={bookOptions.lines} onChange={(value) => setValue('line', value as string)} placeholder="Tìm và chọn dòng sách" /><AdminSelect2 label="Danh mục" value={values.category} options={bookOptions.categories} multiple onChange={(value) => setValue('category', value as string[])} placeholder="Tìm và chọn một hoặc nhiều danh mục" /><AdminSelect2 label="Thể loại" value={values.genre} options={bookOptions.genres} multiple onChange={(value) => setValue('genre', value as string[])} placeholder="Tìm và chọn một hoặc nhiều thể loại" /><AdminSelect2 label="Chủ đề" value={values.topic} options={bookOptions.topics} multiple onChange={(value) => setValue('topic', value as string[])} placeholder="Tìm và chọn một hoặc nhiều chủ đề" /><AdminSelect2 label="Publisher" value={values.publisher} options={bookOptions.publishers} onChange={(value) => setValue('publisher', value as string)} placeholder="Tìm và chọn publisher" /></div>
         </AdminCreatePanel>
         <div id="book-description" className="scroll-mt-24"><AdminCreatePanel title="Mô tả sách"><AdminRichTextEditor label="Nội dung mô tả" value={values.description} onChange={(value) => setValue('description', value)} placeholder="Nhập mô tả, nội dung giới thiệu và ghi chú biên tập cho sách..." /></AdminCreatePanel></div>
@@ -5200,7 +5203,9 @@ function AdminBulkBookImportModal({ onClose, onImported }: { onClose: () => void
     }
     setProgress(null)
     setBusy(false)
-    if (nextResults.some((item) => item.status === 'created')) onImported()
+    // Keep the report open when a batch is only partially imported so the
+    // operator can see which rows failed and correct them before retrying.
+    if (nextResults.length > 0 && nextResults.every((item) => item.status === 'created')) onImported()
   }
   return <div className="fixed inset-0 z-[80] flex items-end justify-center bg-[rgba(31,42,36,.48)] p-0 sm:items-center sm:p-5" role="dialog" aria-modal="true" aria-labelledby="bulk-book-import-title">
     <section className="max-h-[94vh] w-full max-w-6xl overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
@@ -5372,7 +5377,52 @@ function AdminNewsPageV2() {
     return () => { active = false }
   }, [])
   const filteredItems = [...adminItems].filter((item) => `${item.titleVi || item.title} ${item.slug} ${item.excerptVi || item.excerpt}`.toLowerCase().includes(query.trim().toLowerCase())).filter((item) => typeFilter === 'all' || item.contentType === typeFilter).sort((a, b) => sortFilter === 'oldest' ? (a.date || '').localeCompare(b.date || '') : (b.date || '').localeCompare(a.date || ''))
+  const toggleListing = async (item: AdminNewsPost) => {
+    const nextVisible = item.showOnNewsListing === false
+    try {
+      await updateNewsPostListingVisibility(item.id, nextVisible)
+      setAdminItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, showOnNewsListing: nextVisible } : entry))
+      setItems((current) => current.map((entry) => entry.slug === item.slug ? { ...entry, showOnNewsListing: nextVisible } : entry))
+      runtimeNewsItems = runtimeNewsItems.map((entry) => entry.slug === item.slug ? { ...entry, showOnNewsListing: nextVisible } : entry)
+      emitFloatingNotice('success', nextVisible ? 'Đã hiện bài trong danh sách tin.' : 'Đã ẩn bài khỏi danh sách tin. Link trực tiếp vẫn hoạt động.')
+    } catch (error) {
+      emitFloatingNotice('error', `Không thể cập nhật hiển thị bài viết: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`)
+    }
+  }
   return <AdminListShell title="Quản lý tin tức" section="NỘI DUNG" description="Danh sách tin tức và eMagazine đã xuất bản; nội dung chi tiết được nhập bằng trình soạn thảo ở màn tạo mới." createHref="/admin/news/new" createLabel="Tạo bài viết"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#eeeae0] p-5"><h3 className="font-display text-lg font-semibold">Danh sách bài viết</h3><p className="mt-1 font-body text-sm text-[#74776f]">{loading ? 'Đang tải dữ liệu thật từ Supabase…' : `${filteredItems.length} / ${items.length} bài đang hiển thị từ Supabase`}</p></div><AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tiêu đề, đường dẫn hoặc mô tả" filters={[{ label: 'Tất cả loại bài', value: typeFilter, onChange: setTypeFilter, options: [{ label: 'Tin tức', value: 'news' }, { label: 'eMagazine', value: 'emagazine' }] }, { label: 'Sắp xếp ngày', value: sortFilter, onChange: setSortFilter, options: [{ label: 'Mới nhất', value: 'newest' }, { label: 'Cũ nhất', value: 'oldest' }] }]} onClear={() => { setQuery(''); setTypeFilter('all'); setSortFilter('newest') }} /><div className="admin-news-table-scroll overflow-x-auto"><table className="admin-news-table min-w-[900px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['Tiêu đề', 'Đường dẫn', 'Ngày xuất bản', 'Trạng thái', 'Thao tác'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{filteredItems.map((item) => <tr className="border-t border-[#eeeae0]" key={item.slug}><td className="px-4 py-3 font-body text-sm font-medium">{item.titleVi || item.title}</td><td className="px-4 py-3 font-body text-sm text-[#74776f]">{item.slug}</td><td className="px-4 py-3 font-body text-sm">{item.date || '—'}</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.contentType === 'emagazine' ? 'bg-[#fff3e8] text-[#b55b2f]' : 'bg-[#edf7ef] text-[#39733e]'}`}>{item.contentType === 'emagazine' ? 'Đã xuất bản · eMagazine' : 'Đã xuất bản · Tin tức'}</span></td><td className="px-4 py-3"><div className="flex justify-end gap-1"><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/${item.slug}`} aria-label={`Xem ${item.titleVi || item.title}`} title="Xem"><i className="bi bi-eye" aria-hidden="true" /></a><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/edit/${item.slug}`} aria-label={`Sửa ${item.titleVi || item.title}`} title="Sửa nội dung"><i className="bi bi-pencil" aria-hidden="true" /></a></div></td></tr>)}</tbody></table></div></section></AdminListShell>
+}
+
+function AdminNewsPageV3() {
+  const [query, setQuery] = useState('')
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [sortFilter, setSortFilter] = useState('newest')
+  const [items, setItems] = useState<AdminNewsPost[]>([])
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let active = true
+    loadAdminNewsPosts().then((records) => {
+      if (!active) return
+      setItems(records)
+      applyPublicNews(records)
+    }).catch(() => undefined).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+  const filteredItems = [...items]
+    .filter((item) => `${item.titleVi || item.title} ${item.slug} ${item.excerptVi || item.excerpt}`.toLowerCase().includes(query.trim().toLowerCase()))
+    .filter((item) => typeFilter === 'all' || item.contentType === typeFilter)
+    .sort((a, b) => sortFilter === 'oldest' ? (a.date || '').localeCompare(b.date || '') : (b.date || '').localeCompare(a.date || ''))
+  const toggleListing = async (item: AdminNewsPost) => {
+    const nextVisible = item.showOnNewsListing === false
+    try {
+      await updateNewsPostListingVisibility(item.id, nextVisible)
+      setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, showOnNewsListing: nextVisible } : entry))
+      runtimeNewsItems = runtimeNewsItems.map((entry) => entry.slug === item.slug ? { ...entry, showOnNewsListing: nextVisible } : entry)
+      emitFloatingNotice('success', nextVisible ? 'Đã hiện bài trong danh sách tin.' : 'Đã ẩn bài khỏi danh sách tin. Link trực tiếp vẫn hoạt động.')
+    } catch (error) {
+      emitFloatingNotice('error', `Không thể cập nhật hiển thị bài viết: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`)
+    }
+  }
+  return <AdminListShell title="Quản lý tin tức" section="NỘI DUNG" description="Danh sách tin tức và eMagazine; bài có thể ẩn khỏi danh sách nhưng vẫn mở được bằng link trực tiếp." createHref="/admin/news/new" createLabel="Tạo bài viết"><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#eeeae0] p-5"><h3 className="font-display text-lg font-semibold">Danh sách bài viết</h3><p className="mt-1 font-body text-sm text-[#74776f]">{loading ? 'Đang tải dữ liệu thật từ Supabase…' : `${filteredItems.length} / ${items.length} bài từ Supabase`}</p></div><AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tiêu đề, đường dẫn hoặc mô tả" filters={[{ label: 'Tất cả loại bài', value: typeFilter, onChange: setTypeFilter, options: [{ label: 'Tin tức', value: 'news' }, { label: 'eMagazine', value: 'emagazine' }] }, { label: 'Sắp xếp ngày', value: sortFilter, onChange: setSortFilter, options: [{ label: 'Mới nhất', value: 'newest' }, { label: 'Cũ nhất', value: 'oldest' }] }]} onClear={() => { setQuery(''); setTypeFilter('all'); setSortFilter('newest') }} /><div className="admin-news-table-scroll overflow-x-auto"><table className="admin-news-table min-w-[1040px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr>{['Tiêu đề', 'Đường dẫn', 'Ngày xuất bản', 'Trạng thái', 'Danh sách tin', 'Thao tác'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{filteredItems.map((item) => <tr className="border-t border-[#eeeae0]" key={item.id}><td className="px-4 py-3 font-body text-sm font-medium">{item.titleVi || item.title}</td><td className="px-4 py-3 font-body text-sm text-[#74776f]">{item.slug}</td><td className="px-4 py-3 font-body text-sm">{item.date || '—'}</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.isPublished ? 'bg-[#edf7ef] text-[#39733e]' : 'bg-[#fff3e8] text-[#b55b2f]'}`}>{item.isPublished ? 'Đã xuất bản' : 'Bản nháp'}</span></td><td className="px-4 py-3"><button className={`relative inline-flex h-7 w-12 items-center rounded-full border transition-colors ${item.showOnNewsListing === false ? 'border-[#d8d5c8] bg-[#e5e2d8]' : 'border-[var(--color-olive)] bg-[var(--color-olive)]'}`} type="button" role="switch" aria-checked={item.showOnNewsListing !== false} aria-label={`${item.showOnNewsListing === false ? 'Hiện' : 'Ẩn'} ${item.titleVi || item.title} trong danh sách tin`} title={item.showOnNewsListing === false ? 'Hiện trong danh sách tin' : 'Ẩn khỏi danh sách tin'} onClick={() => void toggleListing(item)}><span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${item.showOnNewsListing === false ? 'translate-x-1' : 'translate-x-6'}`} /></button></td><td className="px-4 py-3"><div className="flex gap-1"><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/${item.slug}`} aria-label={`Xem ${item.titleVi || item.title}`} title="Xem"><i className="bi bi-eye" aria-hidden="true" /></a><a className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dedbd0] text-[#62655f] hover:border-[var(--color-olive)] hover:bg-[#f6f5ed]" href={`/admin/news/edit/${item.slug}`} aria-label={`Sửa ${item.titleVi || item.title}`} title="Sửa nội dung"><i className="bi bi-pencil" aria-hidden="true" /></a></div></td></tr>)}</tbody></table></div></section></AdminListShell>
 }
 
 function AdminNewsPreviewPage({ slug }: { slug: string }) {
@@ -5426,23 +5476,30 @@ function AdminNewsCreatePageV2({ editSlug }: { editSlug?: string }) {
     return () => { active = false }
   }, [])
   const editingItem = editSlug ? items.find((item) => item.slug === editSlug) : undefined
-  const [content, setContent] = useState(() => editingItem?.contentType === 'emagazine' ? JSON.stringify({ blocks: editingItem.blocksVi ?? editingItem.blocks ?? [] }) : editingItem?.bodyVi?.map((paragraph) => `<p>${paragraph}</p>`).join('') ?? '')
-  const [contentType, setContentType] = useState<'news' | 'emagazine'>(() => editingItem?.contentType ?? 'news')
+  const [newsDraft] = useState(() => editSlug ? null : readAdminNewsDraftPayload())
+  const [content, setContent] = useState(() => editingItem?.contentType === 'emagazine' ? JSON.stringify({ blocks: editingItem.blocksVi ?? editingItem.blocks ?? [] }) : editingItem?.bodyVi?.map((paragraph) => `<p>${paragraph}</p>`).join('') ?? newsDraft?.content ?? '')
+  const [contentType, setContentType] = useState<'news' | 'emagazine'>(() => editingItem?.contentType ?? newsDraft?.contentType ?? 'news')
   const [saved, setSaved] = useState(false)
   const [coverPreview, setCoverPreview] = useState('')
   const [coverFileName, setCoverFileName] = useState('')
   const [coverFile, setCoverFile] = useState<File | null>(null)
-  const [title, setTitle] = useState(editingItem?.titleVi || editingItem?.title || '')
-  const [slug, setSlug] = useState(editingItem?.slug || '')
-  const [excerpt, setExcerpt] = useState(editingItem?.excerptVi || editingItem?.excerpt || '')
-  const [seoTitle, setSeoTitle] = useState(editingItem?.seoTitle || '')
-  const [seoKeywords, setSeoKeywords] = useState(editingItem?.seoKeywords?.join(', ') || '')
-  const [seoDescription, setSeoDescription] = useState(editingItem?.seoDescription || '')
-  const [isPublished, setIsPublished] = useState(editingItem?.isPublished ?? true)
-  const [showOnHomepage, setShowOnHomepage] = useState(editingItem?.showOnHomepage ?? true)
-  const [isFeatured, setIsFeatured] = useState(editingItem?.isFeatured ?? false)
-  const [categorySlugs, setCategorySlugs] = useState<string[]>(editingItem?.categorySlugs ?? [])
-  const [displayFormat, setDisplayFormat] = useState<'standard' | 'video'>(editingItem?.displayFormat ?? 'standard')
+  const [title, setTitle] = useState(editingItem?.titleVi || editingItem?.title || newsDraft?.title || '')
+  const [slug, setSlug] = useState(editingItem?.slug || newsDraft?.slug || '')
+  const [excerpt, setExcerpt] = useState(editingItem?.excerptVi || editingItem?.excerpt || newsDraft?.excerpt || '')
+  const [seoTitle, setSeoTitle] = useState(editingItem?.seoTitle || newsDraft?.seoTitle || '')
+  const [seoKeywords, setSeoKeywords] = useState(editingItem?.seoKeywords?.join(', ') || newsDraft?.seoKeywords || '')
+  const [seoDescription, setSeoDescription] = useState(editingItem?.seoDescription || newsDraft?.seoDescription || '')
+  const [isPublished, setIsPublished] = useState(editingItem?.isPublished ?? newsDraft?.isPublished ?? true)
+  const [showOnNewsListing, setShowOnNewsListing] = useState(editingItem?.showOnNewsListing ?? newsDraft?.showOnNewsListing ?? true)
+  const [showOnHomepage, setShowOnHomepage] = useState(editingItem?.showOnHomepage ?? newsDraft?.showOnHomepage ?? true)
+  const [isFeatured, setIsFeatured] = useState(editingItem?.isFeatured ?? newsDraft?.isFeatured ?? false)
+  const [categorySlugs, setCategorySlugs] = useState<string[]>(editingItem?.categorySlugs ?? newsDraft?.categorySlugs ?? [])
+  const [displayFormat, setDisplayFormat] = useState<'standard' | 'video'>(editingItem?.displayFormat ?? newsDraft?.displayFormat ?? 'standard')
+  const [saving, setSaving] = useState(false)
+  useEffect(() => {
+    if (editSlug || loading) return
+    try { window.localStorage.setItem(adminNewsDraftStorageKey, JSON.stringify({ title, slug, excerpt, content, contentType, seoTitle, seoKeywords, seoDescription, isPublished, showOnNewsListing, showOnHomepage, isFeatured, categorySlugs, displayFormat })) } catch { /* draft persistence is best effort */ }
+  }, [editSlug, loading, title, slug, excerpt, content, contentType, seoTitle, seoKeywords, seoDescription, isPublished, showOnNewsListing, showOnHomepage, isFeatured, categorySlugs, displayFormat])
   useEffect(() => {
     if (!editingItem) return
     setTitle(editingItem.titleVi || editingItem.title)
@@ -5454,6 +5511,7 @@ function AdminNewsCreatePageV2({ editSlug }: { editSlug?: string }) {
     setSeoKeywords(editingItem.seoKeywords?.join(', ') ?? '')
     setSeoDescription(editingItem.seoDescription ?? '')
     setIsPublished(editingItem.isPublished ?? true)
+    setShowOnNewsListing(editingItem.showOnNewsListing ?? true)
     setShowOnHomepage(editingItem.showOnHomepage ?? true)
     setIsFeatured(editingItem.isFeatured ?? false)
     setCategorySlugs(editingItem.categorySlugs ?? [])
@@ -5461,6 +5519,8 @@ function AdminNewsCreatePageV2({ editSlug }: { editSlug?: string }) {
   }, [editingItem?.slug])
   const saveNews = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (saving) return
+    setSaving(true)
     const nextSlug = slug.trim() || editingItem?.slug || `bai-viet-${Date.now()}`
     const isEmagazine = contentType === 'emagazine'
     const parsedBlocks = isEmagazine ? editorJsToBlocks(content) : []
@@ -5481,6 +5541,7 @@ function AdminNewsCreatePageV2({ editSlug }: { editSlug?: string }) {
       seoKeywords: seoKeywords.split(',').map((value) => value.trim()).filter(Boolean),
       seoDescription,
       showOnHomepage,
+      showOnNewsListing,
       isFeatured,
       isPublished,
       categorySlugs,
@@ -5489,17 +5550,20 @@ function AdminNewsCreatePageV2({ editSlug }: { editSlug?: string }) {
     try {
       const uploadedCover = coverFile ? await createAdminMediaAsset(coverFile, 'news-cover', nextItem.titleVi || nextItem.title) : null
       const savedItem = uploadedCover ? { ...nextItem, image: uploadedCover.publicUrl } : nextItem
-      await upsertNewsPost({ slug: savedItem.slug, contentType: savedItem.contentType ?? 'news', title: savedItem.title, titleVi: savedItem.titleVi, kicker: savedItem.kicker, kickerVi: savedItem.kicker, excerpt: savedItem.excerpt, excerptVi: savedItem.excerptVi, body: savedItem.body, bodyVi: savedItem.bodyVi, image: savedItem.image, byline: savedItem.byline, blocks: parsedBlocks.map(({ id: _id, ...block }) => block), blocksVi: parsedBlocks.map(({ id: _id, ...block }) => block), seoTitle: savedItem.seoTitle, seoKeywords: savedItem.seoKeywords, seoDescription: savedItem.seoDescription, showOnHomepage: savedItem.showOnHomepage, isFeatured: savedItem.isFeatured, isPublished: savedItem.isPublished, categorySlugs: savedItem.categorySlugs, displayFormat: savedItem.displayFormat })
+      await upsertNewsPost({ slug: savedItem.slug, contentType: savedItem.contentType ?? 'news', title: savedItem.title, titleVi: savedItem.titleVi, kicker: savedItem.kicker, kickerVi: savedItem.kicker, excerpt: savedItem.excerpt, excerptVi: savedItem.excerptVi, body: savedItem.body, bodyVi: savedItem.bodyVi, image: savedItem.image, byline: savedItem.byline, blocks: parsedBlocks.map(({ id: _id, ...block }) => block), blocksVi: parsedBlocks.map(({ id: _id, ...block }) => block), seoTitle: savedItem.seoTitle, seoKeywords: savedItem.seoKeywords, seoDescription: savedItem.seoDescription, showOnHomepage: savedItem.showOnHomepage, showOnNewsListing: savedItem.showOnNewsListing, isFeatured: savedItem.isFeatured, isPublished: savedItem.isPublished, categorySlugs: savedItem.categorySlugs, displayFormat: savedItem.displayFormat })
       runtimeNewsItems = [savedItem, ...runtimeNewsItems.filter((item) => item.slug !== savedItem.slug)]
+      window.localStorage.removeItem(adminNewsDraftStorageKey)
       setSaved(true)
-      emitFloatingNotice('success', 'Đã lưu bài viết vào Supabase.')
+      queueFloatingNotice('success', 'Đã lưu bài viết vào Supabase.')
+      window.location.replace('/admin/news')
     } catch (error) {
       setSaved(false)
       emitFloatingNotice('error', `Không thể lưu bài vào Supabase: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`)
+      setSaving(false)
     }
   }
   if (loading) return <AdminSimpleCreateShell title="Đang tải bài viết" backHref="/admin/news" section="NỘI DUNG" description="Đang đọc nội dung thật từ Supabase…"><div className="rounded-xl border border-[#e6e2d7] bg-white p-6 font-body text-sm text-[#74776f]">Đang tải dữ liệu bài viết…</div></AdminSimpleCreateShell>
-  return <AdminSimpleCreateShell title={editingItem ? 'Sửa nội dung bài viết' : 'Tin mới'} backHref="/admin/news" section="NỘI DUNG" description="Soạn nội dung và lưu trực tiếp vào Supabase để trang người dùng đọc cùng một bản ghi thật." tabs={[{ id: 'news-content', label: 'Nội dung' }, { id: 'news-seo', label: 'Tối ưu hóa tìm kiếm Google' }, { id: 'news-history', label: 'Lịch sử thao tác' }]} headerActions={<AdminCreateHeaderActions formId="admin-news-create-form" cancelHref="/admin/news" saveLabel={editingItem ? 'Lưu thay đổi' : 'Xuất bản'} />}>
+  return <AdminSimpleCreateShell title={editingItem ? 'Sửa nội dung bài viết' : 'Tin mới'} backHref="/admin/news" section="NỘI DUNG" description="Soạn nội dung và lưu trực tiếp vào Supabase để trang người dùng đọc cùng một bản ghi thật." tabs={[{ id: 'news-content', label: 'Nội dung' }, { id: 'news-seo', label: 'Tối ưu hóa tìm kiếm Google' }, { id: 'news-history', label: 'Lịch sử thao tác' }]} headerActions={<AdminCreateHeaderActions formId="admin-news-create-form" cancelHref="/admin/news" saveLabel={editingItem ? 'Lưu thay đổi' : 'Xuất bản'} saving={saving} />}>
      <form id="admin-news-create-form" className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" onSubmit={saveNews}>
       <div className="min-w-0 space-y-5">
         <AdminCreatePanel id="news-content" title="Nội dung tin bài">
@@ -5510,7 +5574,7 @@ function AdminNewsCreatePageV2({ editSlug }: { editSlug?: string }) {
       </div>
       <aside className="admin-create-aside min-w-0 space-y-5">
         <AdminCreatePanel title="Ảnh đại diện"><AdminImageUpload label="Ảnh đại diện" showLabel={false} preview={coverPreview} fileName={coverFileName} onFileChange={(file) => { setCoverFile(file); setCoverFileName(file.name); setCoverPreview(URL.createObjectURL(file)) }} onClear={() => { setCoverFile(null); setCoverFileName(''); setCoverPreview('') }} /></AdminCreatePanel>
-        <AdminCreatePanel title="Hiển thị"><div className="space-y-2"><label className="flex items-center gap-2 rounded-lg border border-[#e2e5ee] px-3 py-2.5 font-body text-sm"><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={isPublished} onChange={(event) => setIsPublished(event.target.checked)} />Hiển thị trên website</label><label className="flex items-center gap-2 rounded-lg border border-[#e2e5ee] px-3 py-2.5 font-body text-sm"><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={showOnHomepage} onChange={(event) => setShowOnHomepage(event.target.checked)} />Hiển thị trên trang chủ</label><label className="flex items-center gap-2 rounded-lg border border-[#e2e5ee] px-3 py-2.5 font-body text-sm"><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={isFeatured} onChange={(event) => setIsFeatured(event.target.checked)} />Tin nổi bật</label></div></AdminCreatePanel>
+        <AdminCreatePanel title="Hiển thị"><div className="space-y-2"><label className="flex items-center gap-2 rounded-lg border border-[#e2e5ee] px-3 py-2.5 font-body text-sm"><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={isPublished} onChange={(event) => setIsPublished(event.target.checked)} />Hiển thị trên website</label><label className="flex items-center gap-2 rounded-lg border border-[#e2e5ee] px-3 py-2.5 font-body text-sm"><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={showOnNewsListing} onChange={(event) => setShowOnNewsListing(event.target.checked)} />Hiển thị trong danh sách tin</label><label className="flex items-center gap-2 rounded-lg border border-[#e2e5ee] px-3 py-2.5 font-body text-sm"><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={showOnHomepage} onChange={(event) => setShowOnHomepage(event.target.checked)} />Hiển thị trên trang chủ</label><label className="flex items-center gap-2 rounded-lg border border-[#e2e5ee] px-3 py-2.5 font-body text-sm"><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={isFeatured} onChange={(event) => setIsFeatured(event.target.checked)} />Tin nổi bật</label></div></AdminCreatePanel>
         <AdminCreatePanel title="Chọn danh mục tin"><div className="space-y-2">{[['book-notes', 'Book notes'], ['from-the-shelf', 'From the shelf'], ['reading-list', 'Reading list']].map(([value, label]) => <label className="flex items-center gap-2 rounded-lg border border-[#e2e5ee] px-3 py-2.5 font-body text-sm" key={value}><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={categorySlugs.includes(value)} onChange={(event) => setCategorySlugs((current) => event.target.checked ? [...new Set([...current, value])] : current.filter((item) => item !== value))} />{label}</label>)}</div><button className="mt-3 inline-flex min-h-9 items-center justify-center rounded-lg border border-[var(--color-olive)] px-3 font-body text-sm text-[var(--color-olive-dark)] hover:bg-[rgba(155,148,47,.08)]" type="button"><i className="bi bi-plus-lg mr-1.5" aria-hidden="true" />Thêm danh mục</button></AdminCreatePanel>
         <AdminCreatePanel title="Định dạng"><div className="space-y-2"><label className="flex items-center gap-2 rounded-lg border border-[#e2e5ee] px-3 py-2.5 font-body text-sm"><input className="h-4 w-4 accent-[var(--color-olive)]" type="radio" name="news-format" value="standard" checked={displayFormat === 'standard'} onChange={() => setDisplayFormat('standard')} />Chuẩn</label><label className="flex items-center gap-2 rounded-lg border border-[#e2e5ee] px-3 py-2.5 font-body text-sm"><input className="h-4 w-4 accent-[var(--color-olive)]" type="radio" name="news-format" value="video" checked={displayFormat === 'video'} onChange={() => setDisplayFormat('video')} />Video</label></div></AdminCreatePanel>
       </aside>
@@ -5869,7 +5933,7 @@ function AdminDashboard() {
   if (window.location.pathname === '/admin/news/new') return <AdminNewsCreatePageV2 />
   if (window.location.pathname.startsWith('/admin/news/edit/')) return <AdminNewsCreatePageV2 editSlug={window.location.pathname.split('/').pop() ?? ''} />
   if (window.location.pathname.startsWith('/admin/news/')) return <AdminNewsPreviewPage slug={window.location.pathname.split('/').pop() ?? ''} />
-  if (window.location.pathname === '/admin/news') return <AdminNewsPageV2 />
+  if (window.location.pathname === '/admin/news') return <AdminNewsPageV3 />
   if (window.location.pathname === '/admin/reviews') return <AdminReviewsPage />
   if (window.location.pathname === '/admin/menus') return <AdminMenusPage />
   if (window.location.pathname === '/admin/website') return <AdminWebsiteConfigPage />
@@ -6098,11 +6162,11 @@ export function App() {
       refreshPublicCatalog((value) => value + 1)
     }).catch(() => undefined)
 
-    const needsNews = path === '/' || path === '/news' || path.startsWith('/news/')
+    const needsNews = path === '/' || path === '/news' || path.startsWith('/news/') || ['/gioi-thieu', '/lien-he', '/chinh-sach', '/dieu-khoan'].includes(path)
     if (needsNews) loadPublicNewsPosts().then((news) => {
       if (cancelled || !news) return
       applyPublicNews(news)
-      if (path.startsWith('/news/')) setSelectedNews(getNewsFromPath(path))
+      if (path.startsWith('/news/') || ['/gioi-thieu', '/lien-he', '/chinh-sach', '/dieu-khoan'].includes(path)) setSelectedNews(getNewsFromPath(path))
       refreshPublicCatalog((value) => value + 1)
     }).catch(() => undefined)
     return () => { cancelled = true }

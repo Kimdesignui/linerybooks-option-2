@@ -77,6 +77,7 @@ export type PublicNewsPost = {
   blocksVi: PublicNewsBlock[]
   isFeatured?: boolean
   showOnHomepage?: boolean
+  showOnNewsListing?: boolean
   isPublished?: boolean
   displayFormat?: 'standard' | 'video'
   seoTitle?: string
@@ -127,6 +128,7 @@ export type NewsPostWritePayload = {
   categorySlugs?: string[]
   isFeatured?: boolean
   showOnHomepage?: boolean
+  showOnNewsListing?: boolean
   displayFormat?: 'standard' | 'video'
   isPublished?: boolean
 }
@@ -1624,6 +1626,7 @@ export async function loadPublicNewsPosts(): Promise<PublicNewsPost[] | null> {
     categorySlugs: Array.isArray(post.category_slugs) ? post.category_slugs.map(String) : [],
     isFeatured: Boolean(post.is_featured),
     showOnHomepage: Boolean(post.show_on_homepage),
+    showOnNewsListing: post.show_on_news_listing == null ? true : Boolean(post.show_on_news_listing),
     isPublished: true,
     displayFormat: (post.display_format === 'video' ? 'video' : 'standard') as PublicNewsPost['displayFormat'],
   }
@@ -1689,6 +1692,7 @@ export async function loadAdminNewsPosts(): Promise<AdminNewsPost[]> {
       categorySlugs: Array.isArray(post.category_slugs) ? post.category_slugs.map(String) : [],
       isFeatured: Boolean(post.is_featured),
       showOnHomepage: Boolean(post.show_on_homepage),
+      showOnNewsListing: post.show_on_news_listing == null ? true : Boolean(post.show_on_news_listing),
       isPublished: String(post.status ?? 'draft') === 'active',
       displayFormat: (post.display_format === 'video' ? 'video' : 'standard') as PublicNewsPost['displayFormat'],
     }
@@ -1718,11 +1722,12 @@ const newsWriteRow = (payload: NewsPostWritePayload) => ({
   category_slugs: payload.categorySlugs ?? [],
   is_featured: Boolean(payload.isFeatured),
   show_on_homepage: Boolean(payload.showOnHomepage),
+  show_on_news_listing: payload.showOnNewsListing !== false,
   display_format: payload.displayFormat ?? 'standard',
 })
 
 const newsPostLegacyFields = 'id,slug,content_type,status,published_at,image_storage_path,title_en,title_vi,kicker_en,kicker_vi,excerpt_en,excerpt_vi,body_en,body_vi,byline'
-const newsPostMetadataFields = `${newsPostLegacyFields},seo_title_en,seo_title_vi,seo_description_en,seo_description_vi,seo_keywords,category_slugs,is_featured,show_on_homepage,display_format`
+const newsPostMetadataFields = `${newsPostLegacyFields},seo_title_en,seo_title_vi,seo_description_en,seo_description_vi,seo_keywords,category_slugs,is_featured,show_on_homepage,show_on_news_listing,display_format`
 
 const loadNewsPostRows = async (admin: boolean) => {
   const client = supabase
@@ -1742,7 +1747,7 @@ export async function upsertNewsPost(payload: NewsPostWritePayload): Promise<{ i
   const fullRow = newsWriteRow(payload)
   let { data, error } = await client.from('news_posts').upsert(fullRow, { onConflict: 'slug' }).select('id,slug').single()
   if (error && /column|schema cache|could not find/i.test(error.message ?? '')) {
-    const { seo_title_en: _seoTitleEn, seo_title_vi: _seoTitleVi, seo_description_en: _seoDescriptionEn, seo_description_vi: _seoDescriptionVi, seo_keywords: _seoKeywords, category_slugs: _categorySlugs, is_featured: _isFeatured, show_on_homepage: _showOnHomepage, display_format: _displayFormat, ...legacyRow } = fullRow
+    const { seo_title_en: _seoTitleEn, seo_title_vi: _seoTitleVi, seo_description_en: _seoDescriptionEn, seo_description_vi: _seoDescriptionVi, seo_keywords: _seoKeywords, category_slugs: _categorySlugs, is_featured: _isFeatured, show_on_homepage: _showOnHomepage, show_on_news_listing: _showOnNewsListing, display_format: _displayFormat, ...legacyRow } = fullRow
     const legacyResult = await client.from('news_posts').upsert(legacyRow, { onConflict: 'slug' }).select('id,slug').single()
     data = legacyResult.data
     error = legacyResult.error
@@ -1783,6 +1788,14 @@ export async function upsertNewsPost(payload: NewsPostWritePayload): Promise<{ i
   if (historyError && !/relation .*news_post_history.*does not exist|schema cache/i.test(historyError.message ?? '')) throw historyError
   publicNewsPromise = null
   return post
+}
+
+export async function updateNewsPostListingVisibility(id: string, visible: boolean): Promise<void> {
+  const client = supabase
+  if (!client) throw new Error('Supabase chưa được cấu hình.')
+  const { error } = await client.from('news_posts').update({ show_on_news_listing: visible }).eq('id', id)
+  if (error) throw error
+  publicNewsPromise = null
 }
 
 export async function upsertCreatorProfile(payload: CreatorWritePayload): Promise<{ id: string; slug: string }> {
