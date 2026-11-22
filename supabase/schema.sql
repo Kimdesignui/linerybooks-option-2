@@ -54,6 +54,7 @@ create table public.books (
   slug text not null unique,
   path text not null unique,
   description_html text,
+  description_html_vi text,
   cover_price_usd numeric(12,2),
   sale_price_vnd numeric(12,0) not null default 0,
   compare_price_vnd numeric(12,0),

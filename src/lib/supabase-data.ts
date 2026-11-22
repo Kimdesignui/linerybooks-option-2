@@ -34,6 +34,7 @@ export type PublicCatalogProduct = {
   sampleFileType?: 'pdf' | 'epub'
   samplePdfEnabled?: boolean
   description: string
+  descriptionVi?: string
   coverPriceUsd: number | null
   comparePriceVnd: number | null
   pageCount: number | null
@@ -196,6 +197,19 @@ export type AdminOrderRow = {
   itemCount: number
 }
 
+export type AdminBookSalesRow = {
+  id: string
+  orderId: string
+  orderNumber: string
+  status: string
+  paymentStatus: string
+  quantity: number
+  unitPriceVnd: number
+  lineTotalVnd: number
+  createdAt: string
+  customer: string
+}
+
 export type AdminTopBookRow = { title: string; quantity: number; revenueVnd: number }
 
 export type AdminDashboardSummary = {
@@ -260,6 +274,19 @@ export type AdminMenuItemRow = {
   isActive: boolean
 }
 
+export type AdminSidebarMenuItemRow = {
+  id: string
+  menuKey: string
+  label: string
+  href: string
+  icon: string
+  section: string
+  parentKey: string | null
+  sortOrder: number
+  isActive: boolean
+  isGroup: boolean
+}
+
 export type AdminPromotionRow = {
   id: string
   code: string
@@ -319,8 +346,10 @@ export type AdminBookInput = {
   title: string
   slug: string
   descriptionHtml?: string
+  descriptionViHtml?: string
   coverPriceUsd?: number | null
   salePriceVnd: number
+  inventoryQuantity?: number
   comparePriceVnd?: number | null
   pageCount?: number | null
   bookSize?: string
@@ -347,6 +376,75 @@ export type AdminBookSaveProgress = {
   stage: 'validating' | 'uploading-sample' | 'uploading-covers' | 'creating-book' | 'linking-data' | 'finishing'
   percent: number
   message: string
+}
+
+const importDependencySlug = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+const importDependencyKey = (value: string) => value.trim().toLocaleLowerCase('vi').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd')
+
+/** Create missing creator/taxonomy records once before a bulk book import. */
+export async function ensureAdminBookImportDependencies(inputs: AdminBookInput[]): Promise<{ creators: string[]; taxonomy: string[] }> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const creatorRequests = new Map<string, { name: string; roles: Array<'author' | 'translator' | 'illustrator'> }>()
+  inputs.forEach((input) => {
+    ;(['authors', 'translators', 'illustrators'] as const).forEach((field) => {
+      const role = field === 'authors' ? 'author' : field === 'translators' ? 'translator' : 'illustrator'
+      ;(input[field] ?? []).map((name) => name.trim()).filter(Boolean).forEach((name) => {
+        const key = importDependencyKey(name)
+        const current = creatorRequests.get(key) ?? { name, roles: [] }
+        if (!current.roles.includes(role)) current.roles.push(role)
+        creatorRequests.set(key, current)
+      })
+    })
+  })
+  const creatorResult = await supabase.from('creators').select('display_name,slug')
+  if (creatorResult.error) throw creatorResult.error
+  const creatorRows = (creatorResult.data ?? []) as Array<{ display_name?: string; slug?: string }>
+  const existingCreators = new Set(creatorRows.map((row) => importDependencyKey(String(row.display_name ?? ''))))
+  const usedCreatorSlugs = new Set(creatorRows.map((row) => String(row.slug ?? '')).filter(Boolean))
+  const createdCreators: string[] = []
+  for (const request of creatorRequests.values()) {
+    if (existingCreators.has(importDependencyKey(request.name))) continue
+    const baseSlug = importDependencySlug(request.name) || `creator-${Date.now()}`
+    let slug = baseSlug
+    let suffix = 2
+    while (usedCreatorSlugs.has(slug)) slug = `${baseSlug}-${suffix++}`
+    await upsertCreatorProfile({ displayName: request.name, slug, roles: request.roles })
+    existingCreators.add(importDependencyKey(request.name))
+    usedCreatorSlugs.add(slug)
+    createdCreators.push(request.name)
+  }
+
+  const taxonomyInputs: Array<{ kind: AdminTaxonomyKind; names: string[] }> = [
+    { kind: 'category', names: inputs.flatMap((input) => input.categories ?? []) },
+    { kind: 'genre', names: inputs.flatMap((input) => input.genres ?? []) },
+    { kind: 'topic', names: inputs.flatMap((input) => input.topics ?? []) },
+    { kind: 'format', names: inputs.flatMap((input) => input.formats ?? []) },
+    { kind: 'line', names: inputs.flatMap((input) => input.lines ?? []) },
+    { kind: 'publisher', names: inputs.flatMap((input) => input.publishers ?? []) },
+    { kind: 'imprint', names: inputs.flatMap((input) => input.imprints ?? []) },
+    { kind: 'language', names: inputs.flatMap((input) => input.languages ?? []) },
+  ]
+  const taxonomyResult = await supabase.from('taxonomy_terms').select('kind,name,slug')
+  if (taxonomyResult.error) throw taxonomyResult.error
+  const taxonomyRows = (taxonomyResult.data ?? []) as Array<{ kind?: string; name?: string; slug?: string }>
+  const existingTerms = new Set(taxonomyRows.map((row) => `${row.kind}:${importDependencyKey(String(row.name ?? ''))}`))
+  const usedTermSlugs = new Set(taxonomyRows.map((row) => String(row.slug ?? '')).filter(Boolean))
+  const createdTaxonomy: string[] = []
+  for (const entry of taxonomyInputs) {
+    for (const rawName of [...new Set(entry.names.map((name) => name.trim()).filter(Boolean))]) {
+      const key = `${entry.kind}:${importDependencyKey(rawName)}`
+      if (existingTerms.has(key)) continue
+      const baseSlug = importDependencySlug(rawName) || `${entry.kind}-${Date.now()}`
+      let slug = baseSlug
+      let suffix = 2
+      while (usedTermSlugs.has(slug)) slug = `${baseSlug}-${suffix++}`
+      await createAdminTaxonomyTerm({ name: rawName, slug, kind: entry.kind })
+      existingTerms.add(key)
+      usedTermSlugs.add(slug)
+      createdTaxonomy.push(`${entry.kind}=${rawName}`)
+    }
+  }
+  return { creators: createdCreators, taxonomy: createdTaxonomy }
 }
 
 export type AdminTaxonomyKind = 'category' | 'topic' | 'format' | 'line' | 'genre' | 'publisher' | 'imprint' | 'language'
@@ -804,6 +902,17 @@ export async function loadAdminOrders(): Promise<AdminOrderRow[]> {
   })
 }
 
+export async function loadAdminBookSales(bookId: string): Promise<AdminBookSalesRow[]> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { data, error } = await supabase.from('order_items').select('id,order_id,quantity,unit_price_vnd,line_total_vnd,created_at,orders(order_number,status,payment_status,guest_email,user_id)').eq('book_id', bookId).order('created_at', { ascending: false })
+  if (error) throw error
+  return ((data ?? []) as Array<Record<string, unknown>>).flatMap((row) => {
+    const order = Array.isArray(row.orders) ? row.orders[0] as Record<string, unknown> | undefined : row.orders as Record<string, unknown> | null
+    if (!order) return []
+    return [{ id: String(row.id), orderId: String(row.order_id), orderNumber: String(order.order_number ?? ''), status: String(order.status ?? 'pending'), paymentStatus: String(order.payment_status ?? 'unpaid'), quantity: Number(row.quantity ?? 0), unitPriceVnd: Number(row.unit_price_vnd ?? 0), lineTotalVnd: Number(row.line_total_vnd ?? 0), createdAt: String(order.created_at ?? row.created_at ?? ''), customer: String(order.guest_email ?? order.user_id ?? 'Khách hàng') }]
+  })
+}
+
 export async function loadAdminDashboardSummary(): Promise<AdminDashboardSummary> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const [books, orders, creators, news, recentOrders] = await Promise.all([
@@ -954,6 +1063,32 @@ export async function loadAdminMenuItems(): Promise<AdminMenuItemRow[]> {
 export async function updateAdminMenuItem(item: AdminMenuItemRow): Promise<void> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const { error } = await supabase.from('site_menu_items').update({ label: item.label.trim(), href: item.href.trim(), sort_order: item.sortOrder, is_active: item.isActive, updated_at: new Date().toISOString() }).eq('id', item.id)
+  if (error) throw error
+}
+
+export async function loadAdminSidebarMenuItems(): Promise<AdminSidebarMenuItemRow[]> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { data, error } = await supabase.from('admin_sidebar_menu_items').select('id,menu_key,label,href,icon,section,parent_key,sort_order,is_active,is_group').order('sort_order', { ascending: true })
+  if (error) throw error
+  return ((data ?? []) as Array<Record<string, unknown>>).map((item) => ({ id: String(item.id), menuKey: String(item.menu_key ?? ''), label: String(item.label ?? ''), href: String(item.href ?? ''), icon: String(item.icon ?? 'bi-circle'), section: String(item.section ?? 'Hệ thống'), parentKey: item.parent_key == null ? null : String(item.parent_key), sortOrder: Number(item.sort_order ?? 0), isActive: Boolean(item.is_active), isGroup: Boolean(item.is_group) }))
+}
+
+export async function createAdminSidebarMenuItem(item: Omit<AdminSidebarMenuItemRow, 'id'>): Promise<AdminSidebarMenuItemRow> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { data, error } = await supabase.from('admin_sidebar_menu_items').insert({ menu_key: item.menuKey.trim(), label: item.label.trim(), href: item.href.trim(), icon: item.icon.trim() || 'bi-circle', section: item.section.trim(), parent_key: item.parentKey || null, sort_order: item.sortOrder, is_active: item.isActive, is_group: item.isGroup }).select('id,menu_key,label,href,icon,section,parent_key,sort_order,is_active,is_group').single()
+  if (error) throw error
+  return (await loadAdminSidebarMenuItems()).find((row) => row.id === String((data as Record<string, unknown>).id)) as AdminSidebarMenuItemRow
+}
+
+export async function updateAdminSidebarMenuItem(item: AdminSidebarMenuItemRow): Promise<void> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { error } = await supabase.from('admin_sidebar_menu_items').update({ menu_key: item.menuKey.trim(), label: item.label.trim(), href: item.href.trim(), icon: item.icon.trim() || 'bi-circle', section: item.section.trim(), parent_key: item.parentKey || null, sort_order: item.sortOrder, is_active: item.isActive, is_group: item.isGroup, updated_at: new Date().toISOString() }).eq('id', item.id)
+  if (error) throw error
+}
+
+export async function deleteAdminSidebarMenuItem(id: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const { error } = await supabase.from('admin_sidebar_menu_items').delete().eq('id', id)
   if (error) throw error
 }
 
@@ -1151,7 +1286,7 @@ export async function createAdminBook(input: AdminBookInput, coverFiles: File[] 
   }))
   uploadedPaths.push(...uploadedCoverPaths)
   onProgress?.({ stage: 'creating-book', percent: 62, message: 'Đang tạo bản ghi sách…' })
-  const { data: book, error: bookError } = await supabase.from('books').insert({ isbn: input.isbn.trim() || null, title: input.title.trim(), slug: input.slug.trim(), path: `/books/${input.slug.trim()}`, description_html: input.descriptionHtml?.trim() || null, cover_price_usd: input.coverPriceUsd ?? null, sale_price_vnd: input.salePriceVnd, compare_price_vnd: input.comparePriceVnd ?? null, page_count: input.pageCount ?? null, book_size: input.bookSize?.trim() || null, publication_date: input.publicationDate || null, weight: input.weight?.trim() || null, cover_storage_path: uploadedPaths[0] ?? null, sample_pdf_storage_path: sampleStoragePath, sample_pdf_page_count: sampleFile ? input.samplePageCount ?? null : null, sample_pdf_enabled: Boolean(sampleStoragePath), sample_file_type: sampleFile && (/\.epub$/i.test(sampleFile.name) || /epub/i.test(sampleFile.type)) ? 'epub' : 'pdf', status: input.isVisibleWebsite ? 'active' : 'draft', is_visible_website: input.isVisibleWebsite, inventory_quantity: 0 }).select('id').single()
+  const { data: book, error: bookError } = await supabase.from('books').insert({ isbn: input.isbn.trim() || null, title: input.title.trim(), slug: input.slug.trim(), path: `/books/${input.slug.trim()}`, description_html: input.descriptionHtml?.trim() || null, description_html_vi: input.descriptionViHtml?.trim() || null, cover_price_usd: input.coverPriceUsd ?? null, sale_price_vnd: input.salePriceVnd, compare_price_vnd: input.comparePriceVnd ?? null, page_count: input.pageCount ?? null, book_size: input.bookSize?.trim() || null, publication_date: input.publicationDate || null, weight: input.weight?.trim() || null, cover_storage_path: uploadedPaths[0] ?? null, sample_pdf_storage_path: sampleStoragePath, sample_pdf_page_count: sampleFile ? input.samplePageCount ?? null : null, sample_pdf_enabled: Boolean(sampleStoragePath), sample_file_type: sampleFile && (/\.epub$/i.test(sampleFile.name) || /epub/i.test(sampleFile.type)) ? 'epub' : 'pdf', status: input.isVisibleWebsite ? 'active' : 'draft', is_visible_website: input.isVisibleWebsite, inventory_quantity: input.inventoryQuantity ?? 0 }).select('id').single()
   if (bookError) {
     if (sampleStoragePath) await supabase.storage.from('book-samples').remove([sampleStoragePath])
     if (uploadedPaths.length) await supabase.storage.from('site-media').remove(uploadedPaths)
@@ -1235,6 +1370,18 @@ export async function deleteAdminBook(id: string): Promise<void> {
   if (error) throw error
 }
 
+export async function deleteAdminBooksByPublisher(publisherName: string): Promise<number> {
+  if (!supabase) throw new Error('Supabase chưa được cấu hình.')
+  const publisher = await supabase.from('taxonomy_terms').select('id').eq('kind', 'publisher').eq('name', publisherName).maybeSingle()
+  if (publisher.error) throw publisher.error
+  if (!publisher.data?.id) return 0
+  const links = await supabase.from('book_taxonomy_terms').select('book_id').eq('term_id', publisher.data.id)
+  if (links.error) throw links.error
+  const bookIds = [...new Set(((links.data ?? []) as Array<{ book_id?: string }>).map((row) => row.book_id).filter((id): id is string => Boolean(id)))]
+  for (const bookId of bookIds) await deleteAdminBook(bookId)
+  return bookIds.length
+}
+
 export async function updateAdminBook(id: string, input: AdminBookInput, coverFiles: File[] = [], onProgress?: (progress: AdminBookSaveProgress) => void): Promise<void> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   onProgress?.({ stage: 'validating', percent: 5, message: 'Đang kiểm tra bản ghi sách hiện tại…' })
@@ -1257,7 +1404,7 @@ export async function updateAdminBook(id: string, input: AdminBookInput, coverFi
   }))
   uploadedPaths.push(...uploadedCoverPaths)
   onProgress?.({ stage: 'creating-book', percent: 62, message: 'Đang cập nhật thông tin sách…' })
-  const { error: bookError } = await supabase.from('books').update({ isbn: input.isbn.trim() || null, title: input.title.trim(), slug: input.slug.trim(), path: `/books/${input.slug.trim()}`, description_html: input.descriptionHtml?.trim() || null, cover_price_usd: input.coverPriceUsd ?? null, sale_price_vnd: input.salePriceVnd, compare_price_vnd: input.comparePriceVnd ?? null, page_count: input.pageCount ?? null, book_size: input.bookSize?.trim() || null, publication_date: input.publicationDate || null, weight: input.weight?.trim() || null, ...(uploadedPaths.length ? { cover_storage_path: uploadedPaths[0] } : {}), ...(sampleStoragePath ? { sample_pdf_storage_path: sampleStoragePath, sample_pdf_page_count: input.samplePageCount ?? null, sample_pdf_enabled: true, sample_file_type: /epub/i.test(input.sampleFile?.type ?? '') || /\.epub$/i.test(input.sampleFile?.name ?? '') ? 'epub' : 'pdf' } : {}), status: input.isVisibleWebsite ? 'active' : 'draft', is_visible_website: input.isVisibleWebsite }).eq('id', id)
+  const { error: bookError } = await supabase.from('books').update({ isbn: input.isbn.trim() || null, title: input.title.trim(), slug: input.slug.trim(), path: `/books/${input.slug.trim()}`, description_html: input.descriptionHtml?.trim() || null, description_html_vi: input.descriptionViHtml?.trim() || null, cover_price_usd: input.coverPriceUsd ?? null, sale_price_vnd: input.salePriceVnd, compare_price_vnd: input.comparePriceVnd ?? null, page_count: input.pageCount ?? null, book_size: input.bookSize?.trim() || null, publication_date: input.publicationDate || null, weight: input.weight?.trim() || null, ...(uploadedPaths.length ? { cover_storage_path: uploadedPaths[0] } : {}), ...(sampleStoragePath ? { sample_pdf_storage_path: sampleStoragePath, sample_pdf_page_count: input.samplePageCount ?? null, sample_pdf_enabled: true, sample_file_type: /epub/i.test(input.sampleFile?.type ?? '') || /\.epub$/i.test(input.sampleFile?.name ?? '') ? 'epub' : 'pdf' } : {}), status: input.isVisibleWebsite ? 'active' : 'draft', is_visible_website: input.isVisibleWebsite }).eq('id', id)
   if (bookError) throw bookError
   if (uploadedPaths.length) {
     const oldImages = await supabase.from('book_images').select('storage_path').eq('book_id', id)
@@ -1377,7 +1524,7 @@ export async function loadPublicCatalogProducts(options?: { includeHidden?: bool
   if (includeHidden && adminCatalogPromise) return adminCatalogPromise
   if (!includeHidden && publicCatalogPromise) return publicCatalogPromise
   const loadPromise = (async () => {
-    let booksQuery = supabase.from('books').select('id,isbn,title,slug,description_html,cover_price_usd,sale_price_vnd,compare_price_vnd,page_count,book_size,publication_date,weight,inventory_quantity,reserved_inventory_quantity,cover_storage_path,is_visible_website,status,sample_pdf_storage_path,sample_pdf_page_count,sample_pdf_enabled,sample_file_type').order('created_at', { ascending: false })
+    let booksQuery = supabase.from('books').select('id,isbn,title,slug,description_html,description_html_vi,cover_price_usd,sale_price_vnd,compare_price_vnd,page_count,book_size,publication_date,weight,inventory_quantity,reserved_inventory_quantity,cover_storage_path,is_visible_website,status,sample_pdf_storage_path,sample_pdf_page_count,sample_pdf_enabled,sample_file_type').order('created_at', { ascending: false })
     if (!includeHidden) booksQuery = booksQuery.eq('status', 'active').eq('is_visible_website', true)
     const books = await booksQuery
     const error = books.error
@@ -1455,6 +1602,7 @@ export async function loadPublicCatalogProducts(options?: { includeHidden?: bool
       moduleSlugs: unique(linkedModules.flatMap((row) => asArray(row.homepage_modules).map((module) => module.slug))),
       moduleSortOrders,
       description: String(book.description_html ?? ''),
+      descriptionVi: String(book.description_html_vi ?? ''),
       samplePdfUrl: Boolean(book.sample_pdf_enabled && book.sample_pdf_storage_path) ? publicBookSampleUrl(String(book.sample_pdf_storage_path)) : undefined,
       samplePdfPageCount: book.sample_pdf_page_count == null ? undefined : Number(book.sample_pdf_page_count),
       sampleFileType: book.sample_file_type === 'epub' || /\.epub(?:$|\?)/i.test(String(book.sample_pdf_storage_path ?? '')) ? 'epub' : 'pdf',
@@ -1853,9 +2001,11 @@ export async function saveAdminCreatorImages(creatorId: string, files: File[]): 
 
 export async function deleteAdminCreator(id: string): Promise<void> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
-  const linkedBooks = await supabase.from('book_creators').select('book_id').eq('creator_id', id).limit(1)
-  if (linkedBooks.error) throw linkedBooks.error
-  if ((linkedBooks.data ?? []).length) throw new Error('Không thể xóa tác giả đang được liên kết với sách. Hãy tắt hiển thị hoặc gỡ liên kết sách trước.')
+  // Xóa liên kết trước khi xóa hồ sơ. Nếu không, hồ sơ có thể bị kẹt do
+  // khóa ngoại, trong khi giao diện vẫn còn hiển thị tác giả đã bị xóa ở nơi khác.
+  // Sách được giữ nguyên; chỉ gỡ tác giả khỏi các sách đang tham chiếu.
+  const removeBookLinks = await supabase.from('book_creators').delete().eq('creator_id', id)
+  if (removeBookLinks.error) throw removeBookLinks.error
   const images = await supabase.from('creator_images').select('storage_path').eq('creator_id', id)
   if (images.error) throw images.error
   const removeImages = await supabase.from('creator_images').delete().eq('creator_id', id)

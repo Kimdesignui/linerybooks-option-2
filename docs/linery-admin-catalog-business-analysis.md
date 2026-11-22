@@ -433,6 +433,10 @@ erDiagram
 | Xóa danh mục/tác giả/khổ sách | Đang đề xuất | Lưu trữ mềm, không xóa bản ghi đang được tham chiếu |
 | Tồn kho sau đơn hàng | Chưa đủ | Cần bảng movement/reservation để tránh bán vượt tồn |
 | Ảnh sách | Chưa đủ | Cần chốt Supabase Storage và quyền upload |
+| SEO catalog sách | Chưa đủ | Cần thêm metadata đa ngôn ngữ, JSON-LD, canonical và sitemap động |
+| SEO tác giả/danh mục/trang tĩnh | Chưa đủ | Cần bộ trường SEO riêng và quy tắc fallback theo ngôn ngữ |
+| Ảnh thumbnail/WebP | Chưa đủ | Cần pipeline tạo ảnh dẫn xuất, lưu metadata và dùng thumbnail cho danh sách |
+| Đo lường SEO và hiệu năng | Chưa đủ | Cần checklist Lighthouse, Core Web Vitals và kiểm tra dung lượng ảnh trước/sau |
 | Lịch sử thay đổi | Chưa đủ | Cần audit log cho giá, tồn kho và trạng thái |
 
 ### 6.1. Kết quả tự kiểm tra ngược tài liệu và SQL
@@ -497,4 +501,107 @@ Trạng thái sách: `draft`, `active`, `out_of_stock`, `archived`.
 - Phương thức nào dùng sandbox/production.
 - Có cần nhiều QR theo điểm bán, kênh bán hoặc loại tiền tệ không.
 - Ai được xem số tài khoản và ai được xác nhận giao dịch thủ công.
+
+### 2.14. SEO và hiệu năng hình ảnh
+
+#### 2.14.1. Mục tiêu nghiệp vụ
+
+Hệ thống phải có sẵn bộ thông tin SEO (tối ưu hiển thị trên công cụ tìm kiếm) cho mọi nội dung có URL công khai: sách, tác giả, danh mục, bộ sưu tập, tin tức, eMagazine và các trang giới thiệu/liên hệ/chính sách.
+
+SEO không được phụ thuộc vào việc nhân viên sửa code. Quản trị viên phải nhập, xem trước và kiểm tra được các thông tin SEO ngay trong màn hình quản trị nội dung tương ứng.
+
+#### 2.14.2. Bộ trường SEO theo nội dung
+
+| Nhóm nội dung | Trường quản trị tối thiểu | Quy tắc |
+|---|---|---|
+| Tất cả trang công khai | SEO title, SEO description, ảnh chia sẻ, canonical URL, trạng thái lập chỉ mục | Có thể dùng giá trị tự động khi để trống; canonical phải là URL chuẩn của chính nội dung |
+| Sách | SEO title, SEO description, từ khóa, ảnh chia sẻ, alt ảnh bìa | Mặc định lấy tên sách, tác giả, nhà xuất bản và mô tả đã nhập; không bịa nội dung |
+| Tác giả | SEO title, SEO description, ảnh chia sẻ, alt ảnh chân dung | Mặc định lấy tên, giới thiệu và các tác phẩm liên quan |
+| Danh mục/chủ đề | SEO title, SEO description, ảnh chia sẻ | Mặc định lấy tên và mô tả danh mục |
+| Tin tức/eMagazine | SEO title tiếng Anh/tiếng Việt, SEO description tiếng Anh/tiếng Việt, từ khóa, ảnh chia sẻ | Đã có nền tảng metadata đa ngôn ngữ; cần thống nhất với sách và tác giả |
+| Trang tĩnh | SEO title, SEO description, ảnh chia sẻ, trạng thái index/noindex | Áp dụng cho giới thiệu, liên hệ, chính sách và các trang footer |
+
+#### 2.14.3. Quy tắc đa ngôn ngữ
+
+- Nội dung tiếng Anh và tiếng Việt là hai giá trị độc lập, không tự sinh nội dung giả.
+- Khi người dùng chọn English, dùng title, description và nội dung tiếng Anh.
+- Khi người dùng chọn Tiếng Việt, dùng title, description và nội dung tiếng Việt.
+- Nếu bản dịch chưa có, hệ thống dùng bản mặc định đã được duyệt và hiển thị trạng thái thiếu bản dịch trong Admin.
+- URL sách/tác giả/danh mục giữ slug ổn định; không tự đổi slug khi đổi ngôn ngữ.
+- Tài liệu kỹ thuật phải bổ sung quy tắc `hreflang` (khai báo phiên bản ngôn ngữ tương ứng) và canonical cho từng URL công khai.
+
+#### 2.14.4. Thành phần SEO tự động
+
+Mỗi URL công khai phải tự sinh và cập nhật:
+
+- thẻ `title` và `meta description`;
+- canonical URL;
+- thẻ Open Graph (thông tin xem trước khi chia sẻ mạng xã hội);
+- Twitter Card;
+- `robots` theo trạng thái hiển thị;
+- JSON-LD (dữ liệu có cấu trúc) phù hợp với loại nội dung: `Product`, `Person`, `Article`, `BreadcrumbList`, `Organization` và `WebSite`;
+- sitemap động gồm sách, tác giả, danh mục, bộ sưu tập, bài viết và trang tĩnh được phép lập chỉ mục;
+- `robots.txt` trỏ tới sitemap chính.
+
+Không lập chỉ mục các trang Admin, đăng nhập, giỏ hàng, thanh toán, trình đọc thử và các trang nội bộ không có giá trị tìm kiếm.
+
+#### 2.14.5. Nguyên tắc xử lý ảnh
+
+Ảnh gốc luôn được giữ lại để dùng cho trang chi tiết, lightbox (hộp xem ảnh lớn), tải xuống nội bộ hoặc khôi phục. Không ghi đè ảnh gốc khi tối ưu dung lượng.
+
+Sau khi upload, hệ thống tạo các phiên bản dẫn xuất:
+
+| Phiên bản | Mục đích | Kích thước tham chiếu |
+|---|---|---:|
+| Original | Lưu trữ, chi tiết, lightbox | Giữ nguyên, có giới hạn an toàn |
+| Large | Trang chi tiết | Rộng tối đa 1200px |
+| Medium | Trang chủ, bộ sưu tập | Rộng tối đa 600px |
+| Thumbnail | Danh sách sách, tìm kiếm, liên quan | Rộng khoảng 240–320px |
+| Social/OG | Chia sẻ mạng xã hội | Theo tỷ lệ và kích thước chuẩn từng kênh |
+
+Quy tắc định dạng và tải ảnh:
+
+- Phiên bản dẫn xuất ưu tiên WebP; có thể bổ sung AVIF ở giai đoạn sau nếu môi trường triển khai ổn định.
+- Giữ ảnh gốc JPEG/PNG/PDF nguồn khi cần đối chiếu hoặc xử lý lại.
+- Trang danh sách sách chỉ tải `thumbnail` WebP, không tải ảnh gốc.
+- Trang chủ dùng `medium` hoặc `large` tùy vị trí hiển thị.
+- Trang chi tiết dùng `large`; lightbox dùng ảnh gốc hoặc `large` tùy độ phân giải màn hình.
+- Dùng `srcset` và `sizes` (nhiều kích thước ảnh theo bề rộng màn hình) để trình duyệt chọn file nhỏ nhất phù hợp.
+- Ảnh ngoài vùng nhìn đầu tiên dùng lazy loading (tải lười); ảnh chính đầu trang được tải sớm.
+- Mỗi ảnh phải có alt text (văn bản thay thế) có nghĩa; ảnh trang trí dùng alt rỗng.
+- Không tạo file WebP bằng cách đổi phần mở rộng; phải mã hóa lại và ghi nhận MIME type, kích thước, dung lượng và chiều rộng/chiều cao.
+
+#### 2.14.6. Dữ liệu media cần quản lý
+
+Mỗi media asset (tài nguyên ảnh) cần có:
+
+- đường dẫn ảnh gốc;
+- đường dẫn từng phiên bản `large`, `medium`, `thumbnail`, `social`;
+- MIME type, dung lượng, chiều rộng, chiều cao;
+- alt text tiếng Anh/tiếng Việt nếu nội dung có đa ngôn ngữ;
+- vai trò ảnh: cover, gallery, portrait, hero, content hoặc og;
+- trạng thái xử lý: chờ, thành công, lỗi;
+- người upload, thời điểm upload và phiên bản xử lý.
+
+Nếu tạo thumbnail thất bại, hệ thống vẫn giữ bản gốc và báo lỗi xử lý; không được làm mất ảnh đang hiển thị.
+
+#### 2.14.7. Tiêu chí nghiệm thu
+
+1. Một sách có thể nhập SEO tiếng Anh và tiếng Việt độc lập.
+2. Khi đổi ngôn ngữ website, title, description, ảnh chia sẻ và JSON-LD đổi theo đúng ngôn ngữ.
+3. Trang Admin và các trang giao dịch không xuất hiện trong sitemap công khai.
+4. Danh sách sách không tải ảnh gốc khi thumbnail đã có.
+5. Trang chi tiết vẫn hiển thị ảnh lớn, không bị giảm chất lượng bởi thumbnail.
+6. Ảnh thiếu hoặc lỗi vẫn có ảnh Linery mặc định và không tạo bố cục vỡ.
+7. Có thể truy nguyên ảnh dẫn xuất từ ảnh gốc và tạo lại thumbnail khi thay đổi quy tắc nén.
+8. Kiểm tra Lighthouse (công cụ đánh giá hiệu năng và SEO) phải không có lỗi thiếu title, description, alt text, canonical hoặc ảnh quá lớn trong danh sách.
+9. Kiểm tra trên desktop, iPad ngang/dọc và mobile không có tràn ngang, nhấp nháy ảnh hoặc layout shift (xô lệch bố cục khi ảnh tải).
+
+#### 2.14.8. Phân kỳ triển khai
+
+- **Giai đoạn BA/thiết kế:** chốt trường dữ liệu, quyền sửa, fallback, quy tắc URL và vai trò media.
+- **Giai đoạn nền tảng:** migration dữ liệu, media variants, xử lý upload, alt text và các trường SEO cho sách/tác giả/danh mục.
+- **Giai đoạn storefront:** dùng thumbnail WebP, `srcset`, lazy loading, metadata động, JSON-LD và sitemap động.
+- **Giai đoạn dữ liệu cũ:** tạo lại thumbnail cho ảnh bìa hiện có, kiểm tra ảnh lỗi, bổ sung alt text và báo cáo các bản ghi thiếu SEO.
+- **Giai đoạn nghiệm thu:** đo dung lượng trước/sau, thời gian tải, Core Web Vitals (chỉ số trải nghiệm tải trang), lập chỉ mục thử và kiểm tra giao diện đa thiết bị.
 
