@@ -66,6 +66,7 @@ export type PublicNewsPost = {
   title: string
   titleVi: string
   date: string
+  publishedAt?: string
   kicker: string
   slug: string
   excerpt: string
@@ -1758,6 +1759,7 @@ export async function loadPublicNewsPosts(): Promise<PublicNewsPost[] | null> {
     title: String(post.title_en ?? ''),
     titleVi: String(post.title_vi ?? ''),
     date: post.published_at ? new Date(String(post.published_at)).toLocaleDateString('en-GB') : '',
+    publishedAt: String(post.published_at ?? ''),
     kicker: String(post.kicker_en ?? ''),
     slug: String(post.slug ?? ''),
     excerpt: String(post.excerpt_en ?? ''),
@@ -1824,6 +1826,7 @@ export async function loadAdminNewsPosts(): Promise<AdminNewsPost[]> {
       title: String(post.title_en ?? ''),
       titleVi: String(post.title_vi ?? ''),
       date: post.published_at ? new Date(String(post.published_at)).toLocaleDateString('en-GB') : '',
+      publishedAt: String(post.published_at ?? ''),
       kicker: String(post.kicker_en ?? ''),
       slug: String(post.slug ?? ''),
       excerpt: String(post.excerpt_en ?? ''),
