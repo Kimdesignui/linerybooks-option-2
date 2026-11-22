@@ -3215,12 +3215,13 @@ function AdminTableFooter({ total, pageSize, onPageSizeChange, page = 1, onPageC
 }
 
 type AdminFilterOption = { label: string; value: string }
-function AdminTableFilterBar({ query, onQueryChange, queryPlaceholder = 'Tìm kiếm', filters, onClear, action }: { query: string; onQueryChange: (value: string) => void; queryPlaceholder?: string; filters: Array<{ label: string; value: string; options: AdminFilterOption[]; onChange: (value: string) => void }>; onClear?: () => void; action?: ReactNode }) {
+function AdminTableFilterBar({ query, onQueryChange, queryPlaceholder = 'Tìm kiếm', filters, onClear, action, bulkDelete }: { query: string; onQueryChange: (value: string) => void; queryPlaceholder?: string; filters: Array<{ label: string; value: string; options: AdminFilterOption[]; onChange: (value: string) => void }>; onClear?: () => void; action?: ReactNode; bulkDelete?: { count: number; onDelete: () => void; disabled?: boolean } }) {
   const hasActiveFilter = Boolean(query.trim()) || filters.some((filter) => filter.value !== 'all')
   return <div className="admin-table-filter-bar flex flex-col gap-3 border-b border-[#eeeae0] bg-[#fcfbf7] p-4 lg:flex-row lg:flex-wrap lg:items-center">
     <label className="relative min-w-0 flex-1 lg:min-w-[280px]"><span className="sr-only">{queryPlaceholder}</span><i className="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8b8d86]" aria-hidden="true" /><input className="min-h-10 w-full rounded-lg border border-[#dedbd0] bg-white pl-9 pr-3 font-body text-sm" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder={queryPlaceholder} /></label>
     {filters.map((filter) => <label className="min-w-0 lg:min-w-[180px]" key={filter.label}><span className="sr-only">{filter.label}</span><select className="min-h-10 w-full rounded-lg border border-[#dedbd0] bg-white px-3 font-body text-sm" value={filter.value} onChange={(event) => filter.onChange(event.target.value)} aria-label={filter.label}><option value="all">{filter.label}</option>{filter.options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>)}
     {onClear && <button className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#dedbd0] px-3.5 font-body text-sm text-[#62655f] transition-colors hover:border-[var(--color-olive)] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40" type="button" onClick={onClear} disabled={!hasActiveFilter}>Xóa lọc</button>}
+    {bulkDelete && <button className="admin-bulk-delete-action inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#c45b4d] bg-white px-3.5 font-body text-sm font-semibold text-[#a33d32] transition-colors hover:bg-[#fff5f2] disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={Boolean(bulkDelete.disabled) || bulkDelete.count === 0} onClick={bulkDelete.onDelete} aria-label="Xóa hàng loạt"><i className="bi bi-trash3" aria-hidden="true" />Xóa hàng loạt{bulkDelete.count > 0 ? ` (${bulkDelete.count})` : ''}</button>}
     {action}
   </div>
 }
@@ -4894,6 +4895,77 @@ function AdminListShell({ title, section, description: _description, createHref 
   return <AdminShell title={title} section={section} headerActions={bookListActions ? <div className="flex shrink-0 items-center gap-2"><AdminBulkBookImportLauncher /><a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a></div> : <a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a>}>{children}</AdminShell>
 }
 
+function AdminListSelectionEnhancement() {
+  useEffect(() => {
+    const enhance = () => {
+      document.querySelectorAll<HTMLTableElement>('.admin-shell table:not([data-selection-enhanced="true"])').forEach((table) => {
+        const headerCells = Array.from(table.querySelectorAll('thead th'))
+        const rows = Array.from(table.querySelectorAll<HTMLTableRowElement>('tbody tr'))
+        const deleteButtons = rows.flatMap((row) => Array.from(row.querySelectorAll<HTMLButtonElement>('button')).filter((button) => /xóa|gỡ quyền/i.test(`${button.getAttribute('aria-label') ?? ''} ${button.getAttribute('title') ?? ''} ${button.textContent ?? ''}`)))
+        const hasStt = headerCells.some((cell) => cell.textContent?.trim() === 'STT')
+        if ((!hasStt && deleteButtons.length === 0) || rows.length === 0) return
+        table.dataset.selectionEnhanced = 'true'
+        const selection = new Set<HTMLTableRowElement>()
+        const sttIndex = headerCells.findIndex((cell) => cell.textContent?.trim() === 'STT')
+        const insertIndex = sttIndex >= 0 ? sttIndex + 1 : 0
+        const headerRow = table.querySelector('thead tr')
+        if (!headerRow) return
+        const selectAll = document.createElement('input')
+        selectAll.className = 'h-4 w-4 accent-[var(--color-olive)]'
+        selectAll.type = 'checkbox'
+        selectAll.setAttribute('aria-label', 'Chọn tất cả bản ghi đang hiển thị')
+        const selectionHeader = document.createElement('th')
+        selectionHeader.className = 'w-12 px-4 py-3 font-body text-sm font-semibold'
+        selectionHeader.append(selectAll)
+        headerRow.insertBefore(selectionHeader, headerRow.children[insertIndex] ?? null)
+        const rowCheckboxes: HTMLInputElement[] = []
+        rows.forEach((row) => {
+          const checkbox = document.createElement('input')
+          checkbox.className = 'h-4 w-4 accent-[var(--color-olive)]'
+          checkbox.type = 'checkbox'
+          checkbox.setAttribute('aria-label', `Chọn dòng ${row.rowIndex}`)
+          const cell = document.createElement('td')
+          cell.className = 'px-4 py-3'
+          cell.append(checkbox)
+          row.insertBefore(cell, row.children[insertIndex] ?? null)
+          rowCheckboxes.push(checkbox)
+          checkbox.addEventListener('change', () => {
+            if (checkbox.checked) selection.add(row)
+            else selection.delete(row)
+            selectAll.checked = rowCheckboxes.length > 0 && rowCheckboxes.every((item) => item.checked)
+            selectAll.indeterminate = rowCheckboxes.some((item) => item.checked) && !selectAll.checked
+            updateBulkButton()
+          })
+        })
+        const updateSelection = (checked: boolean) => {
+          rowCheckboxes.forEach((checkbox, index) => { checkbox.checked = checked; if (checked) selection.add(rows[index]); else selection.delete(rows[index]) })
+          selectAll.indeterminate = false
+          updateBulkButton()
+        }
+        selectAll.addEventListener('change', () => updateSelection(selectAll.checked))
+        const filterBar = table.closest('section')?.querySelector<HTMLElement>('.admin-table-filter-bar')
+        const actionBar = filterBar ?? table.closest('section')?.querySelector<HTMLElement>(':scope > div')
+        const bulkButton = document.createElement('button')
+        bulkButton.className = 'admin-bulk-delete-action inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#c45b4d] bg-white px-3.5 font-body text-sm font-semibold text-[#a33d32] transition-colors hover:bg-[#fff5f2] disabled:cursor-not-allowed disabled:opacity-50'
+        bulkButton.type = 'button'
+        bulkButton.disabled = true
+        bulkButton.innerHTML = '<i class="bi bi-trash3" aria-hidden="true"></i>Xóa hàng loạt'
+        const updateBulkButton = () => { bulkButton.disabled = selection.size === 0; bulkButton.innerHTML = `<i class="bi bi-trash3" aria-hidden="true"></i>Xóa hàng loạt${selection.size ? ` (${selection.size})` : ''}` }
+        bulkButton.addEventListener('click', () => {
+          if (!selection.size || !window.confirm(`Xóa ${selection.size} bản ghi đã chọn? Thao tác này không thể hoàn tác.`)) return
+          Array.from(selection).forEach((row) => row.querySelector<HTMLButtonElement>('button[aria-label*="Xóa"], button[title*="Xóa"], button[aria-label*="Gỡ quyền"]')?.click())
+        })
+        if (actionBar && deleteButtons.length > 0) actionBar.append(bulkButton)
+      })
+    }
+    enhance()
+    const observer = new MutationObserver(enhance)
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [])
+  return null
+}
+
 function AdminAuthorsPageV3() {
   const [query, setQuery] = useState('')
   const [creators, setCreators] = useState<AdminCreatorRow[]>([])
@@ -5521,7 +5593,7 @@ const bulkBookHeaderAliases: Record<string, BulkBookHeader> = Object.fromEntries
 const bulkBookReportHeaders: BulkBookHeader[] = ['ISBN', 'Tên sách', 'Đường dẫn', 'Giá bán VNĐ', 'Số lượng', 'Số trang', 'Khổ sách', 'Trọng lượng', 'Tác giả', 'Dịch giả', 'Thể thức', 'Dòng sách', 'Danh mục', 'Thể loại', 'Chủ đề', 'Nhà xuất bản', 'Ngôn ngữ', 'Mô tả', 'Mô tả tiếng Việt', 'Ảnh bìa', 'File đọc thử', 'Hiển thị website']
 const bulkBookCell = (value: unknown) => value instanceof Date ? value.toISOString().slice(0, 10) : String(value ?? '').trim()
 const splitBulkBookNames = (value: string) => value.split(/[;,\n]/).map((item) => item.trim()).filter(Boolean)
-const bulkBookSlug = (title: string) => title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+const bulkBookSlug = (value: string) => value.trim().toLocaleLowerCase('vi').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 const bulkBookNumber = (value: string) => {
   const compactValue = value.replace(/\s/g, '')
   const separators = [...compactValue].flatMap((character, index) => character === '.' || character === ',' ? [{ character, index }] : [])
@@ -5541,12 +5613,14 @@ const bulkBookBoolean = (value: string) => !value || !['0', 'false', 'no', 'khô
 const bulkBookFileMap = (files: File[]) => new Map(files.map((file) => [file.name.trim().toLowerCase(), file]))
 const bulkBookSourceSlug = (value: string, title: string) => {
   const source = value.trim()
+  if (!source) return bulkBookSlug(title)
   try {
-    const parsed = new URL(source)
-    const lastSegment = parsed.pathname.split('/').filter(Boolean).pop() ?? ''
-    return lastSegment.replace(/^books\//, '') || bulkBookSlug(title)
+    new URL(source)
+    // URL nguồn có thể đã làm rơi chữ tiếng Việt (ví dụ: tr-ng-gi-h-c-l-m-sang).
+    // Tên sách là nguồn đầy đủ và ổn định hơn để sinh đường dẫn mới.
+    return bulkBookSlug(title)
   } catch {
-    return source.replace(/^\/books\//, '').replace(/^\//, '') || bulkBookSlug(title)
+    return bulkBookSlug(source.replace(/^\/books\//, '').replace(/^\//, '')) || bulkBookSlug(title)
   }
 }
 const buildBulkBookRow = (row: Record<BulkBookHeader, string>, rowNumber: number, files: Map<string, File>, sourceName: string): BulkBookImportRow => {
@@ -6019,6 +6093,63 @@ function AdminBulkBookImportPage({ onImported }: { onImported: () => void }) {
 
 function AdminBulkBookImportLauncher() {
   return <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[var(--color-olive)] px-3.5 font-body text-sm font-medium text-[var(--color-olive-dark)] hover:bg-[rgba(155,148,47,.08)]" href="/admin/books/import"><i className="bi bi-file-earmark-spreadsheet" aria-hidden="true" />Nhập hàng loạt</a>
+}
+
+function AdminBooksPageFixed({ managementView }: { managementView: BookManagementView }) {
+  const [books, setBooks] = useState<AdminBook[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [authorFilter, setAuthorFilter] = useState('all')
+  const [publisherFilter, setPublisherFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [selectedBookIds, setSelectedBookIds] = useState<string[]>([])
+
+  const refreshBooks = async () => {
+    setLoading(true)
+    try {
+      const products = await loadPublicCatalogProducts({ includeHidden: true })
+      setBooks((products ?? []).map((product) => ({ id: product.id, isbn: product.isbn, title: product.title, slug: product.slug, author: product.author, quantity: product.inventoryQuantity, unitPrice: null, salePrice: Number(product.price.replace(/[^0-9]/g, '')) || 0, link: product.isVisibleWebsite !== false && product.slug ? `/books/${product.slug}` : '', format: product.format ?? '', line: product.line || product.publisher, category: product.categories.join(', '), cover: product.image, coverImages: product.gallery, samplePdfUrl: product.samplePdfUrl, sampleFileType: product.sampleFileType, samplePdfPageCount: product.samplePdfPageCount, isVisibleWebsite: product.isVisibleWebsite !== false })))
+      setError('')
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không tải được danh sách sách thật.') } finally { setLoading(false) }
+  }
+  useEffect(() => { void refreshBooks(); const refresh = () => { void refreshBooks() }; window.addEventListener('linery:admin-books-refresh', refresh); return () => window.removeEventListener('linery:admin-books-refresh', refresh) }, [])
+  const authors = [...new Set(books.map((book) => book.author).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'))
+  const categories = [...new Set(books.flatMap((book) => book.category.split(',').map((value) => value.trim()).filter(Boolean)))].sort((a, b) => a.localeCompare(b, 'vi'))
+  const publishers = [...new Set(books.map((book) => book.line).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'))
+  const authorHref = (authorName: string) => `/admin/authors/${authorSlug(authorName)}`
+  const filtered = books.filter((book) => {
+    const haystack = `${book.title} ${book.isbn} ${book.author} ${book.category}`.toLocaleLowerCase('vi')
+    return haystack.includes(query.trim().toLocaleLowerCase('vi')) && (statusFilter === 'all' || (statusFilter === 'in-stock' ? book.quantity > 0 : book.quantity === 0)) && (categoryFilter === 'all' || book.category.split(',').map((value) => value.trim()).includes(categoryFilter)) && (authorFilter === 'all' || book.author === authorFilter) && (publisherFilter === 'all' || book.line === publisherFilter)
+  })
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const visibleBooks = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const visibleBookIds = visibleBooks.map((book) => book.id).filter((id): id is string => Boolean(id))
+  const allVisibleSelected = visibleBookIds.length > 0 && visibleBookIds.every((id) => selectedBookIds.includes(id))
+  const someVisibleSelected = visibleBookIds.some((id) => selectedBookIds.includes(id))
+  const toggleBook = (id: string, checked: boolean) => setSelectedBookIds((current) => checked ? [...new Set([...current, id])] : current.filter((selectedId) => selectedId !== id))
+  const toggleVisible = (checked: boolean) => setSelectedBookIds((current) => checked ? [...new Set([...current, ...visibleBookIds])] : current.filter((id) => !visibleBookIds.includes(id)))
+  useEffect(() => { setPage(1) }, [query, statusFilter, categoryFilter, authorFilter, publisherFilter, pageSize])
+  useEffect(() => { setPage((current) => Math.min(current, totalPages)) }, [totalPages])
+  useEffect(() => { setSelectedBookIds((current) => current.filter((id) => books.some((book) => book.id === id))) }, [books])
+  const toggle = async (book: AdminBook) => {
+    if (!book.id) return
+    try { await updateAdminBookVisibility(book.id, !book.isVisibleWebsite); setBooks((current) => current.map((item) => item.id === book.id ? { ...item, isVisibleWebsite: !book.isVisibleWebsite } : item)) } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không cập nhật được trạng thái hiển thị sách.') }
+  }
+  const remove = async (book: AdminBook) => {
+    if (!book.id || !window.confirm(`Xóa sách “${book.title}” khỏi Supabase? Thao tác này không thể hoàn tác.`)) return
+    try { await deleteAdminBook(book.id); setBooks((current) => current.filter((item) => item.id !== book.id)); setSelectedBookIds((current) => current.filter((id) => id !== book.id)) } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không xóa được sách.') }
+  }
+  const removeSelected = async () => {
+    const ids = selectedBookIds.filter(Boolean)
+    if (!ids.length || !window.confirm(`Xóa ${ids.length} sách đã chọn khỏi Supabase? Thao tác này không thể hoàn tác.`)) return
+    try { await Promise.all(ids.map((id) => deleteAdminBook(id))); setBooks((current) => current.filter((book) => !book.id || !ids.includes(book.id))); setSelectedBookIds([]); emitFloatingNotice('success', `Đã xóa ${ids.length} sách đã chọn.`) } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không xóa được các sách đã chọn.') }
+  }
+  if (managementView === 'categories') return <AdminCategoriesPageRemote />
+  return <AdminListShell title="Quản lý sách" section="SÁCH" description="Danh sách sách thật từ Supabase. Công tắc ở đây điều khiển hiển thị từng cuốn trên website người dùng."><section className="overflow-hidden rounded-2xl border border-[#e6e2d7] bg-white"><div className="border-b border-[#e6e2d7] p-5"><h3 className="font-display text-lg font-semibold">Danh sách sách</h3><p className="mt-1 font-body text-sm text-[#74776f]">{loading ? 'Đang tải dữ liệu thật…' : `${filtered.length} / ${books.length} bản ghi từ Supabase`}</p></div>{error && <p className="m-5 rounded-xl border border-[#ebc4bd] bg-[#fff5f2] p-4 font-body text-sm text-[#a33d32]" role="alert">{error}</p>}<AdminTableFilterBar query={query} onQueryChange={setQuery} queryPlaceholder="Tìm theo tên sách, ISBN hoặc tác giả" filters={[{ label: 'Tất cả trạng thái', value: statusFilter, onChange: setStatusFilter, options: [{ label: 'Còn hàng', value: 'in-stock' }, { label: 'Hết hàng', value: 'out-of-stock' }] }, { label: 'Tất cả danh mục / chủ đề', value: categoryFilter, onChange: setCategoryFilter, options: categories.map((value) => ({ label: value, value })) }, { label: 'Tất cả tác giả', value: authorFilter, onChange: setAuthorFilter, options: authors.map((value) => ({ label: value, value })) }, { label: 'Tất cả nhà xuất bản', value: publisherFilter, onChange: setPublisherFilter, options: publishers.map((value) => ({ label: value, value })) }]} onClear={() => { setQuery(''); setStatusFilter('all'); setCategoryFilter('all'); setAuthorFilter('all'); setPublisherFilter('all') }} bulkDelete={{ count: selectedBookIds.length, onDelete: () => void removeSelected() }} /><div className="overflow-x-auto"><table className="min-w-[1160px] w-full text-left"><thead className="bg-[#fcfbf7]"><tr><th className="w-16 px-4 py-3 font-body text-sm font-semibold">STT</th><th className="w-12 px-4 py-3 font-body text-sm font-semibold"><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={allVisibleSelected} ref={(element) => { if (element) element.indeterminate = someVisibleSelected && !allVisibleSelected }} onChange={(event) => toggleVisible(event.target.checked)} aria-label="Chọn tất cả sách đang hiển thị" /></th>{['Ảnh bìa', 'ISBN', 'Tên sách', 'Tác giả', 'File đọc thử', 'Số lượng', 'Giá bán', 'Trạng thái', 'Hiển thị web', 'Thao tác'].map((heading) => <th className="px-4 py-3 font-body text-sm font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{visibleBooks.map((book, index) => <tr className="border-t border-[#eeeae0]" key={book.id ?? `${book.isbn}-${book.title}`}><td className="px-4 py-3 font-body text-sm text-[#74776f]">{(page - 1) * pageSize + index + 1}</td><td className="px-4 py-3"><input className="h-4 w-4 accent-[var(--color-olive)]" type="checkbox" checked={Boolean(book.id && selectedBookIds.includes(book.id))} disabled={!book.id} onChange={(event) => { if (book.id) toggleBook(book.id, event.target.checked) }} aria-label={`Chọn sách ${book.title}`} /></td><td className="px-4 py-3"><img className="h-16 w-11 object-cover" src={book.cover || BOOK_COVER_FALLBACK} alt={`Bìa ${book.title}`} onError={(event) => { event.currentTarget.src = BOOK_COVER_FALLBACK }} /></td><td className="px-4 py-3 font-body text-sm">{book.isbn || '—'}</td><td className="max-w-[280px] px-4 py-3 font-body text-sm font-medium">{book.isVisibleWebsite && book.link ? <a className="admin-data-link" href={book.link} target="_blank" rel="noreferrer">{book.title}</a> : <span className={book.isVisibleWebsite ? '' : 'text-[#a3a198]'}>{book.title}</span>}</td><td className="px-4 py-3 font-body text-sm">{book.author ? <a className="admin-data-link" href={authorHref(book.author)}>{book.author}</a> : '—'}</td><td className="px-4 py-3 font-body text-sm">{book.samplePdfUrl ? <a className="admin-data-link inline-flex items-center gap-1" href={`/books/${book.slug}/reader`} target="_blank" rel="noreferrer"><i className={`bi ${book.sampleFileType === 'epub' ? 'bi-file-earmark-zip' : 'bi-file-earmark-pdf'}`} aria-hidden="true" />{book.sampleFileType === 'epub' ? 'EPUB' : 'PDF'}{book.samplePdfPageCount ? ` · ${book.samplePdfPageCount} trang` : ''}</a> : <span className="text-[#a3a198]">Chưa có file</span>}</td><td className="px-4 py-3 font-body text-sm">{book.quantity}</td><td className="px-4 py-3 font-body text-sm">{book.salePrice.toLocaleString('vi-VN')}₫</td><td className="px-4 py-3 font-body text-sm"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${book.quantity > 0 ? 'bg-[#eaf7ef] text-[#39733e]' : 'bg-[#fff0ed] text-[#a33d32]'}`}>{book.quantity > 0 ? 'Còn hàng' : 'Hết hàng'}</span></td><td className="px-4 py-3"><label className="flex cursor-pointer items-center gap-3 px-1 py-2"><span className="relative inline-flex h-6 w-11 shrink-0 items-center"><input className="peer sr-only" type="checkbox" role="switch" checked={book.isVisibleWebsite} onChange={() => void toggle(book)} /><span className="absolute inset-0 rounded-full bg-[#d8d5c8] transition-colors peer-checked:bg-[var(--color-olive)]" aria-hidden="true" /><span className="pointer-events-none relative ml-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" aria-hidden="true" /></span></label></td><td className="px-4 py-3 text-right"><div className="flex justify-end gap-1">{book.isVisibleWebsite && book.link ? <a className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#f5f3ec]" href={book.link} target="_blank" rel="noreferrer" aria-label={`Xem ${book.title}`}><i className="bi bi-eye" aria-hidden="true" /></a> : <span className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#c8c5bb]"><i className="bi bi-eye-slash" aria-hidden="true" /></span>}{book.id && <a className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#f5f3ec]" href={`/admin/books/edit/${book.id}`} aria-label={`Sửa ${book.title}`}><i className="bi bi-pencil" aria-hidden="true" /></a>}<button className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#74776f] hover:bg-[#fff0ed] hover:text-[#a33d32]" type="button" onClick={() => void remove(book)} aria-label={`Xóa ${book.title}`} title="Xóa"><i className="bi bi-trash3" aria-hidden="true" /></button></div></td></tr>)}</tbody></table></div><AdminTableFooter total={filtered.length} pageSize={pageSize} onPageSizeChange={setPageSize} page={page} onPageChange={setPage} /></section></AdminListShell>
 }
 
 function AdminBooksPageV2({ managementView }: { managementView: BookManagementView }) {
@@ -6771,7 +6902,7 @@ function AdminDashboard() {
   if (window.location.pathname.startsWith('/admin/books/categories/')) return <AdminTaxonomyEditPageRemote id={window.location.pathname.split('/').pop() ?? ''} />
   if (window.location.pathname === '/admin/books/languages') return <AdminTaxonomyEntityPage kind="language" title="Ngôn ngữ" description="Danh sách ngôn ngữ sách được quản lý trực tiếp trong taxonomy_terms của Supabase." backHref="/admin/books/languages" />
   if (window.location.pathname === '/admin/books/formats') return <AdminTaxonomyEntityPage kind="format" title="Khổ sách" description="Danh sách khổ sách được quản lý trực tiếp trong taxonomy_terms của Supabase." backHref="/admin/books/formats" />
-  if (window.location.pathname.startsWith('/admin/books')) return <AdminBooksPageV2 managementView={getAdminBookViewFromPath(window.location.pathname)} />
+  if (window.location.pathname.startsWith('/admin/books')) return <AdminBooksPageFixed managementView={getAdminBookViewFromPath(window.location.pathname)} />
   if (window.location.pathname === '/admin/customers') return <AdminCustomersPage />
   if (window.location.pathname === '/admin/inventory') return <AdminInventoryPage />
   if (window.location.pathname === '/admin/authors/new') return <AdminAuthorCreatePage pathname={window.location.pathname} />
