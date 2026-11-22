@@ -3206,6 +3206,20 @@ function AdminCategoryCreatePage() {
 type AdminModuleConfig = { section: string; title: string; description: string; addLabel: string; columns: string[]; rows: string[][]; empty: string }
 const adminPageSizeOptions = [10, 25, 50, 100]
 
+function useAdminPageSize(storageKey: string, fallback = 10) {
+  const [pageSize, setPageSize] = useState(() => {
+    if (typeof window === 'undefined') return fallback
+    const stored = Number(window.localStorage.getItem(storageKey))
+    return adminPageSizeOptions.includes(stored) ? stored : fallback
+  })
+  const persistPageSize = (value: number) => {
+    const nextValue = adminPageSizeOptions.includes(value) ? value : fallback
+    setPageSize(nextValue)
+    try { window.localStorage.setItem(storageKey, String(nextValue)) } catch { /* localStorage may be unavailable in private browsing */ }
+  }
+  return [pageSize, persistPageSize] as const
+}
+
 function AdminTableFooter({ total, pageSize, onPageSizeChange, page = 1, onPageChange }: { total: number; pageSize: number; onPageSizeChange: (value: number) => void; page?: number; onPageChange?: (value: number) => void }) {
   const shown = Math.min(total, pageSize)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -6105,7 +6119,7 @@ function AdminBooksPageFixed({ managementView }: { managementView: BookManagemen
   const [authorFilter, setAuthorFilter] = useState('all')
   const [publisherFilter, setPublisherFilter] = useState('all')
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useAdminPageSize('linery:admin:books:page-size')
   const [selectedBookIds, setSelectedBookIds] = useState<string[]>([])
 
   const refreshBooks = async () => {
