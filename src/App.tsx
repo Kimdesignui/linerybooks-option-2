@@ -57,9 +57,9 @@ type BulkBookImportRow = {
 }
 type BulkBookImportResult = { rowNumber: number; title: string; status: 'created' | 'failed'; message: string }
 type BulkBookParseResult = { rows: BulkBookImportRow[]; sheetName?: string; missingHeaders: string[]; unmappedHeaders: string[] }
-const bulkBookDraftStorageKey = 'linery-admin-bulk-book-draft-v1'
-const bulkBookDraftFilesDb = 'linery-admin-bulk-book-draft-files-v1'
-const bulkBookImportJobStorageKey = 'linery-admin-bulk-book-import-job-v1'
+const bulkBookDraftStorageKey = 'linery-admin-bulk-book-draft-v2'
+const bulkBookDraftFilesDb = 'linery-admin-bulk-book-draft-files-v2'
+const bulkBookImportJobStorageKey = 'linery-admin-bulk-book-import-job-v2'
 type BulkBookDraftRow = Omit<BulkBookImportRow, 'coverFile' | 'sampleFile'> & { coverFileName?: string; sampleFileName?: string }
 type BulkBookDraftPayload = {
   mode: 'excel' | 'text' | 'ai'
@@ -5957,6 +5957,14 @@ function AdminBulkBookImportPage({ onImported }: { onImported: () => void }) {
     // operator can see which rows failed and correct them before retrying.
     if (nextResults.length > 0 && nextResults.every((item) => item.status === 'created')) {
       await clearBulkBookDraft()
+      setRows([])
+      setSourceFile(null)
+      setAssetFiles([])
+      setText('')
+      setAiSourceUrl('')
+      setParseReport({ missingHeaders: [], unmappedHeaders: [] })
+      setResults([])
+      setResumeJob(null)
       onImported()
     } else if (nextResults.length > 0) {
       writeBulkBookImportJob({ status: 'stopped', rows: serializeBulkBookRows(currentRows), results: nextResults, updatedAt: Date.now() })
