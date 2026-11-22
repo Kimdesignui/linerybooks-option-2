@@ -27,8 +27,24 @@ type View = 'home' | 'authors' | 'all-books' | 'collection' | 'search' | 'author
 type AccountTab = 'profile' | 'orders' | 'transactions' | 'security'
 type WriterDirectoryFilter = 'all' | 'authors' | 'translators' | 'illustrators'
 type ProductCardActions = { onOpenDetail: (product: Product) => void; onAddToCart: (product: Product, source?: HTMLElement) => void; onPreview: (product: Product) => void; onPreviewLeave: () => void; onSelectQuickView: (product: Product) => void; quickViewOpen: boolean }
-const IMAGE_PLACEHOLDER = '/assets/linery-image-placeholder.svg'
+const IMAGE_PLACEHOLDER = '/assets/linerybooks-logo-mark-transparent.svg'
 const BOOK_COVER_FALLBACK = IMAGE_PLACEHOLDER
+const languageKey = (value: string) => value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+const languageAliases: Record<string, string> = {
+  english: 'english', 'tieng anh': 'english',
+  vietnamese: 'vietnamese', 'tieng viet': 'vietnamese',
+  french: 'french', 'tieng phap': 'french',
+  german: 'german', 'tieng duc': 'german',
+  spanish: 'spanish', 'tieng tay ban nha': 'spanish',
+}
+const getBookLanguageLabel = (languages?: string[]) => {
+  const names = [...new Set((languages ?? []).map((value) => value.trim()).filter(Boolean))]
+  const keys = new Set(names.map((name) => languageAliases[languageKey(name)] ?? languageKey(name)).filter(Boolean))
+  if (keys.size >= 3) return 'Multilingual'
+  if (keys.size === 2) return 'Bilingual'
+  return names[0] || '—'
+}
+const isDerivedLanguageName = (value: string) => ['bilingual', 'multilingual', 'song ngu', 'da ngon ngu'].includes(languageKey(value))
 const handleBookCoverError = (event: SyntheticEvent<HTMLImageElement>) => {
   const image = event.currentTarget
   if (image.dataset.fallbackApplied === 'true') return
@@ -476,10 +492,10 @@ const newsItems: NewsItem[] = [
     bodyVi: ['Lấy bối cảnh hòn đảo biệt lập Utajima, tiểu thuyết theo chân Shinji và Hatsue khi tình yêu của họ nảy nở giữa thuyền đánh cá, gió biển và nhịp sóng bất tận.', 'Thiên nhiên không chỉ là phông nền. Sự biệt lập của hòn đảo khiến những cử chỉ nhỏ trở nên có ý nghĩa và cho thấy một mặt dịu dàng hơn trong văn chương Mishima.'],
   },
   {
-    image: '/assets/news-instagram-01.jpg', title: 'Giới thiệu LineryBooks', titleVi: 'Giới thiệu LineryBooks', date: 'About us', kicker: 'About us', slug: 'gioi-thieu', excerpt: 'LineryBooks là hiệu sách tuyển chọn và independent press được xây dựng tại Hà Nội.', excerptVi: 'LineryBooks là hiệu sách tuyển chọn và independent press được xây dựng tại Hà Nội.', body: ['LineryBooks tuyển chọn những cuốn sách có giá trị đọc lâu dài, đồng thời tạo không gian cho các tiếng nói văn chương và ý tưởng độc lập.'], bodyVi: ['LineryBooks tuyển chọn những cuốn sách có giá trị đọc lâu dài, đồng thời tạo không gian cho các tiếng nói văn chương và ý tưởng độc lập.'],
+    image: '/assets/login-bookstore.png', title: 'About Linery Books – English Bookstore on Hanoi Book Street', titleVi: 'Về Linery Books – Hiệu sách ngoại văn trên Phố Sách Hà Nội', date: 'About us', kicker: 'About us', slug: 'gioi-thieu', excerpt: 'Linery Books is a small English bookstore on Hanoi Book Street, with imported books selected for curious readers.', excerptVi: 'Linery Books là hiệu sách ngoại văn nhỏ trên Phố Sách 19 tháng 12, Hà Nội, tuyển chọn sách nhập khẩu cho những độc giả yêu thích khám phá.', body: ['Linery Books is a small English bookstore on Hanoi Book Street, just steps from Hoan Kiem Lake.', 'We import and carefully select classics, contemporary fiction, children’s books, language-learning titles and non-fiction.', 'We also take special orders and distribute books for schools, libraries and partners.', 'Linery is more than a shop: we want to make English books more accessible to Vietnamese readers and bring books to schools that need them.'], bodyVi: ['Linery Books là hiệu sách ngoại văn nhỏ trên Phố Sách 19 tháng 12, cách Hồ Hoàn Kiếm vài bước chân.', 'Mỗi đầu sách tiếng Anh trên kệ Linery đều được nhập khẩu và chọn lọc kỹ: văn học kinh điển, tiểu thuyết đương đại, sách thiếu nhi, sách học tiếng Anh, kinh tế và phát triển bản thân.', 'Linery bán lẻ sách ngoại văn, nhận đặt sách theo yêu cầu và phát hành sách cho trường học, thư viện cùng các đối tác.', 'Linery không muốn chỉ là một cửa hàng. Chúng tôi muốn đưa sách ngoại văn đến gần bạn đọc Việt và mang sách về những ngôi trường còn thiếu sách.'], showOnHomepage: false, showOnNewsListing: false,
   },
   {
-    image: '/assets/news-instagram-02.jpg', title: 'Liên hệ LineryBooks', titleVi: 'Liên hệ LineryBooks', date: 'About us', kicker: 'About us', slug: 'lien-he', excerpt: 'Thông tin liên hệ, địa chỉ và các kênh kết nối với LineryBooks.', excerptVi: 'Thông tin liên hệ, địa chỉ và các kênh kết nối với LineryBooks.', body: ['Bạn có thể liên hệ LineryBooks qua email info@linerybooks.vn hoặc ghé Phố Sách 19/12, Cửa Nam, Hà Nội.'], bodyVi: ['Bạn có thể liên hệ LineryBooks qua email info@linerybooks.vn hoặc ghé Phố Sách 19/12, Cửa Nam, Hà Nội.'],
+    image: '/assets/login-library-reader.png', title: 'Contact Linery Books', titleVi: 'Liên hệ Linery Books', date: 'About us', kicker: 'About us', slug: 'lien-he', excerpt: 'Visit Linery Books on Hanoi Book Street or contact us about books, special orders and partnerships.', excerptVi: 'Ghé Linery Books hoặc liên hệ với chúng tôi để hỏi sách, đặt sách ngoại văn và hợp tác phát hành.', body: ['Looking for a book, a special order, or a partnership? Visit our store or send us a message.', 'Address: 19/12 Street (Hanoi Book Street), Cua Nam, Hanoi.', 'Phone / Zalo: +84 866 306 848.', 'Email: support@linerybooks.vn for customer care; info@linerybooks.vn for partnerships.'], bodyVi: ['Bạn muốn hỏi một cuốn sách, đặt sách ngoại văn hay hợp tác cùng Linery? Ghé cửa hàng hoặc nhắn cho chúng tôi, Linery sẽ phản hồi sớm nhất có thể.', 'Địa chỉ: Phố 19 tháng 12 (Phố Sách Hà Nội), Cửa Nam, Hà Nội.', 'Điện thoại / Zalo: 0866 306 848.', 'Email: support@linerybooks.vn (chăm sóc khách hàng) · info@linerybooks.vn (hợp tác, đối tác).'], showOnHomepage: false, showOnNewsListing: false,
   },
   {
     image: '/assets/news-instagram-03.jpg', title: 'Chính sách LineryBooks', titleVi: 'Chính sách LineryBooks', date: 'Policies', kicker: 'Policies', slug: 'chinh-sach', excerpt: 'Các chính sách mua hàng, giao hàng, đổi trả và bảo mật của LineryBooks.', excerptVi: 'Các chính sách mua hàng, giao hàng, đổi trả và bảo mật của LineryBooks.', body: ['Nội dung chính sách sẽ được cập nhật từ khu vực quản trị và hiển thị thống nhất trên website.'], bodyVi: ['Nội dung chính sách sẽ được cập nhật từ khu vực quản trị và hiển thị thống nhất trên website.'],
@@ -501,7 +517,13 @@ const getNewsFromPath = (pathname: string) => {
   return runtimeNewsItems.find((item) => item.slug === legacySlug) ?? null
 }
 const applyPublicNews = (records: PublicNewsPost[]) => {
-  runtimeNewsItems = records.map((record) => ({ ...record }))
+  const recordSlugs = new Set(records.map((record) => record.slug))
+  const fallbackNews = newsItems.filter((item) => ['di-san-hue-doi-dien-nhieu-thach-thuc', 'gioi-thieu', 'lien-he'].includes(item.slug) && !recordSlugs.has(item.slug))
+  const footerNewsImages: Record<string, string> = {
+    'gioi-thieu': '/assets/login-bookstore.png',
+    'lien-he': '/assets/login-library-reader.png',
+  }
+  runtimeNewsItems = [...records.map((record) => ({ ...record, image: footerNewsImages[record.slug] ?? record.image })), ...fallbackNews]
 }
 
 const authorProfiles: Record<string, { image: string; images?: string[]; born: string; died: string; bornPlace: string; diedPlace: string; awards: number; academicTitle: string; bio: string }> = {
@@ -1234,6 +1256,7 @@ const getProductSearchScore = (product: Product, query: string) => {
     getSearchFieldScore(product.isbn ?? '', query) * 3,
     getSearchFieldScore(product.publisher, query) * 2,
     getSearchFieldScore(product.categories.join(' '), query),
+    getSearchFieldScore(getBookLanguageLabel(product.languages), query),
   )
 }
 
@@ -1330,7 +1353,7 @@ function LineryNewsSection({ language, onOpen, onSeeMore }: { language: 'en' | '
     return () => mediaQuery.removeEventListener('change', handleChange)
   }, [])
   const pageSize = mobile ? 3 : 4
-  const visibleItems = runtimeNewsItems.filter((item) => item.showOnNewsListing !== false).slice(0, pageSize)
+  const visibleItems = runtimeNewsItems.filter((item) => item.showOnHomepage !== false || item.contentType === 'emagazine').slice(0, pageSize)
   return <section className="news-module" aria-labelledby="linery-news-title">
     <RibbonTitle title="LINERY NEWS" id="linery-news-title" heading />
     <div className="news-grid">{visibleItems.map((item) => <NewsCard key={item.slug} item={item} language={language} onOpen={onOpen} />)}</div>
@@ -1510,6 +1533,7 @@ function ProductCard({ product, onOpenDetail, onAddToCart, onPreview, onPreviewL
   const infoContent = <div className="product-info">
     <h3 title={product.title}>{product.title}</h3>
     <p className="product-author">{product.author}</p>
+    <p className="product-language">{getBookLanguageLabel(product.languages)}</p>
     {product.available !== false && <p className="product-price">{product.price}</p>}
     {product.available === false && <p className="product-stock-status">Out of stock</p>}
   </div>
@@ -2070,7 +2094,7 @@ function BookDetail({ product, language, onBack, onAuthor, onOpenDetail, onAddTo
         <section className="book-details-grid book-detail-inline-details" aria-labelledby="details-title">
           <h2 id="details-title">Details</h2>
            <div className="book-detail-category"><div aria-label="Book classifications">{product.categories.map((category) => <a className="book-classification-link" key={category} href={`/all-books?category=${encodeURIComponent(category.toLowerCase().replaceAll(' ', '-'))}`}>{category}</a>)}</div></div>
-           <dl><div><dt>Publisher</dt><dd>{product.publisher || '—'}</dd></div><div><dt>ISBN</dt><dd>{product.isbn || 'Not provided'}</dd></div><div><dt>Pages</dt><dd>{product.pageCount ? `${product.pageCount} pages` : '—'}</dd></div><div><dt>Language</dt><dd>{product.languages?.join(', ') || '—'}</dd></div><div><dt>Format</dt><dd>{product.format || '—'}</dd></div></dl>
+           <dl><div><dt>Publisher</dt><dd>{product.publisher || '—'}</dd></div><div><dt>ISBN</dt><dd>{product.isbn || 'Not provided'}</dd></div><div><dt>Pages</dt><dd>{product.pageCount ? `${product.pageCount} pages` : '—'}</dd></div><div><dt>Language</dt><dd>{getBookLanguageLabel(product.languages)}</dd></div><div><dt>Format</dt><dd>{product.format || '—'}</dd></div></dl>
         </section>
         {relatedProducts.length > 0 && <RelatedBooksPanel items={relatedProducts} onOpenDetail={onOpenDetail} />}
       </div>
@@ -2169,7 +2193,7 @@ function UtilityPanel({ product, onClose, onOpenDetail, onAuthor, onAddToCart, o
           <img className="book-preview-cover" src={product.image || BOOK_COVER_FALLBACK} alt={product.title} loading="lazy" decoding="async" onError={handleBookCoverError} />
           <div className="book-preview-copy"><h2>{product.title}</h2><p className="book-preview-author"><a className="book-preview-author-link" href={`/creators/${authorSlug(product.author)}`} onClick={(event) => { event.preventDefault(); onAuthor(product.author) }}>{product.author}</a></p><p className="book-preview-price">{product.price}</p></div>
           <div className="book-preview-section-divider" aria-hidden="true" />
-          <dl className="book-preview-details"><div><dt>Publisher</dt><dd>{publisher}</dd></div><div><dt>ISBN</dt><dd>{product.isbn || 'Not provided'}</dd></div><div><dt>Format</dt><dd>{product.format || '—'}</dd></div><div><dt>Language</dt><dd>{product.languages?.join(', ') || '—'}</dd></div><div><dt>Pages</dt><dd>{product.pageCount ? `${product.pageCount} pages` : '—'}</dd></div></dl>
+          <dl className="book-preview-details"><div><dt>Publisher</dt><dd>{publisher}</dd></div><div><dt>ISBN</dt><dd>{product.isbn || 'Not provided'}</dd></div><div><dt>Format</dt><dd>{product.format || '—'}</dd></div><div><dt>Language</dt><dd>{getBookLanguageLabel(product.languages)}</dd></div><div><dt>Pages</dt><dd>{product.pageCount ? `${product.pageCount} pages` : '—'}</dd></div></dl>
           <a className="book-preview-link" href="#a" onClick={(event) => { event.preventDefault(); onOpenDetail(product) }}>View full details <span aria-hidden="true">→</span></a>
           </div>
         </div>
@@ -2185,10 +2209,11 @@ function Footer({ menuItems = [], siteSettings = {} }: { menuItems?: PublicMenuI
     { title: 'Policies & Terms', links: [['Policies', '/news/chinh-sach'], ['Terms', '/news/dieu-khoan']] },
   ]
   const footerMenuItems = menuItems.filter((item) => item.menuKey === 'footer-main')
-  const resolvedFooterColumns = footerMenuItems.length > 0 ? [
-    { title: 'About Us', links: footerMenuItems.slice(0, 2).map((item) => [item.label, item.href] as [string, string]) },
-    { title: 'Policies & Terms', links: footerMenuItems.slice(2).map((item) => [item.label, item.href] as [string, string]) },
-  ].filter((column) => column.links.length > 0) : footerColumns
+  const policyLinks = footerMenuItems.length > 2 ? footerMenuItems.slice(2).map((item) => [item.label, item.href] as [string, string]) : footerColumns[1].links
+  const resolvedFooterColumns = [
+    { title: 'About Us', links: [['About Us', '/news/gioi-thieu'], ['Contact', '/news/lien-he']] as [string, string][] },
+    { title: 'Policies & Terms', links: policyLinks },
+  ]
   return <footer className="site-footer scroll-section" id="about">
     <div className="footer-copy">
       <h2 className="footer-brand"><img src={String(siteSettings.site_logo?.publicUrl ?? '/assets/linerybooks-favicon-round.svg')} alt="LineryBooks" /> <span>LINERY</span></h2>
@@ -4609,6 +4634,7 @@ function AdminQuickLanguageModal({ existingNames, onSaved, onClose }: { existing
     event.preventDefault()
     const cleanName = name.trim()
     if (!cleanName) { setError('Vui lòng nhập tên ngôn ngữ.'); return }
+    if (isDerivedLanguageName(cleanName)) { setError('Bilingual và Multilingual là nhãn hệ thống tự suy ra, không tạo như ngôn ngữ riêng.'); return }
     if (existingNames.some((item) => item.trim().toLocaleLowerCase() === cleanName.toLocaleLowerCase())) { setError('Ngôn ngữ này đã tồn tại trong danh sách.'); return }
     const slug = slugify(cleanName)
     if (!slug) { setError('Tên ngôn ngữ không tạo được đường dẫn hợp lệ.'); return }
@@ -4700,7 +4726,7 @@ function AdminBookCreatePageV2({ editId }: { editId?: string }) {
         topics: unique(namesFor(['topic'])),
         publishers: unique(namesFor(['publisher'])),
         imprints: unique(namesFor(['imprint'])),
-        languages: unique(namesFor(['language'])),
+        languages: unique(namesFor(['language']).filter((name) => !isDerivedLanguageName(name))),
       })
       setBookModuleOptions(modules.filter((module) => module.isActive).map((module) => module.name))
     }).catch((reason: unknown) => setOptionsError(reason instanceof Error ? reason.message : 'Không tải được dữ liệu danh mục từ Supabase.'))
@@ -7005,7 +7031,10 @@ export function App() {
     if (needsNews) loadPublicNewsPosts().then((news) => {
       if (cancelled || !news) return
       applyPublicNews(news)
-      if (path.startsWith('/news/') || ['/gioi-thieu', '/lien-he', '/chinh-sach', '/dieu-khoan'].includes(path)) setSelectedNews(getNewsFromPath(path))
+      if (path.startsWith('/news/') || ['/gioi-thieu', '/lien-he', '/chinh-sach', '/dieu-khoan'].includes(path)) {
+        setSelectedNews(getNewsFromPath(path))
+        setView(getViewFromPath(path, window.location.hash))
+      }
       refreshPublicCatalog((value) => value + 1)
     }).catch(() => undefined)
     return () => { cancelled = true }
