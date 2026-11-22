@@ -91,6 +91,11 @@ body { margin: 0; min-width: 320px; background: var(--color-olive); }
 .admin-shell > div:last-child { min-height: 100vh; align-self: stretch; }
 .admin-shell > div:last-child > main { min-height: calc(100vh - 60px); }
 .admin-shell .admin-header { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.96); backdrop-filter: blur(10px); }
+.admin-shell .admin-header-icon { width: 36px; height: 36px; padding: 0; border: 0; }
+.admin-shell .admin-header-icon:focus-visible { outline: 2px solid rgba(155,148,47,.42); outline-offset: 2px; }
+.admin-shell .admin-header-action { min-height: 36px; }
+.admin-shell .admin-header-back-action { white-space: nowrap; }
+body[data-admin-module="/admin"] .admin-shell > div:last-child > header:not(.admin-header) > div:last-child:has(> .relative + .relative) > .relative:first-child { display: none; }
 .admin-shell .admin-sidebar { width: 240px; height: 100dvh; min-height: 100dvh; max-height: 100dvh; align-self: flex-start; overflow: hidden; }
 .admin-shell .admin-sidebar > nav { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: auto; scrollbar-width: thin; }
 .admin-shell .admin-sidebar > nav { scrollbar-color: rgba(155,148,47,.68) rgba(31,42,36,.06); }
@@ -143,6 +148,19 @@ body[data-admin-module="/admin/reports"] .admin-shell main > section:last-child 
 .admin-shell .admin-mobile-drawer.is-open { transform: translateX(0); }
 @media (min-width: 1024px) { .admin-shell .admin-mobile-drawer { transform: none; } }
 @media (max-width: 1023px) { .admin-shell .admin-sidebar-collapse { display: none; } }
+@media (max-width: 1279px) {
+  .admin-shell .admin-header { gap: 8px; padding-inline: 12px; }
+  .admin-shell .admin-header > div:last-child { gap: 4px; }
+  .admin-shell .admin-header-action { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 50%; }
+  .admin-shell .admin-header-action-label { display: none; }
+  .admin-shell .admin-header-action i { margin: 0; }
+  .admin-shell button[aria-label="Mở menu quản trị"] { width: 24px; min-width: 24px; height: 36px; min-height: 36px; border: 0; border-radius: 50%; padding: 0; }
+  .admin-shell button[aria-label="Mở menu quản trị"] > i { font-size: 24px; line-height: 1; }
+  .admin-shell .admin-identity-control { width: 36px; min-width: 36px; height: 36px; min-height: 36px; justify-content: center; gap: 0; padding: 0; background: transparent; }
+  .admin-shell .admin-identity-control > span:nth-child(2),
+  .admin-shell .admin-identity-control > i { display: none; }
+  .admin-shell .admin-identity-control > span:first-child { width: 32px; height: 32px; }
+}
 @media (min-width: 1024px) {
   .admin-sales-dashboard main > .grid { grid-template-columns: minmax(0, 1fr) 300px; }
   .admin-sales-dashboard main > .grid > aside { position: sticky; top: 6rem; align-self: start; }
@@ -274,7 +292,8 @@ body[data-admin-module="/admin/authors"] .admin-shell main > section.mt-6.grid:h
 .admin-shell header { min-height: 60px; height: auto; }
 .admin-shell header > div:last-child { min-width: 0; flex-wrap: nowrap; }
 .admin-book-create-header-actions { min-width: 0; }
-.admin-select2-control-row { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) 2.25rem; align-items: start; gap: 8px; }
+.admin-select2-control-row { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 8px; }
+.admin-select2-control-row.has-quick-add { grid-template-columns: minmax(0, 1fr) 2.25rem; }
 .admin-select2-quick-add { padding-top: 24px; }
 .admin-select2-quick-add-button { height: 36px; width: 36px; }
 .admin-shell header p { display: none; }
@@ -421,6 +440,26 @@ body[data-admin-module="/admin/news"] .admin-shell main section:first-of-type > 
   .admin-sidebar-collapse { left: 228px; }
 }
 
+/* Keep the admin drawer usable on iPad widths: lg (1024px) is still touch-first. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .admin-shell .admin-sidebar,
+  .admin-shell .admin-mobile-drawer { position: fixed; transform: translateX(-100%); }
+  .admin-shell .admin-sidebar.is-open,
+  .admin-shell .admin-mobile-drawer.is-open { transform: translateX(0); }
+  .admin-shell .admin-sidebar > div:first-child > button[aria-label*="menu"],
+  .admin-shell .admin-sidebar > div:first-child > button[aria-label*="navigation"],
+  .admin-shell .admin-header button[aria-label="Mở menu quản trị"],
+  .admin-shell .admin-header button[aria-label*="Open admin navigation"],
+  .admin-shell header button[aria-label="Mở menu quản trị"] { display: inline-flex; }
+  .admin-shell > button.fixed[aria-label*="menu"],
+  .admin-shell > button.fixed[aria-label*="navigation"] { display: block; }
+  .admin-sales-dashboard .admin-sidebar > div:first-child > button[aria-label*="navigation"],
+  .admin-sales-dashboard header button[aria-label*="navigation"] { display: inline-flex; }
+  .admin-shell .admin-sidebar > div:first-child > button[aria-label*="navigation"],
+  .admin-sales-dashboard header button[aria-label*="navigation"] { width: 36px; height: 36px; padding: 0; border-radius: 50%; }
+  .admin-sales-dashboard > button.fixed[aria-label*="navigation"] { display: block; }
+}
+
 @media (min-width: 1024px) and (max-width: 1199px) {
   .admin-sales-dashboard main > .grid { grid-template-columns: minmax(0, 1fr); }
   .admin-sales-dashboard main > .grid > aside { position: static; }
@@ -448,6 +487,31 @@ body[data-admin-module="/admin/news"] .admin-shell main section:first-of-type > 
 }
 body.menu-open { overflow: hidden; }
 body.welcome-open { overflow: hidden; }
+
+/* Final admin header control normalization for tablet and mobile. */
+@media (max-width: 1279px) {
+  .admin-shell .admin-header-action,
+  .admin-shell .admin-header-action.admin-primary-action {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .admin-shell button[aria-label="Mở menu quản trị"] {
+    width: 24px;
+    min-width: 24px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 0;
+  }
+  .admin-shell button[aria-label="Mở menu quản trị"] > i {
+    font-size: 24px;
+    line-height: 1;
+  }
+}
 .welcome-screen { position: fixed; z-index: 70; inset: 0; display: flex; align-items: stretch; justify-content: flex-start; padding: 0; background: rgba(31,42,36,.28); color: #fff; opacity: 0; -webkit-backdrop-filter: blur(30px) saturate(150%); backdrop-filter: blur(30px) saturate(150%); animation: welcome-backdrop-in 280ms ease both; }
 .welcome-content { box-sizing: border-box; width: 100%; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 52px; border: 1px solid rgba(255,255,255,.3); border-left: 0; border-radius: 0; background: rgba(155,148,47,.76); box-shadow: inset -1px 0 0 rgba(255,255,255,.1); -webkit-backdrop-filter: blur(30px) saturate(150%); backdrop-filter: blur(30px) saturate(150%); text-align: center; transform: translateX(-100%); animation: welcome-sidebar-in 360ms cubic-bezier(.22,.61,.36,1) both; }
 .welcome-mark { margin: 0 0 22px; font-size: clamp(15px, 2vw, 20px); letter-spacing: .22em; opacity: 0; animation: welcome-logo-in 900ms cubic-bezier(.22,.61,.36,1) 180ms both; }

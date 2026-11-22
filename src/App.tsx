@@ -3411,7 +3411,7 @@ function AdminCreateTabs({ tabs }: { tabs: Array<{ id: string; label: string }> 
 }
 
 function AdminCreateHeaderActions({ formId, cancelHref, draftLabel = 'Lưu nháp', saveLabel, saving = false }: { formId: string; cancelHref: string; draftLabel?: string; saveLabel: string; saving?: boolean }) {
-  return <div className="admin-create-header-actions flex flex-nowrap items-center justify-end gap-2"><button className="inline-flex min-h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-[var(--color-olive)] px-3.5 font-body text-sm font-medium text-[var(--color-olive-dark)] hover:bg-[rgba(155,148,47,.08)] disabled:cursor-wait disabled:opacity-60" form={formId} name="intent" type="submit" value="draft" disabled={saving}>{saving ? 'Đang lưu…' : draftLabel}</button><button className="admin-primary-action inline-flex min-h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[var(--color-olive)] px-3.5 font-body text-sm font-medium text-white hover:bg-[var(--color-olive-dark)] disabled:cursor-wait disabled:opacity-60" form={formId} name="intent" type="submit" value="saved" disabled={saving}>{saving ? 'Đang lưu…' : saveLabel}</button><a className={`inline-flex min-h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-[#dedbd0] px-3.5 font-body text-sm text-[var(--color-ink)] hover:bg-[#f6f5ed] ${saving ? 'pointer-events-none opacity-60' : ''}`} href={cancelHref} aria-disabled={saving}>Hủy</a></div>
+  return <div className="admin-create-header-actions flex flex-nowrap items-center justify-end gap-2"><button className="admin-header-action inline-flex min-h-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[var(--color-olive)] px-3.5 font-body text-sm font-medium text-[var(--color-olive-dark)] hover:bg-[rgba(155,148,47,.08)] disabled:cursor-wait disabled:opacity-60" form={formId} name="intent" type="submit" value="draft" disabled={saving}><i className="bi bi-file-earmark" aria-hidden="true" /><span className="admin-header-action-label">{saving ? 'Đang lưu…' : draftLabel}</span></button><button className="admin-header-action admin-primary-action inline-flex min-h-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[var(--color-olive)] px-3.5 font-body text-sm font-medium text-white hover:bg-[var(--color-olive-dark)] disabled:cursor-wait disabled:opacity-60" form={formId} name="intent" type="submit" value="saved" disabled={saving}><i className="bi bi-save" aria-hidden="true" /><span className="admin-header-action-label">{saving ? 'Đang lưu…' : saveLabel}</span></button><a className="admin-header-action inline-flex min-h-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[#dedbd0] px-3.5 font-body text-sm text-[var(--color-ink)] hover:bg-[#f6f5ed]" href={cancelHref} aria-disabled={saving}><i className="bi bi-x-lg" aria-hidden="true" /><span className="admin-header-action-label">Hủy</span></a></div>
 }
 
 function AdminBookSaveProgressOverlay({ progress, editMode }: { progress: AdminBookSaveProgress; editMode: boolean }) {
@@ -3453,7 +3453,7 @@ function AdminNotificationButton() {
     try { await markAllAdminNotificationsRead(); const now = new Date().toISOString(); setNotifications((rows) => rows.map((row) => ({ ...row, readAt: row.readAt ?? now }))) } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không đánh dấu được thông báo.') }
   }
   return <div className="relative">
-    <button className="admin-header-icon inline-flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-full border border-[#dedbd0] bg-white text-[var(--color-ink)] transition-colors hover:border-[var(--color-olive)] hover:bg-[#f5f3ec]" type="button" aria-label="Thông báo" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+    <button className="admin-header-icon inline-flex h-9 w-9 shrink-0 aspect-square items-center justify-center rounded-full bg-transparent p-0 text-[var(--color-ink)] transition-colors hover:bg-[#f5f3ec]" type="button" aria-label="Thông báo" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
       <i className="bi bi-bell" aria-hidden="true" />
       {unread > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#c45b3a]" aria-label={`${unread} thông báo chưa đọc`} />}
     </button>
@@ -4458,7 +4458,7 @@ function AdminSelect2({ label, value, options, onChange, placeholder, multiple =
   }
   const remove = (option: string) => { onChange(multiple ? selected.filter((item) => item !== option) : ''); setQuery(''); setOpen(false) }
   return <div className={`relative ${open ? 'z-40' : 'z-0'}`}>
-    <div className="admin-select2-control-row">
+    <div className={`admin-select2-control-row ${quickAdd ? 'has-quick-add' : 'is-full-width'}`}>
       <label ref={anchorRef} className="relative block"><span className="mb-1.5 block font-body text-sm font-medium">{label}{required && <span className="ml-1 text-[var(--color-olive-dark)]" aria-hidden="true">*</span>}</span><input className="admin-select2-input h-9 min-h-9 w-full rounded-xl border border-[#dedbd0] bg-[#fcfbf7] px-3.5 font-body text-sm outline-none transition focus:border-[var(--color-olive)] focus:ring-2 focus:ring-[rgba(155,148,47,.14)]" value={query} onFocus={() => setOpen(true)} onChange={(event) => { setQuery(event.target.value); setOpen(true) }} placeholder={selected.length ? selected.join(', ') : placeholder} aria-expanded={open} aria-autocomplete="list" aria-required={required} />{open && <div className={`absolute left-0 z-30 max-h-[18rem] w-full overflow-auto rounded-xl border border-[#dedbd0] bg-white p-1.5 shadow-lg ${placement === 'top' ? 'bottom-full mb-2' : 'mt-2'}`}>{filtered.length ? filtered.map((option) => <button className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left font-body text-sm hover:bg-[#f5f3ec] ${selected.includes(option) ? 'bg-[rgba(155,148,47,.1)] font-semibold text-[var(--color-olive-dark)]' : ''}`} type="button" key={option} onClick={() => choose(option)}>{option}{selected.includes(option) && <i className="bi bi-check2" aria-hidden="true" />}</button>) : <p className="px-3 py-2 font-body text-sm text-[#8b8d86]">Không tìm thấy dữ liệu đã tạo.</p>}</div>}</label>
       {quickAdd && <div className="admin-select2-quick-add">{quickAdd}</div>}
     </div>
@@ -4860,8 +4860,8 @@ function AdminBookCreatePageV2({ editId }: { editId?: string }) {
   const readCoverFile = (file: File, replacePrimary = false) => { const asset = { preview: URL.createObjectURL(file), name: file.name, file }; setCoverImages((current) => replacePrimary ? [asset, ...current.slice(1)] : [...current, asset]) }
   if (editLoading) return <AdminSimpleCreateShell title="Đang tải sách" backHref="/admin/books" section="SÁCH" description="Đang nạp thông tin thật từ Supabase để chỉnh sửa."><div className="rounded-2xl border border-[#e6e2d7] bg-white p-10 text-center font-body text-sm text-[#74776f]">Đang tải thông tin sách…</div></AdminSimpleCreateShell>
   return <AdminSimpleCreateShell title={editId ? 'Sửa sách' : 'Thêm sách'} backHref="/admin/books" section="SÁCH" description={editId ? 'Chỉnh sửa bản ghi sách thật trong Supabase. Tồn kho được điều chỉnh riêng tại Quản lý kho.' : 'Tạo sách từ các trường đã chuẩn hóa theo bốn sheet Picador, Penguin UK, Penguin US và NYRB. Tồn kho được nhập và điều chỉnh riêng tại Quản lý kho.'} showTabs={false} headerActions={<div className="admin-book-create-header-actions flex flex-nowrap items-center justify-end gap-2">
-    {!editId && <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[var(--color-olive)] px-4 font-body text-sm font-medium text-[var(--color-olive-dark)] transition-colors hover:bg-[rgba(155,148,47,.08)]" href="/admin/books/import">
-      <i className="bi bi-file-earmark-spreadsheet" aria-hidden="true" />Nhập hàng loạt
+    {!editId && <a className="admin-header-action inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[var(--color-olive)] px-4 font-body text-sm font-medium text-[var(--color-olive-dark)] transition-colors hover:bg-[rgba(155,148,47,.08)]" href="/admin/books/import">
+      <i className="bi bi-file-earmark-spreadsheet" aria-hidden="true" /><span className="admin-header-action-label">Nhập hàng loạt</span>
     </a>}
     <AdminCreateHeaderActions formId="admin-book-create-form" cancelHref="/admin/books" saveLabel={editId ? 'Lưu thay đổi' : 'Lưu sách'} saving={saving} />
   </div>}>
@@ -4904,7 +4904,7 @@ function AdminCategoryCreatePageV2() {
 
 function AdminListShell({ title, section, description: _description, createHref = '/admin', createLabel = 'Quản trị', children }: { title: string; section: string; description: string; createHref?: string; createLabel?: string; children: ReactNode }) {
   const bookListActions = typeof window !== 'undefined' && window.location.pathname === '/admin/books'
-  return <AdminShell title={title} section={section} headerActions={bookListActions ? <div className="flex shrink-0 items-center gap-2"><AdminBulkBookImportLauncher /><a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a></div> : <a className="admin-primary-action inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" />{createLabel}</a>}>{children}</AdminShell>
+  return <AdminShell title={title} section={section} headerActions={bookListActions ? <div className="flex shrink-0 items-center gap-2"><AdminBulkBookImportLauncher /><a className="admin-header-action admin-primary-action inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" /><span className="admin-header-action-label">{createLabel}</span></a></div> : <a className="admin-header-action admin-primary-action inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-medium text-white" href={createHref}><i className="bi bi-plus-lg" aria-hidden="true" /><span className="admin-header-action-label">{createLabel}</span></a>}>{children}</AdminShell>
 }
 
 function AdminListSelectionEnhancement() {
@@ -6082,7 +6082,7 @@ function AdminBulkBookImportPage({ onImported }: { onImported: () => void }) {
       writeBulkBookImportJob({ status: 'stopped', rows: serializeBulkBookRows(currentRows), results: nextResults, updatedAt: Date.now() })
     }
   }
-  return <AdminSimpleCreateShell title="Nhập hàng loạt sách" backHref="/admin/books" section="SÁCH" description="Kiểm tra và nhập nhiều sách theo file mẫu." showTabs={false} headerActions={<a className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[#dedbd0] px-3.5 font-body text-sm text-[var(--color-ink)] hover:bg-[#f6f5ed]" href="/admin/books">Quay lại danh sách sách</a>}>
+  return <AdminSimpleCreateShell title="Nhập hàng loạt sách" backHref="/admin/books" section="SÁCH" description="Kiểm tra và nhập nhiều sách theo file mẫu." showTabs={false} headerActions={<a className="admin-header-action admin-header-back-action inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[#dedbd0] px-3.5 font-body text-sm text-[var(--color-ink)] hover:bg-[#f6f5ed]" href="/admin/books"><i className="bi bi-arrow-left" aria-hidden="true" /><span className="admin-header-action-label">Quay lại</span></a>}>
     <div>
       {resumeJob && <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(31,42,36,.42)] p-4" role="dialog" aria-modal="true" aria-labelledby="bulk-import-resume-title"><section className="w-full max-w-md rounded-2xl border border-[#e6e2d7] bg-white p-5 shadow-2xl sm:p-6"><div className="flex items-start gap-3"><span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fff5e8] text-[#a45b16]"><i className="bi bi-pause-circle-fill" aria-hidden="true" /></span><div><h2 id="bulk-import-resume-title" className="font-display text-lg font-semibold">Phiên nhập đang dừng</h2><p className="mt-1 font-body text-sm leading-6 text-[#62655f]">Lần trước tiến trình đã dừng khi rời màn hình. Đã hoàn tất {resumeJob.results.filter((result) => result.status === 'created').length} dòng; bạn muốn tiếp tục các dòng còn lại không?</p></div></div><div className="mt-5 flex flex-wrap justify-end gap-2"><button className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#dedbd0] px-4 font-body text-sm" type="button" onClick={() => { clearBulkBookImportJob(); setResumeJob(null); setResults([]); emitFloatingNotice('success', 'Đã hủy phiên nhập đang dừng. Dữ liệu nháp vẫn được giữ.') }}>Hủy phiên nhập</button><button className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[var(--color-olive)] px-4 font-body text-sm font-semibold text-white" type="button" onClick={() => { setResumeJob(null); void importRows() }}><i className="bi bi-play-fill" aria-hidden="true" />Tiếp tục nhập</button></div></section></div>}
       <div className="flex items-start justify-between gap-4 border-b border-[#e6e2d7] px-1 pb-4"><div><h2 id="bulk-book-import-title" className="font-display text-xl font-semibold">Nhập hàng loạt sách</h2><p className="mt-1 max-w-3xl font-body text-sm leading-6 text-[#74776f]">Nhập Excel hoặc dán chuỗi theo dấu <code className="rounded bg-[#f6f5ed] px-1">|</code>. File bìa và PDF/EPUB đọc thử được ghép theo đúng tên file ở hai cột tương ứng.</p></div></div>
@@ -6104,7 +6104,7 @@ function AdminBulkBookImportPage({ onImported }: { onImported: () => void }) {
 }
 
 function AdminBulkBookImportLauncher() {
-  return <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[var(--color-olive)] px-3.5 font-body text-sm font-medium text-[var(--color-olive-dark)] hover:bg-[rgba(155,148,47,.08)]" href="/admin/books/import"><i className="bi bi-file-earmark-spreadsheet" aria-hidden="true" />Nhập hàng loạt</a>
+  return <a className="admin-header-action inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[var(--color-olive)] px-3.5 font-body text-sm font-medium text-[var(--color-olive-dark)] hover:bg-[rgba(155,148,47,.08)]" href="/admin/books/import"><i className="bi bi-file-earmark-spreadsheet" aria-hidden="true" /><span className="admin-header-action-label">Nhập hàng loạt</span></a>
 }
 
 function AdminBooksPageFixed({ managementView }: { managementView: BookManagementView }) {
@@ -6617,7 +6617,77 @@ function useAdminDashboardSidebarCollapse() {
     let collapsed = false
     button.addEventListener('click', () => { collapsed = !collapsed; setCollapsed(collapsed) })
     shell.insertBefore(button, shell.children[1] ?? null)
-    return () => { button.remove() }
+    const aside = shell.querySelector<HTMLElement>('.admin-sidebar')
+    const header = shell.querySelector<HTMLElement>(':scope > div:last-child > header')
+    const headerLead = header?.firstElementChild
+    const asideLead = aside?.firstElementChild
+    const ordersLink = header?.querySelector<HTMLAnchorElement>('a[href="/admin/orders"]')
+    const ordersLabel = ordersLink?.textContent?.trim() ?? ''
+    if (ordersLink && ordersLabel && !ordersLink.querySelector('.admin-header-action-label')) {
+      ordersLink.classList.add('admin-header-action', 'inline-flex', 'items-center', 'justify-center', 'gap-2')
+      ordersLink.textContent = ''
+      const ordersIcon = document.createElement('i')
+      ordersIcon.className = 'bi bi-bag'
+      ordersIcon.setAttribute('aria-hidden', 'true')
+      const ordersText = document.createElement('span')
+      ordersText.className = 'admin-header-action-label'
+      ordersText.textContent = ordersLabel
+      ordersLink.append(ordersIcon, ordersText)
+    }
+    const menuButton = document.createElement('button')
+    menuButton.className = 'admin-header-icon inline-flex items-center justify-center rounded-full lg:hidden'
+    menuButton.type = 'button'
+    menuButton.setAttribute('aria-label', 'Mở menu quản trị')
+    menuButton.setAttribute('aria-expanded', 'false')
+    const menuIcon = document.createElement('i')
+    menuIcon.className = 'bi bi-list'
+    menuIcon.setAttribute('aria-hidden', 'true')
+    menuButton.append(menuIcon)
+    const closeButton = document.createElement('button')
+    closeButton.className = 'admin-header-icon inline-flex items-center justify-center rounded-full lg:hidden'
+    closeButton.type = 'button'
+    closeButton.setAttribute('aria-label', 'Đóng menu quản trị')
+    const closeIcon = document.createElement('i')
+    closeIcon.className = 'bi bi-x-lg'
+    closeIcon.setAttribute('aria-hidden', 'true')
+    closeButton.append(closeIcon)
+    const overlay = document.createElement('button')
+    overlay.className = 'admin-mobile-overlay fixed inset-0 z-30 bg-[rgba(31,42,36,.32)] lg:hidden'
+    overlay.type = 'button'
+    overlay.setAttribute('aria-label', 'Đóng menu quản trị')
+    overlay.hidden = true
+    const closeMenu = () => {
+      aside?.classList.remove('is-open')
+      overlay.hidden = true
+      menuButton.setAttribute('aria-expanded', 'false')
+    }
+    const openMenu = () => {
+      aside?.classList.add('is-open')
+      overlay.hidden = false
+      menuButton.setAttribute('aria-expanded', 'true')
+    }
+    if (headerLead && !headerLead.querySelector('[aria-label="Mở menu quản trị"]')) {
+      headerLead.prepend(menuButton)
+      headerLead.classList.add('flex', 'items-center', 'gap-3')
+    }
+    if (asideLead && !asideLead.querySelector('[aria-label="Đóng menu quản trị"]')) {
+      asideLead.classList.add('flex', 'items-center', 'justify-between')
+      asideLead.append(closeButton)
+    }
+    aside?.classList.add('admin-mobile-drawer')
+    menuButton.addEventListener('click', openMenu)
+    closeButton.addEventListener('click', closeMenu)
+    overlay.addEventListener('click', closeMenu)
+    shell.append(overlay)
+    return () => {
+      button.remove()
+      menuButton.removeEventListener('click', openMenu)
+      closeButton.removeEventListener('click', closeMenu)
+      overlay.removeEventListener('click', closeMenu)
+      menuButton.remove()
+      closeButton.remove()
+      overlay.remove()
+    }
   }, [])
 }
 
