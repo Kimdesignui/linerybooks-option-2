@@ -4727,9 +4727,23 @@ function AdminBookCreatePageV2({ editId }: { editId?: string }) {
   const [descriptionLanguage, setDescriptionLanguage] = useState<'en' | 'vi'>('en')
   useEffect(() => {
     if (editId) return
-    // A new book must always open as a clean form. Older versions restored a
-    // stale draft and IndexedDB files here, which made a previous failed book
-    // appear to be the current one and blocked fresh file selections.
+    // A new book must always open as a clean form. Older versions only
+    // cleared storage, leaving the mounted React state (including File
+    // objects) from the previous book when navigating back to /new.
+    setValues(emptyAdminBookCreateValues)
+    setCoverImages((current) => {
+      current.forEach((asset) => { if (asset.file && asset.preview.startsWith('blob:')) URL.revokeObjectURL(asset.preview) })
+      return []
+    })
+    setSampleFile(null)
+    setSamplePageCount('')
+    setIsVisible(true)
+    setHomeModules([])
+    setSaveError('')
+    setSaveProgress(null)
+    setExistingSampleName('')
+    setFieldWarnings({})
+    setDescriptionLanguage('en')
     window.localStorage.removeItem(adminBookDraftStorageKey)
     void clearAdminBookDraftFiles()
   }, [editId])
