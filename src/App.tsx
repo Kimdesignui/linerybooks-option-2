@@ -5873,7 +5873,8 @@ const buildBulkBookUrlFallbackRow = (source: { sourceUrl?: string; title?: strin
   cells['Ảnh bìa'] = coverFile?.name || ''
   const row = buildBulkBookRow(cells, 1, bulkBookFileMap(files), source.sourceUrl || 'URL nguồn')
   const fallbackIssue = 'AI Gemini hiện không khả dụng trên môi trường triển khai. Đã lấy tên, mô tả và ảnh bìa từ URL; hãy bổ sung ISBN, tác giả và giá trước khi nhập.'
-  return { ...row, issues: [...new Set([...row.issues, fallbackIssue, ...(coverIssue ? [coverIssue] : [])])] }
+  const fallbackWarning = row.issues.length ? [fallbackIssue] : []
+  return { ...row, issues: [...new Set([...row.issues, ...fallbackWarning, ...(coverIssue ? [coverIssue] : [])])] }
 }
 
 const readBulkBookAiSource = async (file: File, files: File[]): Promise<BulkBookImportRow[]> => {
