@@ -24,7 +24,7 @@ html::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 99
 html::-webkit-scrollbar-thumb:hover { background: rgba(31,42,36,.66); background-clip: padding-box; }
 body { margin: 0; min-width: 320px; background: var(--color-olive); }
 #root { min-width: 0; overflow-x: clip; }
-.page-shell ::selection, .page-shell::selection { background: var(--color-secondary-brand); color: #fff; }
+::selection, ::-moz-selection { background: var(--color-secondary-brand); color: #fff; }
 .admin-shell, .admin-shell .font-display, .admin-shell .font-body { font-family: var(--font-admin); }
 .admin-shell { --admin-body-size: 14px; font-size: var(--admin-body-size); line-height: 1.5; }
 .admin-auth-page {
