@@ -390,8 +390,15 @@ const bookCoverContentType = (file: File) => {
 }
 
 const bookSaveError = (stage: string, error: unknown) => {
-  const detail = error instanceof Error ? error.message : String((error as { message?: unknown } | null)?.message ?? error ?? 'Lỗi không xác định')
-  return new Error(`${stage}: ${detail}`)
+  const source = error as { message?: unknown; code?: unknown; status?: unknown; statusCode?: unknown; details?: unknown; hint?: unknown } | null
+  const detail = error instanceof Error ? error.message : String(source?.message ?? error ?? 'Lỗi không xác định')
+  const metadata = [
+    source?.code ? `mã ${String(source.code)}` : '',
+    source?.status ?? source?.statusCode ? `HTTP ${String(source.status ?? source.statusCode)}` : '',
+    source?.details ? `chi tiết: ${String(source.details)}` : '',
+    source?.hint ? `gợi ý: ${String(source.hint)}` : '',
+  ].filter(Boolean)
+  return new Error(`${stage}: ${detail}${metadata.length ? ` (${metadata.join('; ')})` : ''}`)
 }
 
 const syncBookTags = async (bookId: string, tagNames: string[]) => {
