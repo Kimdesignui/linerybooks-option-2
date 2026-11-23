@@ -422,8 +422,8 @@ const syncBookTags = async (bookId: string, tagNames: string[]) => {
 const importDependencySlug = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 const importDependencyKey = (value: string) => value.trim().toLocaleLowerCase('vi').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd')
 
-/** Create missing creator/taxonomy records once before a bulk book import. */
-export async function ensureAdminBookImportDependencies(inputs: AdminBookInput[]): Promise<{ creators: string[]; taxonomy: string[] }> {
+/** Create missing creator/taxonomy/tag records once before a bulk book import. */
+export async function ensureAdminBookImportDependencies(inputs: AdminBookInput[]): Promise<{ creators: string[]; taxonomy: string[]; tags: string[] }> {
   if (!supabase) throw new Error('Supabase chưa được cấu hình.')
   const creatorRequests = new Map<string, { name: string; roles: Array<'author' | 'translator' | 'illustrator'> }>()
   inputs.forEach((input) => {
@@ -465,6 +465,7 @@ export async function ensureAdminBookImportDependencies(inputs: AdminBookInput[]
     { kind: 'imprint', names: inputs.flatMap((input) => input.imprints ?? []) },
     { kind: 'language', names: inputs.flatMap((input) => input.languages ?? []) },
   ]
+  const requestedTags = [...new Set(inputs.flatMap((input) => input.tags ?? []).map((name) => name.trim()).filter(Boolean))]
   const taxonomyResult = await supabase.from('taxonomy_terms').select('kind,name,slug')
   if (taxonomyResult.error) throw taxonomyResult.error
   const taxonomyRows = (taxonomyResult.data ?? []) as Array<{ kind?: string; name?: string; slug?: string }>
@@ -485,7 +486,19 @@ export async function ensureAdminBookImportDependencies(inputs: AdminBookInput[]
       createdTaxonomy.push(`${entry.kind}=${rawName}`)
     }
   }
-  return { creators: createdCreators, taxonomy: createdTaxonomy }
+  const tagResult = await supabase.from('book_tags').select('name,slug')
+  if (tagResult.error) throw tagResult.error
+  const tagRows = (tagResult.data ?? []) as Array<{ name?: string; slug?: string }>
+  const existingTags = new Set(tagRows.map((row) => importDependencyKey(String(row.name ?? ''))))
+  const createdTags: string[] = []
+  for (const rawName of requestedTags) {
+    const key = importDependencyKey(rawName)
+    if (existingTags.has(key)) continue
+    await createAdminBookTag(rawName)
+    existingTags.add(key)
+    createdTags.push(rawName)
+  }
+  return { creators: createdCreators, taxonomy: createdTaxonomy, tags: createdTags }
 }
 
 export type AdminTaxonomyKind = 'category' | 'topic' | 'format' | 'line' | 'genre' | 'publisher' | 'imprint' | 'language'
