@@ -5859,10 +5859,16 @@ const parseBulkBookAiRows = (value: unknown, files: File[], sourceName: string):
 
 const isGeminiUnavailableError = (message: string) => /user location is not supported for the api use|gemini is not configured/i.test(message)
 
-const buildBulkBookUrlFallbackRow = (source: { sourceUrl?: string; title?: string; description?: string }, files: File[], coverFile?: File, coverIssue = '') => {
+const buildBulkBookUrlFallbackRow = (source: { sourceUrl?: string; title?: string; description?: string; isbn?: string; author?: string; pageCount?: string; format?: string; publisher?: string; price?: string }, files: File[], coverFile?: File, coverIssue = '') => {
   const cells = emptyBulkBookRow()
+  cells.ISBN = source.isbn?.trim() || ''
   cells['Tên sách'] = source.title?.trim() || ''
   cells['Đường dẫn'] = source.sourceUrl?.trim() || ''
+  cells['Giá bán VNĐ'] = source.price?.trim() || ''
+  cells['Số trang'] = source.pageCount?.trim() || ''
+  cells['Khổ sách'] = source.format?.trim() || ''
+  cells['Tác giả'] = source.author?.trim() || ''
+  cells['Nhà xuất bản'] = source.publisher?.trim() || ''
   cells['Mô tả'] = source.description?.trim() || ''
   cells['Ảnh bìa'] = coverFile?.name || ''
   const row = buildBulkBookRow(cells, 1, bulkBookFileMap(files), source.sourceUrl || 'URL nguồn')
@@ -5949,7 +5955,7 @@ const attachBulkBookUrlCovers = async (rows: BulkBookImportRow[], files: File[])
 
 const readBulkBookAiUrl = async (url: string, files: File[]): Promise<{ rows: BulkBookImportRow[]; coverFile?: File }> => {
   const sourceResponse = await fetch('/api/book-source', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
-  const source = await readJsonResponse<{ sourceUrl?: string; title?: string; description?: string; coverUrl?: string; text?: string; error?: string }>(sourceResponse, '/api/book-source')
+  const source = await readJsonResponse<{ sourceUrl?: string; title?: string; description?: string; isbn?: string; author?: string; pageCount?: string; format?: string; publisher?: string; price?: string; coverUrl?: string; text?: string; error?: string }>(sourceResponse, '/api/book-source')
   if (!sourceResponse.ok) throw new Error(source.error || 'Không đọc được URL nguồn.')
   const sourceUrl = source.sourceUrl || url
   let coverFile: File | undefined
@@ -6006,6 +6012,15 @@ function AdminBulkBookImportPage({ onImported }: { onImported: () => void }) {
   const editingPanelRef = useRef<HTMLDivElement>(null)
   const draftHydratedRef = useRef(false)
   const skipNextAssetReparseRef = useRef(false)
+  useEffect(() => {
+    const fileInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="file"]'))
+    const resetAfterSelection = (event: Event) => {
+      const input = event.currentTarget as HTMLInputElement
+      window.setTimeout(() => { input.value = '' }, 0)
+    }
+    fileInputs.forEach((input) => input.addEventListener('change', resetAfterSelection))
+    return () => fileInputs.forEach((input) => input.removeEventListener('change', resetAfterSelection))
+  }, [])
   const onClose = () => { window.location.href = '/admin/books' }
   const rowKey = (row: BulkBookImportRow) => `${row.sourceName}-${row.rowNumber}`
   const openRowEditor = (row: BulkBookImportRow) => { setEditingRowKey(rowKey(row)); setEditingCells({ ...row.sourceCells }); setEditingError('') }

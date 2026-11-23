@@ -14,7 +14,10 @@ const parseUrl = (value: string) => {
 }
 
 const attributeValue = (tag: string, attribute: string) => new RegExp(`${attribute}=["']([^"']+)["']`, 'i').exec(tag)?.[1] ?? ''
-const decodeHtml = (value: string) => value.replace(/&amp;/gi, '&').replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/&nbsp;/gi, ' ')
+const decodeHtml = (value: string) => value
+  .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+  .replace(/&#x([\da-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)))
+  .replace(/&amp;/gi, '&').replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/&nbsp;/gi, ' ')
 
 const productImageUrl = (html: string, sourceUrl: URL) => {
   const linkedImages = [...html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>[\s\S]{0,1200}?<img\b[^>]*>/gi)].map((match) => decodeHtml(match[1])).filter(Boolean)
@@ -44,7 +47,20 @@ const productImageUrl = (html: string, sourceUrl: URL) => {
 
 const pageTitle = (html: string) => decodeHtml(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1] || /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 const descriptionText = (html: string) => decodeHtml(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["'][^>]*>/i.exec(html)?.[1] || '').trim()
-const stripHtml = (html: string) => html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/\s+/g, ' ').trim()
+const stripHtml = (html: string) => decodeHtml(html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
+const metaContent = (html: string, property: string) => decodeHtml([...html.matchAll(/<meta\b[^>]*>/gi)].map((match) => match[0]).map((tag) => ({ name: attributeValue(tag, 'name') || attributeValue(tag, 'property'), content: attributeValue(tag, 'content') })).find((item) => item.name.toLowerCase() === property.toLowerCase())?.content || '')
+const catalogFacts = (html: string, description: string) => {
+  const text = `${description} ${stripHtml(html)}`.replace(/\s+/g, ' ')
+  const capture = (pattern: RegExp) => text.match(pattern)?.[1]?.trim() || ''
+  return {
+    isbn: capture(/ISBN\s*:\s*([^\s,;]+)/i),
+    author: capture(/Tác giả\s*:\s*(.*?)(?=\s+(?:Đối tượng|Khuôn\s*Khổ|Số trang|Định dạng|Trọng lượng)\s*:|$)/i),
+    pageCount: capture(/Số trang\s*:\s*([\d.,]+)/i),
+    format: capture(/Khuôn\s*Khổ\s*:\s*([^,;]+?)(?=\s+Số trang\s*:|$)/i),
+    publisher: capture(/Nhà xuất bản\s*:\s*([^,;]+)/i),
+    price: metaContent(html, 'og:price:amount'),
+  }
+}
 
 export async function onRequestPost({ request }: { request: Request }) {
   let input: BookSourceRequest
@@ -61,7 +77,8 @@ export async function onRequestPost({ request }: { request: Request }) {
     const coverUrl = productImageUrl(html, sourceUrl)
     const title = pageTitle(html)
     const description = descriptionText(html)
-    return json({ sourceUrl: sourceUrl.toString(), title, description, coverUrl, text: stripHtml(html).slice(0, 120000) })
+    const facts = catalogFacts(html, description)
+    return json({ sourceUrl: sourceUrl.toString(), title, description, coverUrl, ...facts, text: stripHtml(html).slice(0, 120000) })
   } catch (reason) {
     return json({ error: reason instanceof Error ? reason.message : 'Không đọc được URL nguồn.' }, 400)
   }
