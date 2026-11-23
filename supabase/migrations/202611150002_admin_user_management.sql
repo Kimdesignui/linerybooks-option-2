@@ -8,6 +8,11 @@ create table if not exists public.admin_users (
   created_at timestamptz not null default now()
 );
 
+-- Some existing deployments already have this table with a legacy role check.
+-- Normalize that constraint before bootstrapping the owner account; the later
+-- permissions migration replaces it with the current role set.
+alter table public.admin_users drop constraint if exists admin_users_role_check;
+
 alter table public.admin_users enable row level security;
 
 -- Bootstrap the requested owner account by email. The password remains managed
@@ -18,6 +23,7 @@ from auth.users
 where lower(email) = 'pt.thietke@gmail.com'
 on conflict (user_id) do update set role = 'owner';
 
+drop function if exists public.admin_list_admin_users();
 create or replace function public.admin_list_admin_users()
 returns table(user_id uuid, email text, role text, created_at timestamptz)
 language plpgsql
@@ -40,6 +46,7 @@ begin
 end;
 $$;
 
+drop function if exists public.admin_grant_admin(text, text);
 create or replace function public.admin_grant_admin(p_email text, p_role text default 'editor')
 returns table(user_id uuid, email text, role text, created_at timestamptz)
 language plpgsql
@@ -80,6 +87,7 @@ begin
 end;
 $$;
 
+drop function if exists public.admin_revoke_admin(uuid);
 create or replace function public.admin_revoke_admin(p_user_id uuid)
 returns void
 language plpgsql

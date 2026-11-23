@@ -100,6 +100,21 @@ create table public.book_taxonomy_terms (
   primary key (book_id, term_id)
 );
 
+create table public.book_tags (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  slug text not null unique,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.book_tag_links (
+  book_id uuid not null references public.books(id) on delete cascade,
+  tag_id uuid not null references public.book_tags(id) on delete restrict,
+  primary key (book_id, tag_id)
+);
+
 create table public.homepage_modules (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -119,6 +134,8 @@ create index taxonomy_terms_kind_parent_idx on public.taxonomy_terms(kind, paren
 create index books_status_visible_idx on public.books(status, is_visible_website);
 create index book_creators_creator_role_idx on public.book_creators(creator_id, role);
 create index book_taxonomy_terms_term_idx on public.book_taxonomy_terms(term_id);
+create index book_tag_links_tag_book_idx on public.book_tag_links(tag_id, book_id);
+create index book_tag_links_book_tag_idx on public.book_tag_links(book_id, tag_id);
 create unique index book_homepage_modules_module_sort_unique on public.book_homepage_modules(module_id, sort_order);
 create unique index book_images_one_primary_idx on public.book_images(book_id) where is_primary;
 create unique index creator_images_one_primary_idx on public.creator_images(creator_id) where is_primary;
@@ -131,6 +148,8 @@ alter table public.books enable row level security;
 alter table public.book_images enable row level security;
 alter table public.book_creators enable row level security;
 alter table public.book_taxonomy_terms enable row level security;
+alter table public.book_tags enable row level security;
+alter table public.book_tag_links enable row level security;
 alter table public.homepage_modules enable row level security;
 alter table public.book_homepage_modules enable row level security;
 
@@ -142,5 +161,7 @@ create policy "public reads visible books" on public.books for select using (sta
 create policy "public reads book images" on public.book_images for select using (true);
 create policy "public reads book creators" on public.book_creators for select using (true);
 create policy "public reads book terms" on public.book_taxonomy_terms for select using (true);
+create policy "public reads active book tags" on public.book_tags for select using (is_active = true);
+create policy "public reads book tag links" on public.book_tag_links for select using (true);
 create policy "public reads active homepage modules" on public.homepage_modules for select using (is_active = true);
 create policy "public reads book homepage modules" on public.book_homepage_modules for select using (true);

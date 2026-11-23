@@ -24,6 +24,7 @@ html::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 99
 html::-webkit-scrollbar-thumb:hover { background: rgba(31,42,36,.66); background-clip: padding-box; }
 body { margin: 0; min-width: 320px; background: var(--color-olive); }
 #root { min-width: 0; overflow-x: clip; }
+.page-shell ::selection, .page-shell::selection { background: var(--color-secondary-brand); color: #fff; }
 .admin-shell, .admin-shell .font-display, .admin-shell .font-body { font-family: var(--font-admin); }
 .admin-shell { --admin-body-size: 14px; font-size: var(--admin-body-size); line-height: 1.5; }
 .admin-auth-page {
@@ -1131,6 +1132,15 @@ main:has(.news-module) + .site-footer { margin-top: var(--section-gap); }
 .book-detail-category { display: block; margin-top: 22px; font-family: var(--font-caslon); font-size: 17px; line-height: 1.5; }
 .book-detail-category > span { display: block; margin-bottom: 10px; color: var(--color-ink); font-family: var(--font-display); font-weight: 600; }
 .book-detail-category > div { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.book-detail-tag-heading { display: block; margin: 18px 0 10px; color: var(--color-ink); font-family: var(--font-display); font-weight: 600; }
+.book-detail-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.book-tag-link { display: inline-flex; align-items: center; min-height: 32px; padding: 6px 12px; border: 1px solid rgba(155,148,47,.65); border-radius: 999px; color: var(--color-olive-dark); font-family: var(--font-display); font-size: 13px; line-height: 1.2; text-decoration: none; transition: background-color 180ms ease, color 180ms ease; }
+.book-tag-link:hover, .book-tag-link:focus-visible { background: var(--color-olive); color: #fff; }
+.all-books-tag-filter { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.all-books-tag-filter-label { color: var(--color-ink); font-family: var(--font-display); font-size: 14px; font-weight: 600; }
+.all-books-tag-filter-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.all-books-tag-filter-list a { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 11px; border: 1px solid #dedbd0; border-radius: 999px; color: var(--color-muted); font-family: var(--font-body); font-size: 12px; text-decoration: none; }
+.all-books-tag-filter-list a:hover, .all-books-tag-filter-list a.is-active { border-color: var(--color-olive); background: rgba(155,148,47,.12); color: var(--color-olive-dark); }
 .book-detail-category a.book-classification-link { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 8px 15px; border: 1px solid var(--color-olive); border-radius: 999px; background: transparent; color: var(--color-olive); font-family: var(--font-display); font-size: 13px; line-height: 1.2; text-align: center; text-decoration: none; transition: background-color 180ms ease, color 180ms ease, transform 180ms ease; }
 .book-detail-category a.book-classification-link:hover, .book-detail-category a.book-classification-link:focus-visible { background: var(--color-olive); color: #fff; transform: translateY(-2px); }
 .book-detail-purchase { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; margin-top: 32px; }
@@ -1578,7 +1588,7 @@ main:has(.news-module) + .site-footer { margin-top: var(--section-gap); }
 .product-card-link:hover .product-cover, .product-card-link:focus-visible .product-cover { transform: scale(1.04); }
 .product-card-link:hover .product-overlay, .product-card-link:focus-visible .product-overlay { opacity: 1; transform: translateY(0); }
 .product-info-link:hover .product-info h3, .product-info-link:focus-visible .product-info h3 { color: var(--color-olive); }
-.product-author { display: none; margin: 0; color: #999; font-size: 12px; font-style: italic; line-height: normal; white-space: nowrap; }
+.product-author { display: block; width: 100%; margin: 0; overflow: hidden; color: #777; font-family: var(--font-caslon); font-size: 12px; font-style: italic; line-height: 1.25; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .product-language { margin: 0; color: #777; font-family: var(--font-caslon); font-size: 12px; font-style: italic; line-height: 1.25; text-align: center; }
 .product-price { width: 100%; margin: 0; padding-top: 4px; color: var(--color-olive); font-family: var(--font-body); font-size: 14px; line-height: 1.5; text-align: center; }
 .product-stock-status { width: 100%; margin: 3px 0 0; color: #777; font-family: var(--font-caslon); font-size: 14px; font-style: italic; text-align: center; }
